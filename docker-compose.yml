@@ -1,0 +1,24 @@
+services:
+  bientot:
+    build: .
+    container_name: bientot
+    restart: unless-stopped
+    # host network required to reach NetBird IPs (100.64.x.x)
+    network_mode: host
+    volumes:
+      - ./data:/data
+      - ./config:/app/config:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${BACKUP_STATUS_DIR:-/mnt/tank/stack/backup/status}:/data/backup-status:ro
+    env_file:
+      - .env
+    environment:
+      - DB_PATH=/data/metrics.db
+      - WEB_PORT=3001
+      - WEB_BIND=${WEB_BIND:-0.0.0.0}
+      - BACKUP_STATUS_DIR=/data/backup-status
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

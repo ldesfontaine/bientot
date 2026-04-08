@@ -1,0 +1,8 @@
+.env
+data/
+*.db
+*.log
+
+.claude/
+CLAUDE.md
+docs/
