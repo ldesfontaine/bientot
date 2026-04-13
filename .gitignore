@@ -1,7 +1,17 @@
 .env
+*.env
 data/
 *.db
 *.log
+
+# Build artifacts
+bientot
+bientot-agent
+bientot-agent-amd64
+bientot-agent-arm64
+bientot-server
+agent
+server
 
 .claude/
 CLAUDE.md
