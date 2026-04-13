@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -21,6 +23,28 @@ import (
 )
 
 func main() {
+	// Healthcheck subcommand: HTTP GET on dashboard /health endpoint
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		addr := getEnv("DASHBOARD_ADDR", "0.0.0.0:3001")
+		// Extract port from addr for localhost check
+		port := addr
+		if i := strings.LastIndex(addr, ":"); i >= 0 {
+			port = addr[i+1:]
+		}
+		resp, err := http.Get("http://localhost:" + port + "/health")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "healthcheck: %v\n", err)
+			os.Exit(1)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			fmt.Fprintf(os.Stderr, "healthcheck: status %d\n", resp.StatusCode)
+			os.Exit(1)
+		}
+		fmt.Println("OK")
+		os.Exit(0)
+	}
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: parseLogLevel(getEnv("LOG_LEVEL", "info")),
 	}))

@@ -14,11 +14,12 @@ import (
 )
 
 type container struct {
-	ID     string   `json:"Id"`
-	Names  []string `json:"Names"`
-	Image  string   `json:"Image"`
-	State  string   `json:"State"`
-	Status string   `json:"Status"`
+	ID     string            `json:"Id"`
+	Names  []string          `json:"Names"`
+	Image  string            `json:"Image"`
+	State  string            `json:"State"`
+	Status string            `json:"Status"`
+	Labels map[string]string `json:"Labels"`
 }
 
 // Module collects Docker container metrics.
@@ -137,6 +138,23 @@ func (m *Module) Collect(ctx context.Context) (transport.ModuleData, error) {
 		metadata["image_"+name] = image
 	}
 
+	// Service discovery: bientot.service.* labels
+	for _, c := range containers {
+		svcName, ok := c.Labels["bientot.service.name"]
+		if !ok {
+			continue
+		}
+		cName := containerName(c)
+		metadata["svc_"+cName+"_name"] = svcName
+		metadata["svc_"+cName+"_status"] = c.State
+		metadata["svc_"+cName+"_health"] = parseHealthString(c.Status)
+		for _, key := range []string{"url", "icon", "public"} {
+			if v, exists := c.Labels["bientot.service."+key]; exists {
+				metadata["svc_"+cName+"_"+key] = v
+			}
+		}
+	}
+
 	return transport.ModuleData{
 		Module:    "docker",
 		Metrics:   metrics,
@@ -169,5 +187,18 @@ func parseHealth(status string) float64 {
 		return 1
 	default:
 		return 0
+	}
+}
+
+func parseHealthString(status string) string {
+	switch {
+	case strings.Contains(status, "(healthy)"):
+		return "healthy"
+	case strings.Contains(status, "(unhealthy)"):
+		return "unhealthy"
+	case strings.Contains(status, "(health: starting)"):
+		return "starting"
+	default:
+		return "none"
 	}
 }

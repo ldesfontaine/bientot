@@ -1,5 +1,5 @@
 veille:
-  enabled: false
+  enabled: true
   url: "${VEILLE_URL}"
   token: "${VEILLE_TOKEN}"
   poll_interval: "15m"

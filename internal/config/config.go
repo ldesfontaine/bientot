@@ -148,6 +148,11 @@ func LoadVeille(path string) (*VeilleConfig, error) {
 		return nil, err
 	}
 
+	// VEILLE_ENABLED env var overrides the YAML enabled field
+	if v := os.Getenv("VEILLE_ENABLED"); v != "" {
+		wrapper.Veille.Enabled = v == "true" || v == "1"
+	}
+
 	return &wrapper.Veille, nil
 }
 

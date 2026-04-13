@@ -96,12 +96,14 @@ func (c *Client) FetchAlerts(status string, severities []string, limit int) ([]A
 		return nil, fmt.Errorf("veille-secu alerts: status %d", resp.StatusCode)
 	}
 
-	var alerts []Alert
-	if err := json.NewDecoder(resp.Body).Decode(&alerts); err != nil {
+	var wrapper struct {
+		Alerts []Alert `json:"alerts"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
 		return nil, fmt.Errorf("decoding alerts: %w", err)
 	}
 
-	return alerts, nil
+	return wrapper.Alerts, nil
 }
 
 // AddTool registers a software tool in veille-secu for matching.

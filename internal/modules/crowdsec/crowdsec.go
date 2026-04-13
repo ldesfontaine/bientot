@@ -4,8 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
-	"os/exec"
 	"time"
 
 	"github.com/ldesfontaine/bientot/internal/transport"
@@ -28,9 +28,10 @@ type metricsResp struct {
 	} `json:"buckets"`
 }
 
-// Module collects CrowdSec metrics from the LAPI.
+// Module collects CrowdSec metrics from the LAPI HTTP endpoints.
+// Active only when CROWDSEC_URL is set (VPS). Skips on Pi.
 type Module struct {
-	url    string // e.g. "http://localhost:6060" or "http://crowdsec-container:6060"
+	url    string // e.g. "http://crowdsec:8080"
 	client *http.Client
 }
 
@@ -45,15 +46,11 @@ func New(url string) *Module {
 
 func (m *Module) Name() string { return "crowdsec" }
 
-// Detect checks for cscli binary OR reachable metrics endpoint.
 func (m *Module) Detect() bool {
-	if _, err := exec.LookPath("cscli"); err == nil {
-		return true
-	}
 	if m.url == "" {
 		return false
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, "GET", m.url+"/v1/metrics", nil)
 	if err != nil {
@@ -69,35 +66,30 @@ func (m *Module) Detect() bool {
 
 func (m *Module) Collect(ctx context.Context) (transport.ModuleData, error) {
 	now := time.Now()
-	var metrics []transport.MetricPoint
 
-	if m.url != "" {
-		apiMetrics, err := m.fetchMetrics(ctx)
-		if err != nil {
-			return transport.ModuleData{}, fmt.Errorf("fetching crowdsec metrics: %w", err)
-		}
-
-		metrics = append(metrics,
-			transport.MetricPoint{Name: "crowdsec_decisions_total", Value: float64(apiMetrics.Decisions.Total)},
-			transport.MetricPoint{Name: "crowdsec_decisions_active", Value: float64(apiMetrics.Decisions.Active)},
-			transport.MetricPoint{Name: "crowdsec_alerts_total", Value: float64(apiMetrics.Alerts.Total)},
-			transport.MetricPoint{Name: "crowdsec_parsed_total", Value: float64(apiMetrics.Parsers.Parsed)},
-			transport.MetricPoint{Name: "crowdsec_unparsed_total", Value: float64(apiMetrics.Parsers.Unparsed)},
-			transport.MetricPoint{Name: "crowdsec_buckets_total", Value: float64(apiMetrics.Buckets.Total)},
-		)
-
-		bans, err := m.fetchDecisionCount(ctx)
-		if err == nil {
-			metrics = append(metrics, transport.MetricPoint{
-				Name: "crowdsec_bans_active", Value: float64(bans),
-			})
-		}
+	apiMetrics, err := m.fetchMetrics(ctx)
+	if err != nil {
+		slog.Warn("crowdsec metrics unreachable", "error", err)
+		return transport.ModuleData{
+			Module:    "crowdsec",
+			Metrics:   []transport.MetricPoint{},
+			Timestamp: now,
+		}, nil
 	}
 
-	// Bouncer count via cscli if available
-	if bouncers, err := countBouncers(ctx); err == nil {
+	metrics := []transport.MetricPoint{
+		{Name: "crowdsec_decisions_total", Value: float64(apiMetrics.Decisions.Total)},
+		{Name: "crowdsec_decisions_active", Value: float64(apiMetrics.Decisions.Active)},
+		{Name: "crowdsec_alerts_total", Value: float64(apiMetrics.Alerts.Total)},
+		{Name: "crowdsec_parsed_total", Value: float64(apiMetrics.Parsers.Parsed)},
+		{Name: "crowdsec_unparsed_total", Value: float64(apiMetrics.Parsers.Unparsed)},
+		{Name: "crowdsec_buckets_total", Value: float64(apiMetrics.Buckets.Total)},
+	}
+
+	bans, err := m.fetchDecisionCount(ctx)
+	if err == nil {
 		metrics = append(metrics, transport.MetricPoint{
-			Name: "crowdsec_bouncers_count", Value: float64(bouncers),
+			Name: "crowdsec_bans_active", Value: float64(bans),
 		})
 	}
 
@@ -146,17 +138,4 @@ func (m *Module) fetchDecisionCount(ctx context.Context) (int, error) {
 		return 0, err
 	}
 	return len(decisions), nil
-}
-
-func countBouncers(ctx context.Context) (int, error) {
-	cmd := exec.CommandContext(ctx, "cscli", "bouncers", "list", "-o", "json")
-	out, err := cmd.Output()
-	if err != nil {
-		return 0, err
-	}
-	var bouncers []json.RawMessage
-	if err := json.Unmarshal(out, &bouncers); err != nil {
-		return 0, err
-	}
-	return len(bouncers), nil
 }

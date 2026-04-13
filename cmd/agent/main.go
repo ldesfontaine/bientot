@@ -2,16 +2,18 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
-	"strings"
-
 	"github.com/ldesfontaine/bientot/internal/agent"
 	"github.com/ldesfontaine/bientot/internal/modules"
+	"github.com/ldesfontaine/bientot/internal/modules/adguard"
 	"github.com/ldesfontaine/bientot/internal/modules/backup"
 	"github.com/ldesfontaine/bientot/internal/modules/certs"
 	"github.com/ldesfontaine/bientot/internal/modules/crowdsec"
@@ -20,10 +22,42 @@ import (
 	"github.com/ldesfontaine/bientot/internal/modules/netbird"
 	"github.com/ldesfontaine/bientot/internal/modules/system"
 	"github.com/ldesfontaine/bientot/internal/modules/traefik"
-	"github.com/ldesfontaine/bientot/internal/modules/zfs"
 )
 
 func main() {
+	// Healthcheck subcommand: check if agent process is running
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		pidFile := getEnv("PID_FILE", "/tmp/bientot-agent.pid")
+		data, err := os.ReadFile(pidFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "healthcheck: cannot read pid file: %v\n", err)
+			os.Exit(1)
+		}
+		pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "healthcheck: invalid pid: %v\n", err)
+			os.Exit(1)
+		}
+		proc, err := os.FindProcess(pid)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "healthcheck: process not found: %v\n", err)
+			os.Exit(1)
+		}
+		// Signal 0 checks if process exists without killing it
+		if err := proc.Signal(syscall.Signal(0)); err != nil {
+			fmt.Fprintf(os.Stderr, "healthcheck: process %d not running: %v\n", pid, err)
+			os.Exit(1)
+		}
+		fmt.Println("OK")
+		os.Exit(0)
+	}
+
+	// Write PID file for healthcheck
+	pidFile := getEnv("PID_FILE", "/tmp/bientot-agent.pid")
+	if err := os.WriteFile(pidFile, []byte(strconv.Itoa(os.Getpid())), 0o644); err != nil {
+		slog.Error("failed to write pid file", "error", err)
+	}
+
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: parseLogLevel(getEnv("LOG_LEVEL", "info")),
 	}))
@@ -41,13 +75,13 @@ func main() {
 
 	// All available modules — agent auto-detects which ones work on this machine
 	available := []modules.Module{
-		system.New(),
+		system.New(getEnv("NODE_EXPORTER_URL", "")),
 		docker.New(getEnv("DOCKER_HOST", "")),
-		zfs.New(splitList(getEnv("ZFS_POOLS", ""))),
 		crowdsec.New(getEnv("CROWDSEC_URL", "")),
-		netbird.New(),
+		adguard.New(getEnv("ADGUARD_URL", ""), getEnv("ADGUARD_USER", ""), getEnv("ADGUARD_PASSWORD", "")),
+		netbird.New(getEnv("NETBIRD_PEER_IP", "")),
 		traefik.New(getEnv("TRAEFIK_API_URL", ""), getEnv("DOCKER_SOCKET", "")),
-		backup.New(getEnv("BACKUP_STATUS_DIR", "")),
+		backup.New(getEnv("BACKUP_STATUS_DIR", "/status")),
 		certs.New(splitList(getEnv("CERT_DOMAINS", ""))),
 		gitmod.New(splitList(getEnv("GIT_REPOS", ""))),
 	}

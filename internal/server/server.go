@@ -44,6 +44,7 @@ type Server struct {
 	sse          *SSEBroker
 	cmdChannel   *CommandChannel    // nil if command channel disabled
 	veilleSyncer *veille.Syncer     // nil if veille-secu disabled
+	services     *serviceStore
 	logger       *slog.Logger
 }
 
@@ -55,12 +56,13 @@ func New(cfg Config, store storage.Storage, logger *slog.Logger) *Server {
 	}
 
 	return &Server{
-		cfg:    cfg,
-		store:  store,
-		tokens: tokens,
-		nonces: transport.NewNonceCache(),
-		sse:    NewSSEBroker(),
-		logger: logger,
+		cfg:      cfg,
+		store:    store,
+		tokens:   tokens,
+		nonces:   transport.NewNonceCache(),
+		sse:      NewSSEBroker(),
+		services: newServiceStore(),
+		logger:   logger,
 	}
 }
 
@@ -226,6 +228,9 @@ func (s *Server) dashboardRouter() http.Handler {
 		r.Get("/vulns/sync", s.handleSyncLogs)
 		r.Patch("/vulns/{id}/dismiss", s.handleDismissVuln)
 		r.Patch("/vulns/{id}/resolve", s.handleResolveVuln)
+
+		// Service discovery
+		r.Get("/services", s.handleServices)
 
 		// SSE real-time events
 		r.Get("/events", s.handleSSE)

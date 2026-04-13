@@ -68,6 +68,9 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 		s.extractSoftwareInventory(r.Context(), payload)
 	}
 
+	// Update discovered services from bientot.service.* labels
+	s.services.update(payload.MachineID, payload)
+
 	// Publish push event to SSE clients
 	s.sse.Publish(SSEEvent{
 		Type: "push",
