@@ -28,6 +28,7 @@ type CollectorsConfig struct {
 	JSONFile   []JSONFileTarget   `yaml:"json_file"`
 	Docker     DockerConfig       `yaml:"docker"`
 	ZFS        ZFSConfig          `yaml:"zfs"`
+	Logs       LogsConfig         `yaml:"logs"`
 }
 
 type PrometheusTarget struct {
@@ -60,10 +61,50 @@ type ZFSConfig struct {
 	Interval time.Duration `yaml:"interval"`
 }
 
+type LogsConfig struct {
+	Enabled      bool          `yaml:"enabled"`
+	Machine      string        `yaml:"machine"`
+	Interval     time.Duration `yaml:"interval"`
+	DockerSocket string        `yaml:"docker_socket"`
+	CrowdSecURL  string        `yaml:"crowdsec_url"`
+}
+
 // AlertsConfig holds alerts.yml content
 type AlertsConfig struct {
 	Alerts    []AlertRule      `yaml:"alerts"`
 	Notifiers []NotifierConfig `yaml:"notifiers"`
+}
+
+// EnrichmentConfig holds enrichment section of server config
+type EnrichmentConfig struct {
+	Enabled    bool                       `yaml:"enabled"`
+	GeoIP      GeoIPConfig                `yaml:"geoip"`
+	Blocklists BlocklistsConfig           `yaml:"blocklists"`
+	Providers  map[string]ProviderConfig  `yaml:"providers"`
+}
+
+type GeoIPConfig struct {
+	DBPath     string `yaml:"db_path"`
+	AutoUpdate bool   `yaml:"auto_update"`
+	LicenseKey string `yaml:"license_key"`
+}
+
+type BlocklistsConfig struct {
+	UpdateInterval string              `yaml:"update_interval"`
+	Sources        []BlocklistSource   `yaml:"sources"`
+}
+
+type BlocklistSource struct {
+	Name   string `yaml:"name"`
+	URL    string `yaml:"url"`
+	Format string `yaml:"format"`
+}
+
+type ProviderConfig struct {
+	Enabled    bool   `yaml:"enabled"`
+	APIKey     string `yaml:"api_key"`
+	DailyLimit int    `yaml:"daily_limit"`
+	Priority   int    `yaml:"priority"`
 }
 
 type AlertRule struct {
@@ -79,6 +120,55 @@ type NotifierConfig struct {
 	Topic          string   `yaml:"topic"`
 	SeverityFilter []string `yaml:"severity_filter"`
 	Headers        map[string]string `yaml:"headers,omitempty"`
+}
+
+// VeilleConfig holds veille-secu integration config.
+type VeilleConfig struct {
+	Enabled        bool     `yaml:"enabled"`
+	URL            string   `yaml:"url"`
+	Token          string   `yaml:"token"`
+	PollInterval   string   `yaml:"poll_interval"`
+	SyncTools      bool     `yaml:"sync_tools"`
+	SeverityFilter []string `yaml:"severity_filter"`
+}
+
+// LoadVeille loads veille-secu config from YAML with env expansion.
+func LoadVeille(path string) (*VeilleConfig, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	expanded := os.ExpandEnv(string(data))
+
+	var wrapper struct {
+		Veille VeilleConfig `yaml:"veille"`
+	}
+	if err := yaml.Unmarshal([]byte(expanded), &wrapper); err != nil {
+		return nil, err
+	}
+
+	return &wrapper.Veille, nil
+}
+
+// LoadEnrichment loads enrichment config from YAML with env expansion.
+func LoadEnrichment(path string) (*EnrichmentConfig, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	expanded := os.ExpandEnv(string(data))
+
+	// Wrap: the enrichment section may be at root or nested
+	var wrapper struct {
+		Enrichment EnrichmentConfig `yaml:"enrichment"`
+	}
+	if err := yaml.Unmarshal([]byte(expanded), &wrapper); err != nil {
+		return nil, err
+	}
+
+	return &wrapper.Enrichment, nil
 }
 
 // LoadTargets loads targets.yml with environment variable expansion

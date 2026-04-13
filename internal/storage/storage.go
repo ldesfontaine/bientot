@@ -29,6 +29,18 @@ type Storage interface {
 
 	// Close closes the storage connection
 	Close() error
+
+	// InsertLogs stores log entries in batch
+	InsertLogs(ctx context.Context, entries []internal.LogEntry) error
+
+	// QueryLogs retrieves log entries matching filters
+	QueryLogs(ctx context.Context, machine, source, severity string, since time.Time, limit int) ([]internal.LogEntry, error)
+
+	// QueryLogStats returns counts by source and severity for the last 24h
+	QueryLogStats(ctx context.Context) (*internal.LogStats, error)
+
+	// PurgeLogs deletes log entries older than the given duration
+	PurgeLogs(ctx context.Context, olderThan time.Duration) error
 }
 
 // Config holds storage configuration

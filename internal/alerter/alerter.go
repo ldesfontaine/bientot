@@ -13,6 +13,9 @@ import (
 	"github.com/ldesfontaine/bientot/internal/storage"
 )
 
+// AlertCallback is called when an alert fires or resolves.
+type AlertCallback func(alert internal.Alert, resolved bool)
+
 // Alerter evaluates alert rules and triggers notifications
 type Alerter struct {
 	rules     []Rule
@@ -21,6 +24,7 @@ type Alerter struct {
 	active    map[string]*internal.Alert
 	mu        sync.RWMutex
 	logger    *slog.Logger
+	onAlert   AlertCallback
 }
 
 // New creates a new alerter
@@ -83,6 +87,10 @@ func (a *Alerter) evaluateRule(ctx context.Context, rule Rule) error {
 			}(*alert)
 
 			a.logger.Info("alert fired", "name", rule.Name, "value", metric.Value)
+
+			if a.onAlert != nil {
+				go a.onAlert(*alert, false)
+			}
 		}
 	} else {
 		if alert, exists := a.active[alertID]; exists {
@@ -91,6 +99,10 @@ func (a *Alerter) evaluateRule(ctx context.Context, rule Rule) error {
 			alert.ResolvedAt = &now
 			delete(a.active, alertID)
 			a.logger.Info("alert resolved", "name", rule.Name)
+
+			if a.onAlert != nil {
+				go a.onAlert(*alert, true)
+			}
 		}
 	}
 
@@ -117,6 +129,11 @@ func (a *Alerter) ActiveAlerts() []internal.Alert {
 		alerts = append(alerts, *alert)
 	}
 	return alerts
+}
+
+// OnAlert sets a callback for alert state changes.
+func (a *Alerter) OnAlert(cb AlertCallback) {
+	a.onAlert = cb
 }
 
 // Acknowledge marks an alert as acknowledged

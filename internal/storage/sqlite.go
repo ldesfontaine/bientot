@@ -73,6 +73,124 @@ func (s *SQLiteStorage) migrate() error {
 	CREATE INDEX IF NOT EXISTS idx_raw_name_ts ON metrics_raw(name, timestamp);
 	CREATE INDEX IF NOT EXISTS idx_5min_name_ts ON metrics_5min(name, timestamp);
 	CREATE INDEX IF NOT EXISTS idx_hourly_name_ts ON metrics_hourly(name, timestamp);
+
+	CREATE TABLE IF NOT EXISTS log_entries (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		timestamp DATETIME NOT NULL,
+		received_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		machine TEXT NOT NULL,
+		source TEXT NOT NULL,
+		severity TEXT NOT NULL,
+		message TEXT NOT NULL,
+		parsed_json TEXT
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_logs_machine_ts ON log_entries(machine, timestamp);
+	CREATE INDEX IF NOT EXISTS idx_logs_source ON log_entries(source, timestamp);
+	CREATE INDEX IF NOT EXISTS idx_logs_severity ON log_entries(severity, timestamp);
+
+	-- Enrichment tables (Sprint 3)
+	CREATE TABLE IF NOT EXISTS attack_log (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		timestamp DATETIME NOT NULL,
+		machine TEXT NOT NULL,
+		ip TEXT NOT NULL,
+		path TEXT,
+		status_code INTEGER,
+		count INTEGER DEFAULT 1
+	);
+	CREATE INDEX IF NOT EXISTS idx_attack_ip_ts ON attack_log(ip, timestamp);
+	CREATE INDEX IF NOT EXISTS idx_attack_machine ON attack_log(machine, timestamp);
+
+	CREATE TABLE IF NOT EXISTS ip_intel (
+		ip TEXT PRIMARY KEY,
+		first_seen DATETIME NOT NULL,
+		last_seen DATETIME NOT NULL,
+		total_requests INTEGER DEFAULT 0,
+		country TEXT,
+		city TEXT,
+		lat REAL,
+		lon REAL,
+		asn INTEGER,
+		isp TEXT,
+		blocklists_matched TEXT,
+		crowdsec_banned INTEGER DEFAULT 0,
+		crowdsec_reason TEXT,
+		abuse_score INTEGER DEFAULT 0,
+		greynoise_class TEXT,
+		greynoise_name TEXT,
+		enrichment_sources TEXT,
+		enriched_at DATETIME,
+		priority_score INTEGER DEFAULT 0
+	);
+
+	CREATE TABLE IF NOT EXISTS blocklist_ips (
+		ip TEXT NOT NULL,
+		list_name TEXT NOT NULL,
+		PRIMARY KEY (ip, list_name)
+	);
+
+	CREATE TABLE IF NOT EXISTS enrichment_budget (
+		provider TEXT PRIMARY KEY,
+		daily_limit INTEGER NOT NULL,
+		used_today INTEGER DEFAULT 0,
+		last_reset DATETIME
+	);
+
+	CREATE TABLE IF NOT EXISTS patterns (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		timestamp DATETIME NOT NULL,
+		type TEXT NOT NULL,
+		severity TEXT NOT NULL,
+		detail TEXT,
+		resolved INTEGER DEFAULT 0
+	);
+	CREATE INDEX IF NOT EXISTS idx_patterns_type ON patterns(type, timestamp);
+
+	-- Software inventory (Sprint 4)
+	CREATE TABLE IF NOT EXISTS software_inventory (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		machine TEXT NOT NULL,
+		name TEXT NOT NULL,
+		version TEXT NOT NULL,
+		source TEXT NOT NULL,
+		container TEXT,
+		first_seen DATETIME NOT NULL,
+		last_seen DATETIME NOT NULL,
+		UNIQUE(machine, name, source, container)
+	);
+	CREATE INDEX IF NOT EXISTS idx_software_machine ON software_inventory(machine);
+	CREATE INDEX IF NOT EXISTS idx_software_name ON software_inventory(name);
+
+	-- CVE correlation (Sprint 4)
+	CREATE TABLE IF NOT EXISTS vuln_matches (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		cve_id TEXT NOT NULL,
+		severity TEXT NOT NULL,
+		cvss_score REAL,
+		title TEXT,
+		link TEXT,
+		matched_software TEXT NOT NULL,
+		machine TEXT NOT NULL,
+		installed_version TEXT,
+		confidence TEXT NOT NULL,
+		veille_alert_id INTEGER,
+		cisa_kev INTEGER DEFAULT 0,
+		first_seen DATETIME NOT NULL,
+		resolved_at DATETIME,
+		dismissed INTEGER DEFAULT 0,
+		UNIQUE(cve_id, machine, matched_software)
+	);
+	CREATE INDEX IF NOT EXISTS idx_vuln_cve ON vuln_matches(cve_id);
+	CREATE INDEX IF NOT EXISTS idx_vuln_machine ON vuln_matches(machine);
+
+	CREATE TABLE IF NOT EXISTS veille_sync_log (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		timestamp DATETIME NOT NULL,
+		alerts_received INTEGER DEFAULT 0,
+		matches_found INTEGER DEFAULT 0,
+		status TEXT NOT NULL
+	);
 	`
 
 	_, err := s.db.Exec(schema)
@@ -244,6 +362,143 @@ func (s *SQLiteStorage) Cleanup(ctx context.Context) error {
 	retention := fmt.Sprintf("-%d days", s.config.RetentionDays)
 	_, err := s.db.ExecContext(ctx, `DELETE FROM metrics_hourly WHERE timestamp < datetime('now', ?)`, retention)
 	return err
+}
+
+func (s *SQLiteStorage) InsertLogs(ctx context.Context, entries []internal.LogEntry) error {
+	if len(entries) == 0 {
+		return nil
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, `
+		INSERT INTO log_entries (timestamp, machine, source, severity, message, parsed_json)
+		VALUES (?, ?, ?, ?, ?, ?)
+	`)
+	if err != nil {
+		return fmt.Errorf("preparing statement: %w", err)
+	}
+	defer stmt.Close()
+
+	for _, e := range entries {
+		parsed, _ := json.Marshal(e.Parsed)
+		_, err := stmt.ExecContext(ctx, e.Timestamp, e.Machine, e.Source, e.Severity, e.Message, string(parsed))
+		if err != nil {
+			return fmt.Errorf("inserting log entry: %w", err)
+		}
+	}
+
+	return tx.Commit()
+}
+
+func (s *SQLiteStorage) QueryLogs(ctx context.Context, machine, source, severity string, since time.Time, limit int) ([]internal.LogEntry, error) {
+	query := `SELECT timestamp, machine, source, severity, message, parsed_json FROM log_entries WHERE timestamp >= ?`
+	args := []interface{}{since}
+
+	if machine != "" {
+		query += ` AND machine = ?`
+		args = append(args, machine)
+	}
+	if source != "" {
+		query += ` AND source = ?`
+		args = append(args, source)
+	}
+	if severity != "" {
+		query += ` AND severity = ?`
+		args = append(args, severity)
+	}
+
+	query += ` ORDER BY timestamp DESC LIMIT ?`
+	if limit <= 0 {
+		limit = 100
+	}
+	args = append(args, limit)
+
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("querying logs: %w", err)
+	}
+	defer rows.Close()
+
+	var entries []internal.LogEntry
+	for rows.Next() {
+		var e internal.LogEntry
+		var parsedStr sql.NullString
+		if err := rows.Scan(&e.Timestamp, &e.Machine, &e.Source, &e.Severity, &e.Message, &parsedStr); err != nil {
+			return nil, fmt.Errorf("scanning log entry: %w", err)
+		}
+		if parsedStr.Valid && parsedStr.String != "" {
+			json.Unmarshal([]byte(parsedStr.String), &e.Parsed)
+		}
+		entries = append(entries, e)
+	}
+
+	return entries, rows.Err()
+}
+
+func (s *SQLiteStorage) QueryLogStats(ctx context.Context) (*internal.LogStats, error) {
+	stats := &internal.LogStats{
+		BySource:   make(map[string]int),
+		BySeverity: make(map[string]int),
+	}
+
+	// By source (last 24h)
+	rows, err := s.db.QueryContext(ctx, `
+		SELECT source, COUNT(*) FROM log_entries
+		WHERE timestamp >= datetime('now', '-24 hours')
+		GROUP BY source
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("querying log stats by source: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var source string
+		var count int
+		if err := rows.Scan(&source, &count); err != nil {
+			return nil, fmt.Errorf("scanning source stat: %w", err)
+		}
+		stats.BySource[source] = count
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// By severity (last 24h)
+	rows2, err := s.db.QueryContext(ctx, `
+		SELECT severity, COUNT(*) FROM log_entries
+		WHERE timestamp >= datetime('now', '-24 hours')
+		GROUP BY severity
+	`)
+	if err != nil {
+		return nil, fmt.Errorf("querying log stats by severity: %w", err)
+	}
+	defer rows2.Close()
+
+	for rows2.Next() {
+		var severity string
+		var count int
+		if err := rows2.Scan(&severity, &count); err != nil {
+			return nil, fmt.Errorf("scanning severity stat: %w", err)
+		}
+		stats.BySeverity[severity] = count
+	}
+
+	return stats, rows2.Err()
+}
+
+func (s *SQLiteStorage) PurgeLogs(ctx context.Context, olderThan time.Duration) error {
+	cutoff := time.Now().Add(-olderThan)
+	_, err := s.db.ExecContext(ctx, `DELETE FROM log_entries WHERE timestamp < ?`, cutoff)
+	if err != nil {
+		return fmt.Errorf("purging logs: %w", err)
+	}
+	return nil
 }
 
 func (s *SQLiteStorage) Close() error {

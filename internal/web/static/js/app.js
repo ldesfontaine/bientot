@@ -15,10 +15,17 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initDashboard() {
     await loadOverview();
     await loadCharts();
+    await loadLogs();
+    await loadLogStats();
 }
 
 function startAutoRefresh() {
-    refreshInterval = setInterval(loadOverview, 30000); // 30 seconds
+    refreshInterval = setInterval(() => {
+        loadOverview();
+        loadLogStats();
+    }, 30000);
+    // Refresh logs every 5 minutes (warm interval)
+    setInterval(loadLogs, 300000);
 }
 
 // API Functions
@@ -291,6 +298,125 @@ function renderChart(elementId, points) {
     });
     resizeObserver.observe(el);
 }
+
+// Logs
+async function loadLogs() {
+    try {
+        const source = document.getElementById('log-filter-source')?.value || '';
+        const severity = document.getElementById('log-filter-severity')?.value || '';
+        let endpoint = '/logs?limit=100';
+        if (source) endpoint += `&source=${source}`;
+        if (severity) endpoint += `&severity=${severity}`;
+
+        const data = await fetchJSON(endpoint);
+        renderLogs(data.logs || []);
+    } catch (error) {
+        console.error('Failed to load logs:', error);
+    }
+}
+
+async function loadLogStats() {
+    try {
+        const stats = await fetchJSON('/logs/stats');
+        updateLogStatsHeader(stats);
+    } catch (error) {
+        // Logs module may not be active
+    }
+}
+
+function updateLogStatsHeader(stats) {
+    const el = document.getElementById('log-stats');
+    if (!el) return;
+
+    const errCount = (stats.by_severity?.error || 0);
+    const critCount = (stats.by_severity?.critical || 0);
+
+    if (errCount === 0 && critCount === 0) {
+        el.textContent = '';
+        return;
+    }
+
+    const parts = [];
+    if (errCount > 0) parts.push(`${errCount} err`);
+    if (critCount > 0) parts.push(`${critCount} crit`);
+    el.innerHTML = `<span class="bg-gray-800 px-2 py-0.5 rounded">LOGS ${parts.join(' \u2502 ')}</span>`;
+
+    // Show logs section if we have data
+    const section = document.getElementById('logs-section');
+    if (section) section.classList.remove('hidden');
+}
+
+function renderLogs(logs) {
+    const section = document.getElementById('logs-section');
+    const tbody = document.getElementById('logs-table-body');
+    const countEl = document.getElementById('logs-count');
+    if (!tbody || !section) return;
+
+    if (logs.length > 0) {
+        section.classList.remove('hidden');
+    }
+
+    countEl.textContent = logs.length;
+
+    const severityColors = {
+        info: 'text-gray-400',
+        warning: 'text-yellow-400',
+        error: 'text-orange-400',
+        critical: 'text-red-400'
+    };
+
+    const severityBg = {
+        info: '',
+        warning: '',
+        error: 'bg-orange-900/20',
+        critical: 'bg-red-900/20'
+    };
+
+    tbody.innerHTML = logs.map(log => {
+        const color = severityColors[log.severity] || 'text-gray-400';
+        const bg = severityBg[log.severity] || '';
+        const ts = formatTime(log.timestamp);
+        const msg = escapeHtml(log.message || '');
+        const parsedInfo = log.parsed ? formatParsed(log.parsed) : '';
+
+        return `
+            <tr class="${bg} hover:bg-gray-700/50">
+                <td class="px-3 py-1.5 text-xs text-gray-500 whitespace-nowrap">${ts}</td>
+                <td class="px-3 py-1.5">
+                    <span class="text-xs px-1.5 py-0.5 rounded bg-gray-700">${log.source}</span>
+                </td>
+                <td class="px-3 py-1.5 text-xs font-medium ${color}">${log.severity}</td>
+                <td class="px-3 py-1.5 text-xs text-gray-300 truncate max-w-lg" title="${msg}">
+                    ${msg}
+                    ${parsedInfo ? `<span class="text-gray-500 ml-1">${parsedInfo}</span>` : ''}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function formatParsed(parsed) {
+    const parts = [];
+    if (parsed.src_ip) parts.push(parsed.src_ip);
+    if (parsed.user) parts.push(`user:${parsed.user}`);
+    if (parsed.container) parts.push(`container:${parsed.container}`);
+    if (parsed.scenario) parts.push(parsed.scenario);
+    return parts.length > 0 ? `[${parts.join(', ')}]` : '';
+}
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// Wire up log filters
+document.addEventListener('DOMContentLoaded', () => {
+    const sourceFilter = document.getElementById('log-filter-source');
+    const sevFilter = document.getElementById('log-filter-severity');
+    if (sourceFilter) sourceFilter.addEventListener('change', loadLogs);
+    if (sevFilter) sevFilter.addEventListener('change', loadLogs);
+});
 
 // Utilities
 function formatDurationSec(seconds) {

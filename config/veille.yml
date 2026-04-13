@@ -1,0 +1,9 @@
+veille:
+  enabled: false
+  url: "${VEILLE_URL}"
+  token: "${VEILLE_TOKEN}"
+  poll_interval: "15m"
+  sync_tools: false
+  severity_filter:
+    - critical
+    - high

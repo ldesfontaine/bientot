@@ -13,6 +13,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal/alerter"
 	"github.com/ldesfontaine/bientot/internal/api"
 	"github.com/ldesfontaine/bientot/internal/collector"
+	logscollector "github.com/ldesfontaine/bientot/internal/collector/logs"
 	"github.com/ldesfontaine/bientot/internal/config"
 	"github.com/ldesfontaine/bientot/internal/notifier"
 	"github.com/ldesfontaine/bientot/internal/storage"
@@ -55,7 +56,7 @@ func main() {
 
 	// Initialize collectors
 	collectors := collector.NewRegistry()
-	registerCollectors(collectors, targets)
+	registerCollectors(collectors, targets, store, logger)
 
 	// Initialize notifiers
 	notifiers := notifier.NewRegistry()
@@ -114,7 +115,7 @@ func main() {
 	}
 }
 
-func registerCollectors(registry *collector.Registry, cfg *config.TargetsConfig) {
+func registerCollectors(registry *collector.Registry, cfg *config.TargetsConfig, store storage.Storage, logger *slog.Logger) {
 	// Prometheus collectors
 	for _, target := range cfg.Collectors.Prometheus {
 		c := collector.NewPrometheusCollector(target.Name, target.URL, target.Interval)
@@ -143,6 +144,18 @@ func registerCollectors(registry *collector.Registry, cfg *config.TargetsConfig)
 	for _, target := range cfg.Collectors.JSONFile {
 		c := collector.NewJSONFileCollector(target.Name, target.Path, target.Interval)
 		registry.Register(c)
+	}
+
+	// Logs collector
+	if cfg.Collectors.Logs.Enabled {
+		logsCfg := logscollector.Config{
+			Enabled:      true,
+			Machine:      cfg.Collectors.Logs.Machine,
+			Interval:     cfg.Collectors.Logs.Interval,
+			DockerSocket: cfg.Collectors.Logs.DockerSocket,
+			CrowdSecURL:  cfg.Collectors.Logs.CrowdSecURL,
+		}
+		registry.Register(logscollector.New(logsCfg, store, logger))
 	}
 }
 
@@ -260,6 +273,9 @@ func runMaintenanceLoop(ctx context.Context, store storage.Storage, logger *slog
 			}
 			if err := store.Cleanup(ctx); err != nil {
 				logger.Error("cleanup failed", "error", err)
+			}
+			if err := store.PurgeLogs(ctx, 7*24*time.Hour); err != nil {
+				logger.Error("log purge failed", "error", err)
 			}
 		}
 	}

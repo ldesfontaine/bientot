@@ -60,6 +60,53 @@ const (
 	HealthUnknown  HealthStatus = "unknown"
 )
 
+// LogEntry represents a structured log entry from any source
+type LogEntry struct {
+	Timestamp time.Time      `json:"timestamp"`
+	Source    string         `json:"source"`   // "ssh", "nftables", "ufw", "docker", "crowdsec"
+	Machine  string         `json:"machine"`
+	Severity string         `json:"severity"` // "info", "warning", "error", "critical"
+	Message  string         `json:"message"`  // raw line, truncated to 500 chars
+	Parsed   map[string]any `json:"parsed"`   // extracted fields (IP, port, user, action, container...)
+}
+
+// LogStats holds log counts by source and severity
+type LogStats struct {
+	BySource   map[string]int `json:"by_source"`
+	BySeverity map[string]int `json:"by_severity"`
+}
+
+// SoftwareItem represents a detected software on a machine.
+type SoftwareItem struct {
+	ID        int64     `json:"id"`
+	Machine   string    `json:"machine"`
+	Name      string    `json:"name"`
+	Version   string    `json:"version"`
+	Source    string    `json:"source"`    // "docker", "binary", "package"
+	Container string    `json:"container,omitempty"`
+	FirstSeen time.Time `json:"first_seen"`
+	LastSeen  time.Time `json:"last_seen"`
+}
+
+// VulnMatch represents a CVE matched against installed software.
+type VulnMatch struct {
+	ID               int64      `json:"id"`
+	CVEID            string     `json:"cve_id"`
+	Severity         string     `json:"severity"`
+	CVSSScore        float64    `json:"cvss_score"`
+	Title            string     `json:"title"`
+	Link             string     `json:"link"`
+	MatchedSoftware  string     `json:"matched_software"`
+	Machine          string     `json:"machine"`
+	InstalledVersion string     `json:"installed_version"`
+	Confidence       string     `json:"confidence"` // confirmed, likely, outdated
+	VeilleAlertID    int64      `json:"veille_alert_id"`
+	CISAKEV          bool       `json:"cisa_kev"`
+	FirstSeen        time.Time  `json:"first_seen"`
+	ResolvedAt       *time.Time `json:"resolved_at,omitempty"`
+	Dismissed        bool       `json:"dismissed"`
+}
+
 // Status represents the global system status
 type Status struct {
 	Health      HealthStatus     `json:"health"`

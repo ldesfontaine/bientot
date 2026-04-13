@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -49,6 +50,8 @@ func (a *API) Router() http.Handler {
 		r.Get("/alerts", a.handleListAlerts)
 		r.Post("/alerts/{id}/ack", a.handleAckAlert)
 		r.Get("/overview", a.handleOverview)
+		r.Get("/logs", a.handleQueryLogs)
+		r.Get("/logs/stats", a.handleLogStats)
 	})
 
 	return r
@@ -219,4 +222,52 @@ func (a *API) handleOverview(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(overview)
+}
+
+func (a *API) handleQueryLogs(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	q := r.URL.Query()
+
+	machine := q.Get("machine")
+	source := q.Get("source")
+	severity := q.Get("severity")
+
+	since := time.Now().Add(-24 * time.Hour)
+	if sinceStr := q.Get("since"); sinceStr != "" {
+		if t, err := time.Parse(time.RFC3339, sinceStr); err == nil {
+			since = t
+		}
+	}
+
+	limit := 100
+	if limitStr := q.Get("limit"); limitStr != "" {
+		if n, err := strconv.Atoi(limitStr); err == nil && n > 0 && n <= 1000 {
+			limit = n
+		}
+	}
+
+	entries, err := a.storage.QueryLogs(ctx, machine, source, severity, since, limit)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"logs":  entries,
+		"count": len(entries),
+	})
+}
+
+func (a *API) handleLogStats(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	stats, err := a.storage.QueryLogStats(ctx)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
 }

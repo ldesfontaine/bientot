@@ -26,6 +26,7 @@
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <h1 class="text-xl font-bold">Bientot</h1>
             <div class="flex items-center gap-4">
+                <span id="log-stats" class="text-xs text-gray-500 font-mono"></span>
                 <span id="last-update" class="text-xs text-gray-500"></span>
                 <div id="global-status" class="flex items-center gap-2">
                     <span class="w-3 h-3 rounded-full bg-gray-500 animate-pulse"></span>
@@ -100,6 +101,47 @@
                     <h3 class="text-sm font-medium text-gray-400 mb-4">Memory Usage</h3>
                     <div id="chart-memory" class="h-48"></div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Logs Section -->
+        <section id="logs-section" class="hidden">
+            <h2 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                Logs
+                <span id="logs-count" class="text-xs bg-gray-700 px-2 py-0.5 rounded-full">0</span>
+            </h2>
+            <div class="mb-3 flex flex-wrap gap-2">
+                <select id="log-filter-source" class="bg-gray-800 border border-gray-700 text-sm rounded px-2 py-1">
+                    <option value="">All sources</option>
+                    <option value="ssh">SSH</option>
+                    <option value="nftables">nftables</option>
+                    <option value="ufw">UFW</option>
+                    <option value="docker">Docker</option>
+                    <option value="crowdsec">CrowdSec</option>
+                </select>
+                <select id="log-filter-severity" class="bg-gray-800 border border-gray-700 text-sm rounded px-2 py-1">
+                    <option value="">All severities</option>
+                    <option value="info">Info</option>
+                    <option value="warning">Warning</option>
+                    <option value="error">Error</option>
+                    <option value="critical">Critical</option>
+                </select>
+            </div>
+            <div class="bg-gray-800 rounded-lg overflow-hidden">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-750">
+                        <tr class="text-left text-gray-400 text-xs uppercase">
+                            <th class="px-3 py-2 w-40">Time</th>
+                            <th class="px-3 py-2 w-24">Source</th>
+                            <th class="px-3 py-2 w-20">Severity</th>
+                            <th class="px-3 py-2">Message</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-table-body" class="divide-y divide-gray-700"></tbody>
+                </table>
             </div>
         </section>
 
