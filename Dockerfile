@@ -19,9 +19,7 @@ RUN CGO_ENABLED=1 GOARCH=$TARGETARCH go build -ldflags="-s -w" -o /bientot-serve
 # ── Image agent (~15MB) ──
 FROM alpine:3.21 AS agent
 RUN apk add --no-cache ca-certificates tzdata \
-    && addgroup -S -g 999 docker \
-    && addgroup -S bientot && adduser -S bientot -G bientot \
-    && adduser bientot docker
+    && addgroup -S bientot && adduser -S bientot -G bientot
 COPY --from=build-agent /bientot-agent /usr/local/bin/
 USER bientot
 HEALTHCHECK --interval=60s --timeout=5s --retries=3 CMD kill -0 1 || exit 1
