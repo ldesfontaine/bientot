@@ -136,6 +136,32 @@ func (a *Alerter) OnAlert(cb AlertCallback) {
 	a.onAlert = cb
 }
 
+// FireManual declenche une alerte manuellement (hors evaluation de regles).
+// Utilise pour les alertes systeme comme le staleness Trivy.
+func (a *Alerter) FireManual(alert internal.Alert) {
+	a.mu.Lock()
+	if _, exists := a.active[alert.ID]; exists {
+		a.mu.Unlock()
+		return
+	}
+	a.active[alert.ID] = &alert
+	a.mu.Unlock()
+
+	go func() {
+		if errs := a.notifiers.Notify(alert); len(errs) > 0 {
+			for _, err := range errs {
+				a.logger.Error("notification failed", "alert", alert.Name, "error", err)
+			}
+		}
+	}()
+
+	a.logger.Info("manual alert fired", "name", alert.Name)
+
+	if a.onAlert != nil {
+		go a.onAlert(alert, false)
+	}
+}
+
 // Acknowledge marque une alerte comme acquittée
 func (a *Alerter) Acknowledge(alertID string) bool {
 	a.mu.Lock()

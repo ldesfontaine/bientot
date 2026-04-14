@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -43,9 +44,12 @@ type Server struct {
 	enrichStore  *storage.SQLiteStorage    // nil si enrichissement désactivé
 	sse          *SSEBroker
 	cmdChannel   *CommandChannel    // nil si canal de commandes désactivé
-	veilleSyncer *veille.Syncer     // nil si veille-secu désactivé
-	services     *serviceStore
-	logger       *slog.Logger
+	veilleSyncer     *veille.Syncer     // nil si veille-secu désactivé
+	trivyTracker     *trivyScanTracker  // suivi des scans Trivy reçus
+	trivyStaleMu     sync.Mutex
+	trivyStaleAlerted map[string]bool   // alertes de staleness déjà émises
+	services         *serviceStore
+	logger           *slog.Logger
 }
 
 // New crée une instance du serveur.
@@ -56,13 +60,15 @@ func New(cfg Config, store storage.Storage, logger *slog.Logger) *Server {
 	}
 
 	return &Server{
-		cfg:      cfg,
-		store:    store,
-		tokens:   tokens,
-		nonces:   transport.NewNonceCache(),
-		sse:      NewSSEBroker(),
-		services: newServiceStore(),
-		logger:   logger,
+		cfg:               cfg,
+		store:             store,
+		tokens:            tokens,
+		nonces:            transport.NewNonceCache(),
+		sse:               NewSSEBroker(),
+		trivyTracker:      newTrivyScanTracker(),
+		trivyStaleAlerted: make(map[string]bool),
+		services:          newServiceStore(),
+		logger:            logger,
 	}
 }
 
@@ -188,6 +194,7 @@ func (s *Server) runAlertLoop(ctx context.Context) {
 			if err := s.alerter.Evaluate(ctx); err != nil {
 				s.logger.Error("échec de l'évaluation des alertes", "error", err)
 			}
+			s.checkTrivyStaleness()
 		}
 	}
 }
@@ -249,6 +256,7 @@ func (s *Server) agentRouter() http.Handler {
 	r.Use(middleware.Recoverer)
 
 	r.Post("/push", s.handlePush)
+	r.Post("/trivy/ingest", s.handleTrivyIngest)
 	r.Get("/health", s.handleHealth)
 
 	// Canal de commandes WebSocket (opt-in)
