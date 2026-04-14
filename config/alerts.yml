@@ -33,6 +33,12 @@ alerts:
     severity: warning
     message: "Backup {{ .Labels.file }} is stale ({{ .Value }}s old)"
 
+  # ZFS snapshot freshness
+  - name: zfs_snapshot_stale
+    expr: zfs_last_snapshot_age_seconds > 7200
+    severity: warning
+    message: "ZFS snapshot hourly is stale ({{ .Value }}s since last snapshot)"
+
 notifiers:
   - type: ntfy
     url: ${NTFY_SERVER_URL}

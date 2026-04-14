@@ -137,7 +137,7 @@ func (a *Alerter) OnAlert(cb AlertCallback) {
 }
 
 // FireManual declenche une alerte manuellement (hors evaluation de regles).
-// Utilise pour les alertes systeme comme le staleness Trivy.
+// Utilise pour les alertes systeme comme le staleness scan CVE.
 func (a *Alerter) FireManual(alert internal.Alert) {
 	a.mu.Lock()
 	if _, exists := a.active[alert.ID]; exists {

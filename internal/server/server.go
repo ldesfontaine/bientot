@@ -45,9 +45,9 @@ type Server struct {
 	sse          *SSEBroker
 	cmdChannel   *CommandChannel    // nil si canal de commandes désactivé
 	veilleSyncer     *veille.Syncer     // nil si veille-secu désactivé
-	trivyTracker     *trivyScanTracker  // suivi des scans Trivy reçus
-	trivyStaleMu     sync.Mutex
-	trivyStaleAlerted map[string]bool   // alertes de staleness déjà émises
+	scanTracker      *scanTracker       // suivi des scans CVE reçus
+	scanStaleMu      sync.Mutex
+	scanStaleAlerted map[string]bool   // alertes de staleness déjà émises
 	services         *serviceStore
 	logger           *slog.Logger
 }
@@ -65,8 +65,8 @@ func New(cfg Config, store storage.Storage, logger *slog.Logger) *Server {
 		tokens:            tokens,
 		nonces:            transport.NewNonceCache(),
 		sse:               NewSSEBroker(),
-		trivyTracker:      newTrivyScanTracker(),
-		trivyStaleAlerted: make(map[string]bool),
+		scanTracker:       newScanTracker(),
+		scanStaleAlerted:  make(map[string]bool),
 		services:          newServiceStore(),
 		logger:            logger,
 	}
@@ -194,7 +194,7 @@ func (s *Server) runAlertLoop(ctx context.Context) {
 			if err := s.alerter.Evaluate(ctx); err != nil {
 				s.logger.Error("échec de l'évaluation des alertes", "error", err)
 			}
-			s.checkTrivyStaleness()
+			s.checkScanStaleness()
 		}
 	}
 }
@@ -256,7 +256,7 @@ func (s *Server) agentRouter() http.Handler {
 	r.Use(middleware.Recoverer)
 
 	r.Post("/push", s.handlePush)
-	r.Post("/trivy/ingest", s.handleTrivyIngest)
+	r.Post("/scan/ingest", s.handleScanIngest)
 	r.Get("/health", s.handleHealth)
 
 	// Canal de commandes WebSocket (opt-in)

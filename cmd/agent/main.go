@@ -77,7 +77,7 @@ func main() {
 	available := []modules.Module{
 		system.New(getEnv("NODE_EXPORTER_URL", "")),
 		docker.New(getEnv("DOCKER_HOST", "")),
-		crowdsec.New(getEnv("CROWDSEC_URL", "")),
+		crowdsec.New(getEnv("CROWDSEC_URL", ""), getEnv("CROWDSEC_API_KEY", "")),
 		adguard.New(getEnv("ADGUARD_URL", ""), getEnv("ADGUARD_USER", ""), getEnv("ADGUARD_PASSWORD", "")),
 		netbird.New(getEnv("NETBIRD_PEER_IP", ""), getEnv("NETBIRD_PEER_PORT", "")),
 		traefik.New(getEnv("TRAEFIK_API_URL", ""), getEnv("DOCKER_SOCKET", "")),

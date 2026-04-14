@@ -32,12 +32,17 @@ type metricsResp struct {
 // Actif uniquement quand CROWDSEC_URL est défini (VPS). Ignoré sur Pi.
 type Module struct {
 	url    string // e.g. "http://crowdsec:8080"
+	apiKey string // X-Api-Key pour l'authentification LAPI
 	client *http.Client
 }
 
-func New(url string) *Module {
+func New(url, apiKey string) *Module {
+	if url != "" && apiKey == "" {
+		slog.Warn("crowdsec: CROWDSEC_API_KEY non définie, requêtes LAPI non authentifiées")
+	}
 	return &Module{
-		url: url,
+		url:    url,
+		apiKey: apiKey,
 		client: &http.Client{
 			Timeout: 10 * time.Second,
 		},
@@ -56,12 +61,19 @@ func (m *Module) Detect() bool {
 	if err != nil {
 		return false
 	}
+	m.setAuth(req)
 	resp, err := m.client.Do(req)
 	if err != nil {
 		return false
 	}
 	resp.Body.Close()
 	return resp.StatusCode == http.StatusOK
+}
+
+func (m *Module) setAuth(req *http.Request) {
+	if m.apiKey != "" {
+		req.Header.Set("X-Api-Key", m.apiKey)
+	}
 }
 
 func (m *Module) Collect(ctx context.Context) (transport.ModuleData, error) {
@@ -105,6 +117,7 @@ func (m *Module) fetchMetrics(ctx context.Context) (*metricsResp, error) {
 	if err != nil {
 		return nil, err
 	}
+	m.setAuth(req)
 	resp, err := m.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -125,6 +138,7 @@ func (m *Module) fetchDecisionCount(ctx context.Context) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	m.setAuth(req)
 	resp, err := m.client.Do(req)
 	if err != nil {
 		return 0, err
