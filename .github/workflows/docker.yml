@@ -63,6 +63,7 @@ jobs:
         env:
           COSIGN_EXPERIMENTAL: "true"
         run: |
-          IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}"
+          OWNER="${{ github.repository_owner }}"
+          IMAGE="${{ env.REGISTRY }}/${OWNER,,}/${{ matrix.image }}"    # ${VAR,,} = lowercase en bash
           DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${{ steps.version.outputs.version }}" --format '{{.Manifest.Digest}}')
           cosign sign --yes "${IMAGE}@${DIGEST}"
