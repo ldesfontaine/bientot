@@ -25,37 +25,37 @@ import (
 )
 
 func main() {
-	// Healthcheck subcommand: check if agent process is running
+	// Sous-commande healthcheck : vérifie si le processus agent tourne
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
 		pidFile := getEnv("PID_FILE", "/tmp/bientot-agent.pid")
 		data, err := os.ReadFile(pidFile)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "healthcheck: cannot read pid file: %v\n", err)
+			fmt.Fprintf(os.Stderr, "healthcheck : impossible de lire le fichier pid : %v\n", err)
 			os.Exit(1)
 		}
 		pid, err := strconv.Atoi(strings.TrimSpace(string(data)))
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "healthcheck: invalid pid: %v\n", err)
+			fmt.Fprintf(os.Stderr, "healthcheck : pid invalide : %v\n", err)
 			os.Exit(1)
 		}
 		proc, err := os.FindProcess(pid)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "healthcheck: process not found: %v\n", err)
+			fmt.Fprintf(os.Stderr, "healthcheck : processus introuvable : %v\n", err)
 			os.Exit(1)
 		}
-		// Signal 0 checks if process exists without killing it
+		// Signal 0 vérifie si le processus existe sans le tuer
 		if err := proc.Signal(syscall.Signal(0)); err != nil {
-			fmt.Fprintf(os.Stderr, "healthcheck: process %d not running: %v\n", pid, err)
+			fmt.Fprintf(os.Stderr, "healthcheck : processus %d non actif : %v\n", pid, err)
 			os.Exit(1)
 		}
 		fmt.Println("OK")
 		os.Exit(0)
 	}
 
-	// Write PID file for healthcheck
+	// Écriture du fichier PID pour le healthcheck
 	pidFile := getEnv("PID_FILE", "/tmp/bientot-agent.pid")
 	if err := os.WriteFile(pidFile, []byte(strconv.Itoa(os.Getpid())), 0o644); err != nil {
-		slog.Error("failed to write pid file", "error", err)
+		slog.Error("échec de l'écriture du fichier pid", "error", err)
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
@@ -73,13 +73,13 @@ func main() {
 		ColdInterval: parseDuration(getEnv("PUSH_COLD", "5m")),
 	}
 
-	// All available modules — agent auto-detects which ones work on this machine
+	// Tous les modules disponibles — l'agent auto-détecte ceux qui fonctionnent sur cette machine
 	available := []modules.Module{
 		system.New(getEnv("NODE_EXPORTER_URL", "")),
 		docker.New(getEnv("DOCKER_HOST", "")),
 		crowdsec.New(getEnv("CROWDSEC_URL", "")),
 		adguard.New(getEnv("ADGUARD_URL", ""), getEnv("ADGUARD_USER", ""), getEnv("ADGUARD_PASSWORD", "")),
-		netbird.New(getEnv("NETBIRD_PEER_IP", "")),
+		netbird.New(getEnv("NETBIRD_PEER_IP", ""), getEnv("NETBIRD_PEER_PORT", "")),
 		traefik.New(getEnv("TRAEFIK_API_URL", ""), getEnv("DOCKER_SOCKET", "")),
 		backup.New(getEnv("BACKUP_STATUS_DIR", "/status")),
 		certs.New(splitList(getEnv("CERT_DOMAINS", ""))),
@@ -95,7 +95,7 @@ func main() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		<-sigCh
-		logger.Info("received shutdown signal")
+		logger.Info("signal d'arrêt reçu")
 		cancel()
 	}()
 

@@ -22,14 +22,14 @@ type container struct {
 	Labels map[string]string `json:"Labels"`
 }
 
-// Module collects Docker container metrics.
+// Module collecte les métriques des conteneurs Docker.
 type Module struct {
 	client *http.Client
 	host   string // "unix:///var/run/docker.sock" or "tcp://proxy:2375"
 }
 
-// New creates a Docker module. host can be a socket path or TCP address.
-// If empty, auto-detects from DOCKER_HOST env or default socket.
+// New crée un module Docker. host peut être un chemin de socket ou une adresse TCP.
+// Si vide, auto-détecte depuis la variable DOCKER_HOST ou le socket par défaut.
 func New(host string) *Module {
 	if host == "" {
 		host = os.Getenv("DOCKER_HOST")
@@ -66,7 +66,7 @@ func (m *Module) Detect() bool {
 		_, err := os.Stat(socketPath)
 		return err == nil
 	}
-	// TCP: try a ping
+	// TCP : tentative de ping
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, "GET", m.baseURL()+"/_ping", nil)
@@ -84,18 +84,18 @@ func (m *Module) Detect() bool {
 func (m *Module) Collect(ctx context.Context) (transport.ModuleData, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", m.baseURL()+"/containers/json?all=true", nil)
 	if err != nil {
-		return transport.ModuleData{}, fmt.Errorf("creating request: %w", err)
+		return transport.ModuleData{}, fmt.Errorf("création de la requête : %w", err)
 	}
 
 	resp, err := m.client.Do(req)
 	if err != nil {
-		return transport.ModuleData{}, fmt.Errorf("fetching containers: %w", err)
+		return transport.ModuleData{}, fmt.Errorf("récupération des conteneurs : %w", err)
 	}
 	defer resp.Body.Close()
 
 	var containers []container
 	if err := json.NewDecoder(resp.Body).Decode(&containers); err != nil {
-		return transport.ModuleData{}, fmt.Errorf("decoding containers: %w", err)
+		return transport.ModuleData{}, fmt.Errorf("décodage des conteneurs : %w", err)
 	}
 
 	now := time.Now()
@@ -126,7 +126,7 @@ func (m *Module) Collect(ctx context.Context) (transport.ModuleData, error) {
 		transport.MetricPoint{Name: "docker_containers_stopped", Value: float64(stopped)},
 	)
 
-	// Software inventory: image tags
+	// Inventaire logiciel : tags d'images
 	images := make(map[string]string)
 	for _, c := range containers {
 		if c.State == "running" {
@@ -138,7 +138,7 @@ func (m *Module) Collect(ctx context.Context) (transport.ModuleData, error) {
 		metadata["image_"+name] = image
 	}
 
-	// Service discovery: bientot.service.* labels
+	// Découverte de services : labels bientot.service.*
 	for _, c := range containers {
 		svcName, ok := c.Labels["bientot.service.name"]
 		if !ok {

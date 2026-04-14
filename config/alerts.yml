@@ -37,6 +37,7 @@ notifiers:
   - type: ntfy
     url: ${NTFY_SERVER_URL}
     topic: ${NTFY_TOPIC}
+    token: ${NTFY_TOKEN}
     severity_filter:
       - critical
       - warning

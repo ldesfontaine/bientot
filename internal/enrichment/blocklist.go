@@ -13,18 +13,18 @@ import (
 	"time"
 )
 
-// BlocklistSource defines a blocklist feed.
+// BlocklistSource définit une source de blocklist.
 type BlocklistSource struct {
 	Name   string `yaml:"name"`
 	URL    string `yaml:"url"`
-	Format string `yaml:"format"` // "ip-per-line" or "cidr-per-line"
+	Format string `yaml:"format"` // "ip-per-line" ou "cidr-per-line"
 }
 
-// BlocklistChecker checks IPs against downloaded blocklists.
+// BlocklistChecker vérifie les IPs contre les blocklists téléchargées.
 type BlocklistChecker struct {
 	mu      sync.RWMutex
-	ips     map[string][]string // ip -> list names
-	nets    []*netEntry         // CIDR ranges
+	ips     map[string][]string // ip -> noms de listes
+	nets    []*netEntry         // plages CIDR
 	sources []BlocklistSource
 	client  *http.Client
 	logger  *slog.Logger
@@ -35,7 +35,7 @@ type netEntry struct {
 	name string
 }
 
-// NewBlocklistChecker creates a checker and downloads all lists.
+// NewBlocklistChecker crée un vérificateur et télécharge toutes les listes.
 func NewBlocklistChecker(sources []BlocklistSource, logger *slog.Logger) *BlocklistChecker {
 	bc := &BlocklistChecker{
 		ips:     make(map[string][]string),
@@ -46,7 +46,7 @@ func NewBlocklistChecker(sources []BlocklistSource, logger *slog.Logger) *Blockl
 	return bc
 }
 
-// Load downloads and parses all configured blocklists.
+// Load télécharge et analyse toutes les blocklists configurées.
 func (bc *BlocklistChecker) Load() error {
 	newIPs := make(map[string][]string)
 	var newNets []*netEntry
@@ -76,19 +76,19 @@ func (bc *BlocklistChecker) Load() error {
 	return nil
 }
 
-// Check returns the list of blocklists that contain this IP.
+// Check return la liste des blocklists contenant cette IP.
 func (bc *BlocklistChecker) Check(ipStr string) []string {
 	bc.mu.RLock()
 	defer bc.mu.RUnlock()
 
 	var matched []string
 
-	// Exact match
+	// Correspondance exacte
 	if lists, ok := bc.ips[ipStr]; ok {
 		matched = append(matched, lists...)
 	}
 
-	// CIDR match
+	// Correspondance CIDR
 	ip := net.ParseIP(ipStr)
 	if ip != nil {
 		for _, entry := range bc.nets {
@@ -101,14 +101,14 @@ func (bc *BlocklistChecker) Check(ipStr string) []string {
 	return matched
 }
 
-// Count returns total unique IPs + CIDR entries loaded.
+// Count return le nombre total d'IPs uniques + entrées CIDR chargées.
 func (bc *BlocklistChecker) Count() int {
 	bc.mu.RLock()
 	defer bc.mu.RUnlock()
 	return len(bc.ips) + len(bc.nets)
 }
 
-// StartAutoRefresh refreshes blocklists on the given interval.
+// StartAutoRefresh rafraîchit les blocklists selon l'intervalle donné.
 func (bc *BlocklistChecker) StartAutoRefresh(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -128,12 +128,12 @@ func (bc *BlocklistChecker) StartAutoRefresh(ctx context.Context, interval time.
 func (bc *BlocklistChecker) download(src BlocklistSource) ([]string, []*net.IPNet, error) {
 	resp, err := bc.client.Get(src.URL)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fetching %s: %w", src.Name, err)
+		return nil, nil, fmt.Errorf("téléchargement de %s: %w", src.Name, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, nil, fmt.Errorf("fetching %s: status %d", src.Name, resp.StatusCode)
+		return nil, nil, fmt.Errorf("téléchargement de %s: statut %d", src.Name, resp.StatusCode)
 	}
 
 	return bc.parse(resp.Body, src.Format)

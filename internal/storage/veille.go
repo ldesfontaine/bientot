@@ -9,7 +9,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal"
 )
 
-// UpsertSoftware inserts or updates a software inventory entry.
+// UpsertSoftware insère ou met à jour une entrée de l'inventaire logiciel.
 func (s *SQLiteStorage) UpsertSoftware(ctx context.Context, item *internal.SoftwareItem) error {
 	now := time.Now()
 	_, err := s.db.ExecContext(ctx, `
@@ -20,12 +20,12 @@ func (s *SQLiteStorage) UpsertSoftware(ctx context.Context, item *internal.Softw
 			last_seen = excluded.last_seen
 	`, item.Machine, item.Name, item.Version, item.Source, item.Container, now, now)
 	if err != nil {
-		return fmt.Errorf("upserting software: %w", err)
+		return fmt.Errorf("upsert inventaire logiciel: %w", err)
 	}
 	return nil
 }
 
-// QuerySoftware returns software inventory for a machine (or all if machine is empty).
+// QuerySoftware return l'inventaire logiciel d'une machine (ou toutes si machine est vide).
 func (s *SQLiteStorage) QuerySoftware(ctx context.Context, machine string) ([]internal.SoftwareItem, error) {
 	query := `SELECT id, machine, name, version, source, container, first_seen, last_seen FROM software_inventory`
 	var args []interface{}
@@ -38,7 +38,7 @@ func (s *SQLiteStorage) QuerySoftware(ctx context.Context, machine string) ([]in
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("querying software: %w", err)
+		return nil, fmt.Errorf("requête inventaire logiciel: %w", err)
 	}
 	defer rows.Close()
 
@@ -48,7 +48,7 @@ func (s *SQLiteStorage) QuerySoftware(ctx context.Context, machine string) ([]in
 		var container sql.NullString
 		if err := rows.Scan(&item.ID, &item.Machine, &item.Name, &item.Version,
 			&item.Source, &container, &item.FirstSeen, &item.LastSeen); err != nil {
-			return nil, fmt.Errorf("scanning software: %w", err)
+			return nil, fmt.Errorf("lecture inventaire logiciel: %w", err)
 		}
 		if container.Valid {
 			item.Container = container.String
@@ -58,14 +58,14 @@ func (s *SQLiteStorage) QuerySoftware(ctx context.Context, machine string) ([]in
 	return items, rows.Err()
 }
 
-// FindSoftwareByName finds all machines running a given software name.
+// FindSoftwareByName trouve toutes les machines exécutant un logiciel donné.
 func (s *SQLiteStorage) FindSoftwareByName(ctx context.Context, name string) ([]internal.SoftwareItem, error) {
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, machine, name, version, source, container, first_seen, last_seen
 		FROM software_inventory WHERE name = ? ORDER BY machine
 	`, name)
 	if err != nil {
-		return nil, fmt.Errorf("finding software: %w", err)
+		return nil, fmt.Errorf("recherche logiciel: %w", err)
 	}
 	defer rows.Close()
 
@@ -75,7 +75,7 @@ func (s *SQLiteStorage) FindSoftwareByName(ctx context.Context, name string) ([]
 		var container sql.NullString
 		if err := rows.Scan(&item.ID, &item.Machine, &item.Name, &item.Version,
 			&item.Source, &container, &item.FirstSeen, &item.LastSeen); err != nil {
-			return nil, fmt.Errorf("scanning software: %w", err)
+			return nil, fmt.Errorf("lecture inventaire logiciel: %w", err)
 		}
 		if container.Valid {
 			item.Container = container.String
@@ -85,7 +85,7 @@ func (s *SQLiteStorage) FindSoftwareByName(ctx context.Context, name string) ([]
 	return items, rows.Err()
 }
 
-// UpsertVulnMatch inserts or updates a vulnerability match.
+// UpsertVulnMatch insère ou met à jour une correspondance de vulnérabilité.
 func (s *SQLiteStorage) UpsertVulnMatch(ctx context.Context, v *internal.VulnMatch) error {
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO vuln_matches (
@@ -104,12 +104,12 @@ func (s *SQLiteStorage) UpsertVulnMatch(ctx context.Context, v *internal.VulnMat
 		v.MatchedSoftware, v.Machine, v.InstalledVersion,
 		v.Confidence, v.VeilleAlertID, boolToInt(v.CISAKEV), v.FirstSeen)
 	if err != nil {
-		return fmt.Errorf("upserting vuln_match: %w", err)
+		return fmt.Errorf("upsert vuln_match: %w", err)
 	}
 	return nil
 }
 
-// QueryVulnMatches returns vulnerability matches with optional filters.
+// QueryVulnMatches return les correspondances de vulnérabilités avec des filtres optionnels.
 func (s *SQLiteStorage) QueryVulnMatches(ctx context.Context, machine string, activeOnly bool, limit int) ([]internal.VulnMatch, error) {
 	if limit <= 0 {
 		limit = 100
@@ -133,7 +133,7 @@ func (s *SQLiteStorage) QueryVulnMatches(ctx context.Context, machine string, ac
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("querying vuln_matches: %w", err)
+		return nil, fmt.Errorf("requête vuln_matches: %w", err)
 	}
 	defer rows.Close()
 
@@ -146,7 +146,7 @@ func (s *SQLiteStorage) QueryVulnMatches(ctx context.Context, machine string, ac
 		if err := rows.Scan(&v.ID, &v.CVEID, &v.Severity, &v.CVSSScore, &v.Title, &v.Link,
 			&v.MatchedSoftware, &v.Machine, &v.InstalledVersion,
 			&v.Confidence, &v.VeilleAlertID, &cisakev, &v.FirstSeen, &resolvedAt, &dismissed); err != nil {
-			return nil, fmt.Errorf("scanning vuln_match: %w", err)
+			return nil, fmt.Errorf("lecture vuln_match: %w", err)
 		}
 
 		v.CISAKEV = cisakev != 0
@@ -159,19 +159,19 @@ func (s *SQLiteStorage) QueryVulnMatches(ctx context.Context, machine string, ac
 	return matches, rows.Err()
 }
 
-// DismissVuln marks a vulnerability match as dismissed.
+// DismissVuln marque une correspondance de vulnérabilité comme ignorée.
 func (s *SQLiteStorage) DismissVuln(ctx context.Context, id int64) error {
 	_, err := s.db.ExecContext(ctx, `UPDATE vuln_matches SET dismissed = 1 WHERE id = ?`, id)
 	return err
 }
 
-// ResolveVuln marks a vulnerability match as resolved.
+// ResolveVuln marque une correspondance de vulnérabilité comme résolue.
 func (s *SQLiteStorage) ResolveVuln(ctx context.Context, id int64) error {
 	_, err := s.db.ExecContext(ctx, `UPDATE vuln_matches SET resolved_at = ? WHERE id = ?`, time.Now(), id)
 	return err
 }
 
-// InsertSyncLog records a veille-secu sync operation.
+// InsertSyncLog enregistre une opération de synchronisation veille-secu.
 func (s *SQLiteStorage) InsertSyncLog(ctx context.Context, alertsReceived, matchesFound int, status string) error {
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO veille_sync_log (timestamp, alerts_received, matches_found, status)
@@ -180,7 +180,7 @@ func (s *SQLiteStorage) InsertSyncLog(ctx context.Context, alertsReceived, match
 	return err
 }
 
-// QuerySyncLogs returns recent sync log entries.
+// QuerySyncLogs return les entrées récentes du journal de synchronisation.
 func (s *SQLiteStorage) QuerySyncLogs(ctx context.Context, limit int) ([]map[string]interface{}, error) {
 	if limit <= 0 {
 		limit = 20
@@ -191,7 +191,7 @@ func (s *SQLiteStorage) QuerySyncLogs(ctx context.Context, limit int) ([]map[str
 		FROM veille_sync_log ORDER BY timestamp DESC LIMIT ?
 	`, limit)
 	if err != nil {
-		return nil, fmt.Errorf("querying sync logs: %w", err)
+		return nil, fmt.Errorf("requête journal de synchronisation: %w", err)
 	}
 	defer rows.Close()
 
@@ -202,7 +202,7 @@ func (s *SQLiteStorage) QuerySyncLogs(ctx context.Context, limit int) ([]map[str
 		var received, found int
 		var status string
 		if err := rows.Scan(&id, &ts, &received, &found, &status); err != nil {
-			return nil, fmt.Errorf("scanning sync log: %w", err)
+			return nil, fmt.Errorf("lecture journal de synchronisation: %w", err)
 		}
 		logs = append(logs, map[string]interface{}{
 			"id":              id,

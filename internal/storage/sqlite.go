@@ -12,23 +12,23 @@ import (
 	"github.com/ldesfontaine/bientot/internal"
 )
 
-// SQLiteStorage implements Storage using SQLite
+// SQLiteStorage implémente Storage avec SQLite
 type SQLiteStorage struct {
 	db     *sql.DB
 	config Config
 }
 
-// NewSQLiteStorage creates a new SQLite storage
+// NewSQLiteStorage crée un nouveau stockage SQLite
 func NewSQLiteStorage(config Config) (*SQLiteStorage, error) {
 	db, err := sql.Open("sqlite3", config.DBPath+"?_journal=WAL&_sync=NORMAL")
 	if err != nil {
-		return nil, fmt.Errorf("opening database: %w", err)
+		return nil, fmt.Errorf("ouverture de la base de données: %w", err)
 	}
 
 	s := &SQLiteStorage{db: db, config: config}
 	if err := s.migrate(); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("migrating: %w", err)
+		return nil, fmt.Errorf("migration: %w", err)
 	}
 
 	return s, nil
@@ -89,7 +89,7 @@ func (s *SQLiteStorage) migrate() error {
 	CREATE INDEX IF NOT EXISTS idx_logs_source ON log_entries(source, timestamp);
 	CREATE INDEX IF NOT EXISTS idx_logs_severity ON log_entries(severity, timestamp);
 
-	-- Enrichment tables (Sprint 3)
+	-- Tables d'enrichissement (Sprint 3)
 	CREATE TABLE IF NOT EXISTS attack_log (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		timestamp DATETIME NOT NULL,
@@ -147,7 +147,7 @@ func (s *SQLiteStorage) migrate() error {
 	);
 	CREATE INDEX IF NOT EXISTS idx_patterns_type ON patterns(type, timestamp);
 
-	-- Software inventory (Sprint 4)
+	-- Inventaire logiciel (Sprint 4)
 	CREATE TABLE IF NOT EXISTS software_inventory (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		machine TEXT NOT NULL,
@@ -162,7 +162,7 @@ func (s *SQLiteStorage) migrate() error {
 	CREATE INDEX IF NOT EXISTS idx_software_machine ON software_inventory(machine);
 	CREATE INDEX IF NOT EXISTS idx_software_name ON software_inventory(name);
 
-	-- CVE correlation (Sprint 4)
+	-- Corrélation CVE (Sprint 4)
 	CREATE TABLE IF NOT EXISTS vuln_matches (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		cve_id TEXT NOT NULL,
@@ -200,7 +200,7 @@ func (s *SQLiteStorage) migrate() error {
 func (s *SQLiteStorage) Write(ctx context.Context, metrics []internal.Metric) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("beginning transaction: %w", err)
+		return fmt.Errorf("début de transaction: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -209,7 +209,7 @@ func (s *SQLiteStorage) Write(ctx context.Context, metrics []internal.Metric) er
 		VALUES (?, ?, ?, ?, ?)
 	`)
 	if err != nil {
-		return fmt.Errorf("preparing statement: %w", err)
+		return fmt.Errorf("préparation de la requête: %w", err)
 	}
 	defer stmt.Close()
 
@@ -217,7 +217,7 @@ func (s *SQLiteStorage) Write(ctx context.Context, metrics []internal.Metric) er
 		labels, _ := json.Marshal(m.Labels)
 		_, err := stmt.ExecContext(ctx, m.Name, m.Value, string(labels), m.Source, m.Timestamp)
 		if err != nil {
-			return fmt.Errorf("inserting metric: %w", err)
+			return fmt.Errorf("insertion de la métrique: %w", err)
 		}
 	}
 
@@ -234,12 +234,12 @@ func (s *SQLiteStorage) Query(ctx context.Context, name string, from, to time.Ti
 	case internal.ResolutionHourly:
 		query = `SELECT timestamp, avg_value, min_value, max_value FROM metrics_hourly WHERE name = ? AND timestamp BETWEEN ? AND ? ORDER BY timestamp`
 	default:
-		return nil, fmt.Errorf("unknown resolution: %s", resolution)
+		return nil, fmt.Errorf("résolution inconnue: %s", resolution)
 	}
 
 	rows, err := s.db.QueryContext(ctx, query, name, from, to)
 	if err != nil {
-		return nil, fmt.Errorf("querying: %w", err)
+		return nil, fmt.Errorf("requête: %w", err)
 	}
 	defer rows.Close()
 
@@ -247,7 +247,7 @@ func (s *SQLiteStorage) Query(ctx context.Context, name string, from, to time.Ti
 	for rows.Next() {
 		var p internal.Point
 		if err := rows.Scan(&p.Timestamp, &p.Value, &p.Min, &p.Max); err != nil {
-			return nil, fmt.Errorf("scanning row: %w", err)
+			return nil, fmt.Errorf("lecture de la ligne: %w", err)
 		}
 		p.Avg = p.Value
 		points = append(points, p)
@@ -276,7 +276,7 @@ func (s *SQLiteStorage) QueryLatest(ctx context.Context, name string, labels map
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("querying: %w", err)
+		return nil, fmt.Errorf("requête: %w", err)
 	}
 
 	json.Unmarshal([]byte(labelsStr), &m.Labels)
@@ -286,7 +286,7 @@ func (s *SQLiteStorage) QueryLatest(ctx context.Context, name string, labels map
 func (s *SQLiteStorage) List(ctx context.Context) ([]string, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT DISTINCT name FROM metrics_raw ORDER BY name`)
 	if err != nil {
-		return nil, fmt.Errorf("querying: %w", err)
+		return nil, fmt.Errorf("requête: %w", err)
 	}
 	defer rows.Close()
 
@@ -294,7 +294,7 @@ func (s *SQLiteStorage) List(ctx context.Context) ([]string, error) {
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			return nil, fmt.Errorf("scanning: %w", err)
+			return nil, fmt.Errorf("lecture: %w", err)
 		}
 		names = append(names, name)
 	}
@@ -303,7 +303,7 @@ func (s *SQLiteStorage) List(ctx context.Context) ([]string, error) {
 }
 
 func (s *SQLiteStorage) Downsample(ctx context.Context) error {
-	// Aggregate raw to 5min (data older than 24h)
+	// Agrégation raw vers 5min (données de plus de 24h)
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO metrics_5min (name, min_value, max_value, avg_value, count, labels, source, timestamp)
 		SELECT
@@ -320,16 +320,16 @@ func (s *SQLiteStorage) Downsample(ctx context.Context) error {
 		GROUP BY name, labels, source, bucket
 	`)
 	if err != nil {
-		return fmt.Errorf("downsampling to 5min: %w", err)
+		return fmt.Errorf("sous-échantillonnage 5min: %w", err)
 	}
 
-	// Delete raw data older than 24h
+	// Suppression des données brutes de plus de 24h
 	_, err = s.db.ExecContext(ctx, `DELETE FROM metrics_raw WHERE timestamp < datetime('now', '-24 hours')`)
 	if err != nil {
-		return fmt.Errorf("cleaning raw data: %w", err)
+		return fmt.Errorf("nettoyage des données brutes: %w", err)
 	}
 
-	// Aggregate 5min to hourly (data older than 7 days)
+	// Agrégation 5min vers horaire (données de plus de 7 jours)
 	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO metrics_hourly (name, min_value, max_value, avg_value, count, labels, source, timestamp)
 		SELECT
@@ -346,13 +346,13 @@ func (s *SQLiteStorage) Downsample(ctx context.Context) error {
 		GROUP BY name, labels, source, bucket
 	`)
 	if err != nil {
-		return fmt.Errorf("downsampling to hourly: %w", err)
+		return fmt.Errorf("sous-échantillonnage horaire: %w", err)
 	}
 
-	// Delete 5min data older than 7 days
+	// Suppression des données 5min de plus de 7 jours
 	_, err = s.db.ExecContext(ctx, `DELETE FROM metrics_5min WHERE timestamp < datetime('now', '-7 days')`)
 	if err != nil {
-		return fmt.Errorf("cleaning 5min data: %w", err)
+		return fmt.Errorf("nettoyage des données 5min: %w", err)
 	}
 
 	return nil
@@ -371,7 +371,7 @@ func (s *SQLiteStorage) InsertLogs(ctx context.Context, entries []internal.LogEn
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("beginning transaction: %w", err)
+		return fmt.Errorf("début de transaction: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -380,7 +380,7 @@ func (s *SQLiteStorage) InsertLogs(ctx context.Context, entries []internal.LogEn
 		VALUES (?, ?, ?, ?, ?, ?)
 	`)
 	if err != nil {
-		return fmt.Errorf("preparing statement: %w", err)
+		return fmt.Errorf("préparation de la requête: %w", err)
 	}
 	defer stmt.Close()
 
@@ -388,7 +388,7 @@ func (s *SQLiteStorage) InsertLogs(ctx context.Context, entries []internal.LogEn
 		parsed, _ := json.Marshal(e.Parsed)
 		_, err := stmt.ExecContext(ctx, e.Timestamp, e.Machine, e.Source, e.Severity, e.Message, string(parsed))
 		if err != nil {
-			return fmt.Errorf("inserting log entry: %w", err)
+			return fmt.Errorf("insertion de l'entrée de log: %w", err)
 		}
 	}
 
@@ -420,7 +420,7 @@ func (s *SQLiteStorage) QueryLogs(ctx context.Context, machine, source, severity
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("querying logs: %w", err)
+		return nil, fmt.Errorf("requête des logs: %w", err)
 	}
 	defer rows.Close()
 
@@ -429,7 +429,7 @@ func (s *SQLiteStorage) QueryLogs(ctx context.Context, machine, source, severity
 		var e internal.LogEntry
 		var parsedStr sql.NullString
 		if err := rows.Scan(&e.Timestamp, &e.Machine, &e.Source, &e.Severity, &e.Message, &parsedStr); err != nil {
-			return nil, fmt.Errorf("scanning log entry: %w", err)
+			return nil, fmt.Errorf("lecture de l'entrée de log: %w", err)
 		}
 		if parsedStr.Valid && parsedStr.String != "" {
 			json.Unmarshal([]byte(parsedStr.String), &e.Parsed)
@@ -446,14 +446,14 @@ func (s *SQLiteStorage) QueryLogStats(ctx context.Context) (*internal.LogStats, 
 		BySeverity: make(map[string]int),
 	}
 
-	// By source (last 24h)
+	// Par source (dernières 24h)
 	rows, err := s.db.QueryContext(ctx, `
 		SELECT source, COUNT(*) FROM log_entries
 		WHERE timestamp >= datetime('now', '-24 hours')
 		GROUP BY source
 	`)
 	if err != nil {
-		return nil, fmt.Errorf("querying log stats by source: %w", err)
+		return nil, fmt.Errorf("requête des stats de log par source: %w", err)
 	}
 	defer rows.Close()
 
@@ -461,7 +461,7 @@ func (s *SQLiteStorage) QueryLogStats(ctx context.Context) (*internal.LogStats, 
 		var source string
 		var count int
 		if err := rows.Scan(&source, &count); err != nil {
-			return nil, fmt.Errorf("scanning source stat: %w", err)
+			return nil, fmt.Errorf("lecture de la stat source: %w", err)
 		}
 		stats.BySource[source] = count
 	}
@@ -469,14 +469,14 @@ func (s *SQLiteStorage) QueryLogStats(ctx context.Context) (*internal.LogStats, 
 		return nil, err
 	}
 
-	// By severity (last 24h)
+	// Par sévérité (dernières 24h)
 	rows2, err := s.db.QueryContext(ctx, `
 		SELECT severity, COUNT(*) FROM log_entries
 		WHERE timestamp >= datetime('now', '-24 hours')
 		GROUP BY severity
 	`)
 	if err != nil {
-		return nil, fmt.Errorf("querying log stats by severity: %w", err)
+		return nil, fmt.Errorf("requête des stats de log par sévérité: %w", err)
 	}
 	defer rows2.Close()
 
@@ -484,7 +484,7 @@ func (s *SQLiteStorage) QueryLogStats(ctx context.Context) (*internal.LogStats, 
 		var severity string
 		var count int
 		if err := rows2.Scan(&severity, &count); err != nil {
-			return nil, fmt.Errorf("scanning severity stat: %w", err)
+			return nil, fmt.Errorf("lecture de la stat sévérité: %w", err)
 		}
 		stats.BySeverity[severity] = count
 	}
@@ -496,7 +496,7 @@ func (s *SQLiteStorage) PurgeLogs(ctx context.Context, olderThan time.Duration) 
 	cutoff := time.Now().Add(-olderThan)
 	_, err := s.db.ExecContext(ctx, `DELETE FROM log_entries WHERE timestamp < ?`, cutoff)
 	if err != nil {
-		return fmt.Errorf("purging logs: %w", err)
+		return fmt.Errorf("purge des logs: %w", err)
 	}
 	return nil
 }

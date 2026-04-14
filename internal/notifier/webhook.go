@@ -10,7 +10,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal"
 )
 
-// WebhookNotifier sends alerts via generic HTTP webhook
+// WebhookNotifier envoie des alertes via webhook HTTP générique
 type WebhookNotifier struct {
 	name       string
 	url        string
@@ -19,7 +19,7 @@ type WebhookNotifier struct {
 	client     *http.Client
 }
 
-// WebhookConfig holds webhook configuration
+// WebhookConfig contient la configuration du webhook
 type WebhookConfig struct {
 	Name       string
 	URL        string
@@ -27,7 +27,7 @@ type WebhookConfig struct {
 	Severities []internal.Severity
 }
 
-// NewWebhookNotifier creates a new webhook notifier
+// NewWebhookNotifier crée un nouveau notifier webhook
 func NewWebhookNotifier(config WebhookConfig) *WebhookNotifier {
 	return &WebhookNotifier{
 		name:       config.Name,
@@ -65,12 +65,12 @@ func (n *WebhookNotifier) Send(alert internal.Alert) error {
 
 	body, err := json.Marshal(payload)
 	if err != nil {
-		return fmt.Errorf("marshaling payload: %w", err)
+		return fmt.Errorf("sérialisation du payload: %w", err)
 	}
 
 	req, err := http.NewRequest("POST", n.url, bytes.NewReader(body))
 	if err != nil {
-		return fmt.Errorf("creating request: %w", err)
+		return fmt.Errorf("création de la requête: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -80,12 +80,12 @@ func (n *WebhookNotifier) Send(alert internal.Alert) error {
 
 	resp, err := n.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("sending webhook: %w", err)
+		return fmt.Errorf("envoi du webhook: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		return fmt.Errorf("statut inattendu: %d", resp.StatusCode)
 	}
 
 	return nil

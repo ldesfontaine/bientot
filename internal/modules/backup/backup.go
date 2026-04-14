@@ -11,11 +11,11 @@ import (
 	"github.com/ldesfontaine/bientot/internal/transport"
 )
 
-// Module reads backup status JSON files produced by backup-zfs.
-// Expected format: { "type": "...", "timestamp": "...", "success": true/false,
+// Module lit les fichiers JSON de statut de backup produits par backup-zfs.
+// Format attendu : { "type": "...", "timestamp": "...", "success": true/false,
 //   "size_bytes": N, "checksum": "...", ... }
 type Module struct {
-	statusDir string // directory containing *-latest.json files
+	statusDir string // répertoire contenant les fichiers *-latest.json
 }
 
 func New(statusDir string) *Module {
@@ -35,7 +35,7 @@ func (m *Module) Detect() bool {
 func (m *Module) Collect(_ context.Context) (transport.ModuleData, error) {
 	entries, err := os.ReadDir(m.statusDir)
 	if err != nil {
-		return transport.ModuleData{}, fmt.Errorf("reading status dir: %w", err)
+		return transport.ModuleData{}, fmt.Errorf("lecture du répertoire de statut : %w", err)
 	}
 
 	now := time.Now()
@@ -65,7 +65,7 @@ func (m *Module) Collect(_ context.Context) (transport.ModuleData, error) {
 
 		labels := map[string]string{"backup": label}
 
-		// success
+		// succès
 		if success, ok := status["success"].(bool); ok {
 			v := 0.0
 			if success {
@@ -83,7 +83,7 @@ func (m *Module) Collect(_ context.Context) (transport.ModuleData, error) {
 			})
 		}
 
-		// age from timestamp
+		// âge depuis le timestamp
 		if tsStr, ok := status["timestamp"].(string); ok {
 			if ts, err := time.Parse(time.RFC3339, tsStr); err == nil {
 				age := now.Sub(ts)
@@ -93,7 +93,7 @@ func (m *Module) Collect(_ context.Context) (transport.ModuleData, error) {
 			}
 		}
 
-		// days_since_last (USB backups)
+		// days_since_last (backups USB)
 		if days, ok := status["days_since_last"].(float64); ok {
 			metrics = append(metrics, transport.MetricPoint{
 				Name: "backup_days_since_last", Value: days, Labels: labels,
@@ -107,7 +107,7 @@ func (m *Module) Collect(_ context.Context) (transport.ModuleData, error) {
 			})
 		}
 
-		// type as metadata
+		// type en métadonnée
 		if t, ok := status["type"].(string); ok {
 			metadata["type_"+label] = t
 		}

@@ -10,7 +10,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal/enrichment"
 )
 
-// UpsertIPIntel inserts or updates IP intelligence data.
+// UpsertIPIntel insère ou met à jour les données d'intelligence IP.
 func (s *SQLiteStorage) UpsertIPIntel(ctx context.Context, intel *enrichment.IPIntel) error {
 	blocklists, _ := json.Marshal(intel.BlocklistsMatched)
 	sources, _ := json.Marshal(intel.EnrichmentSources)
@@ -49,12 +49,12 @@ func (s *SQLiteStorage) UpsertIPIntel(ctx context.Context, intel *enrichment.IPI
 		string(sources), intel.EnrichedAt, intel.PriorityScore,
 	)
 	if err != nil {
-		return fmt.Errorf("upserting ip_intel: %w", err)
+		return fmt.Errorf("upsert ip_intel: %w", err)
 	}
 	return nil
 }
 
-// GetIPIntel retrieves enrichment data for an IP.
+// GetIPIntel récupère les données d'enrichissement pour une IP.
 func (s *SQLiteStorage) GetIPIntel(ctx context.Context, ip string) (*enrichment.IPIntel, error) {
 	var intel enrichment.IPIntel
 	var blocklistsStr, sourcesStr sql.NullString
@@ -78,7 +78,7 @@ func (s *SQLiteStorage) GetIPIntel(ctx context.Context, ip string) (*enrichment.
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("querying ip_intel: %w", err)
+		return nil, fmt.Errorf("requête ip_intel: %w", err)
 	}
 
 	intel.CrowdSecBanned = crowdsecBanned != 0
@@ -92,31 +92,31 @@ func (s *SQLiteStorage) GetIPIntel(ctx context.Context, ip string) (*enrichment.
 	return &intel, nil
 }
 
-// InsertAttackLog stores an aggregated attack event.
+// InsertAttackLog stocke un événement d'attaque agrégé.
 func (s *SQLiteStorage) InsertAttackLog(ctx context.Context, log *enrichment.AttackLog) error {
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO attack_log (timestamp, machine, ip, path, status_code, count)
 		VALUES (?, ?, ?, ?, ?, ?)
 	`, log.Timestamp, log.Machine, log.IP, log.Path, log.Status, log.Count)
 	if err != nil {
-		return fmt.Errorf("inserting attack_log: %w", err)
+		return fmt.Errorf("insertion attack_log: %w", err)
 	}
 	return nil
 }
 
-// InsertPattern stores a detected threat pattern.
+// InsertPattern stocke un pattern de menace détecté.
 func (s *SQLiteStorage) InsertPattern(ctx context.Context, pattern *enrichment.Pattern) error {
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO patterns (timestamp, type, severity, detail, resolved)
 		VALUES (?, ?, ?, ?, ?)
 	`, pattern.Timestamp, pattern.Type, pattern.Severity, pattern.Detail, boolToInt(pattern.Resolved))
 	if err != nil {
-		return fmt.Errorf("inserting pattern: %w", err)
+		return fmt.Errorf("insertion pattern: %w", err)
 	}
 	return nil
 }
 
-// QueryIPIntel returns the most recently enriched IPs.
+// QueryIPIntel return les IPs les plus récemment enrichies.
 func (s *SQLiteStorage) QueryIPIntel(ctx context.Context, limit int) ([]enrichment.IPIntel, error) {
 	if limit <= 0 {
 		limit = 100
@@ -131,7 +131,7 @@ func (s *SQLiteStorage) QueryIPIntel(ctx context.Context, limit int) ([]enrichme
 		FROM ip_intel ORDER BY last_seen DESC LIMIT ?
 	`, limit)
 	if err != nil {
-		return nil, fmt.Errorf("querying ip_intel: %w", err)
+		return nil, fmt.Errorf("requête ip_intel: %w", err)
 	}
 	defer rows.Close()
 
@@ -148,7 +148,7 @@ func (s *SQLiteStorage) QueryIPIntel(ctx context.Context, limit int) ([]enrichme
 			&intel.AbuseScore, &intel.GreyNoiseClass, &intel.GreyNoiseName,
 			&sourcesStr, &intel.EnrichedAt, &intel.PriorityScore,
 		); err != nil {
-			return nil, fmt.Errorf("scanning ip_intel: %w", err)
+			return nil, fmt.Errorf("lecture ip_intel: %w", err)
 		}
 
 		intel.CrowdSecBanned = crowdsecBanned != 0
@@ -165,7 +165,7 @@ func (s *SQLiteStorage) QueryIPIntel(ctx context.Context, limit int) ([]enrichme
 	return results, rows.Err()
 }
 
-// QueryAttackLogs returns recent attack logs.
+// QueryAttackLogs return les logs d'attaques récents.
 func (s *SQLiteStorage) QueryAttackLogs(ctx context.Context, since time.Time, limit int) ([]enrichment.AttackLog, error) {
 	if limit <= 0 {
 		limit = 100
@@ -176,7 +176,7 @@ func (s *SQLiteStorage) QueryAttackLogs(ctx context.Context, since time.Time, li
 		FROM attack_log WHERE timestamp >= ? ORDER BY timestamp DESC LIMIT ?
 	`, since, limit)
 	if err != nil {
-		return nil, fmt.Errorf("querying attack_log: %w", err)
+		return nil, fmt.Errorf("requête attack_log: %w", err)
 	}
 	defer rows.Close()
 
@@ -184,7 +184,7 @@ func (s *SQLiteStorage) QueryAttackLogs(ctx context.Context, since time.Time, li
 	for rows.Next() {
 		var l enrichment.AttackLog
 		if err := rows.Scan(&l.ID, &l.Timestamp, &l.Machine, &l.IP, &l.Path, &l.Status, &l.Count); err != nil {
-			return nil, fmt.Errorf("scanning attack_log: %w", err)
+			return nil, fmt.Errorf("lecture attack_log: %w", err)
 		}
 		logs = append(logs, l)
 	}
@@ -192,7 +192,7 @@ func (s *SQLiteStorage) QueryAttackLogs(ctx context.Context, since time.Time, li
 	return logs, rows.Err()
 }
 
-// QueryPatterns returns detected patterns.
+// QueryPatterns return les patterns détectés.
 func (s *SQLiteStorage) QueryPatterns(ctx context.Context, unresolvedOnly bool, limit int) ([]enrichment.Pattern, error) {
 	if limit <= 0 {
 		limit = 50
@@ -209,7 +209,7 @@ func (s *SQLiteStorage) QueryPatterns(ctx context.Context, unresolvedOnly bool, 
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("querying patterns: %w", err)
+		return nil, fmt.Errorf("requête patterns: %w", err)
 	}
 	defer rows.Close()
 
@@ -218,7 +218,7 @@ func (s *SQLiteStorage) QueryPatterns(ctx context.Context, unresolvedOnly bool, 
 		var p enrichment.Pattern
 		var resolved int
 		if err := rows.Scan(&p.ID, &p.Timestamp, &p.Type, &p.Severity, &p.Detail, &resolved); err != nil {
-			return nil, fmt.Errorf("scanning pattern: %w", err)
+			return nil, fmt.Errorf("lecture pattern: %w", err)
 		}
 		p.Resolved = resolved != 0
 		patterns = append(patterns, p)
@@ -227,12 +227,12 @@ func (s *SQLiteStorage) QueryPatterns(ctx context.Context, unresolvedOnly bool, 
 	return patterns, rows.Err()
 }
 
-// BudgetStatus returns enrichment budget from tracker (not DB).
-// The DB is used for persistence across restarts.
+// BudgetStatus return le budget d'enrichissement depuis le tracker (pas la BDD).
+// La BDD est utilisée pour la persistance entre les redémarrages.
 func (s *SQLiteStorage) BudgetStatus(ctx context.Context) (map[string]map[string]int, error) {
 	rows, err := s.db.QueryContext(ctx, `SELECT provider, daily_limit, used_today FROM enrichment_budget`)
 	if err != nil {
-		return nil, fmt.Errorf("querying budget: %w", err)
+		return nil, fmt.Errorf("requête budget: %w", err)
 	}
 	defer rows.Close()
 
@@ -241,7 +241,7 @@ func (s *SQLiteStorage) BudgetStatus(ctx context.Context) (map[string]map[string
 		var provider string
 		var limit, used int
 		if err := rows.Scan(&provider, &limit, &used); err != nil {
-			return nil, fmt.Errorf("scanning budget: %w", err)
+			return nil, fmt.Errorf("lecture budget: %w", err)
 		}
 		status[provider] = map[string]int{
 			"daily_limit": limit,
@@ -253,7 +253,7 @@ func (s *SQLiteStorage) BudgetStatus(ctx context.Context) (map[string]map[string
 	return status, rows.Err()
 }
 
-// UnblockedHighRisk returns IPs with high abuse score but not in CrowdSec.
+// UnblockedHighRisk return les IPs avec un score d'abus élevé mais pas dans CrowdSec.
 func (s *SQLiteStorage) UnblockedHighRisk(ctx context.Context, minScore int, limit int) ([]enrichment.IPIntel, error) {
 	if limit <= 0 {
 		limit = 50
@@ -270,7 +270,7 @@ func (s *SQLiteStorage) UnblockedHighRisk(ctx context.Context, minScore int, lim
 		ORDER BY abuse_score DESC LIMIT ?
 	`, minScore, limit)
 	if err != nil {
-		return nil, fmt.Errorf("querying unblocked high risk: %w", err)
+		return nil, fmt.Errorf("requête IPs à haut risque non bloquées: %w", err)
 	}
 	defer rows.Close()
 
@@ -287,7 +287,7 @@ func (s *SQLiteStorage) UnblockedHighRisk(ctx context.Context, minScore int, lim
 			&intel.AbuseScore, &intel.GreyNoiseClass, &intel.GreyNoiseName,
 			&sourcesStr, &intel.EnrichedAt, &intel.PriorityScore,
 		); err != nil {
-			return nil, fmt.Errorf("scanning ip_intel: %w", err)
+			return nil, fmt.Errorf("lecture ip_intel: %w", err)
 		}
 
 		intel.CrowdSecBanned = crowdsecBanned != 0

@@ -9,25 +9,25 @@ import (
 )
 
 const (
-	// MaxTimestampSkew is the maximum allowed age of a payload timestamp.
+	// MaxTimestampSkew est l'âge maximum autorisé d'un timestamp de payload.
 	MaxTimestampSkew = 60 * time.Second
-	// NonceTTL is how long seen nonces are kept to prevent replay.
+	// NonceTTL est la durée de conservation des nonces vus pour empêcher le rejeu.
 	NonceTTL = 2 * time.Minute
 )
 
-// NewNonce generates a fresh UUID nonce.
+// NewNonce génère un nouveau nonce UUID.
 func NewNonce() string {
 	return uuid.NewString()
 }
 
-// NonceCache tracks recently seen nonces to reject replays.
+// NonceCache suit les nonces récemment vus pour rejeter les rejeux.
 type NonceCache struct {
 	mu    sync.Mutex
 	seen  map[string]time.Time
 	ttl   time.Duration
 }
 
-// NewNonceCache creates a cache that evicts entries after ttl.
+// NewNonceCache crée un cache qui expire les entrées après le ttl.
 func NewNonceCache() *NonceCache {
 	nc := &NonceCache{
 		seen: make(map[string]time.Time),
@@ -37,22 +37,22 @@ func NewNonceCache() *NonceCache {
 	return nc
 }
 
-// Check validates timestamp freshness and nonce uniqueness.
-// Returns an error if the payload should be rejected.
+// Check valide la fraîcheur du timestamp et l'unicité du nonce.
+// return une erreur si le payload doit être rejeté.
 func (nc *NonceCache) Check(ts time.Time, nonce string) error {
 	age := time.Since(ts)
 	if age < 0 {
 		age = -age
 	}
 	if age > MaxTimestampSkew {
-		return fmt.Errorf("timestamp too old: %s", age)
+		return fmt.Errorf("timestamp trop ancien: %s", age)
 	}
 
 	nc.mu.Lock()
 	defer nc.mu.Unlock()
 
 	if _, exists := nc.seen[nonce]; exists {
-		return fmt.Errorf("duplicate nonce: %s", nonce)
+		return fmt.Errorf("nonce dupliqué: %s", nonce)
 	}
 	nc.seen[nonce] = time.Now()
 	return nil

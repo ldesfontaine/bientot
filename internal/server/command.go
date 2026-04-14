@@ -11,7 +11,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// Command represents a server-to-agent command.
+// Command représente une commande serveur vers agent.
 type Command struct {
 	ID        string      `json:"id"`
 	Type      string      `json:"type"`   // "collect", "restart_module", "update_config", "ping"
@@ -20,7 +20,7 @@ type Command struct {
 	Timestamp time.Time   `json:"timestamp"`
 }
 
-// CommandResult is sent back by the agent.
+// CommandResult est renvoyé par l'agent.
 type CommandResult struct {
 	CommandID string      `json:"command_id"`
 	MachineID string      `json:"machine_id"`
@@ -29,10 +29,10 @@ type CommandResult struct {
 	Error     string      `json:"error,omitempty"`
 }
 
-// CommandChannel manages WebSocket connections from agents.
+// CommandChannel gère les connexions WebSocket des agents.
 type CommandChannel struct {
 	mu      sync.RWMutex
-	conns   map[string]*agentConn // machine_id -> connection
+	conns   map[string]*agentConn // machine_id -> connexion
 	logger  *slog.Logger
 }
 
@@ -48,7 +48,7 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
-// NewCommandChannel creates a command channel manager.
+// NewCommandChannel crée un gestionnaire de canal de commandes.
 func NewCommandChannel(logger *slog.Logger) *CommandChannel {
 	return &CommandChannel{
 		conns:  make(map[string]*agentConn),
@@ -56,14 +56,14 @@ func NewCommandChannel(logger *slog.Logger) *CommandChannel {
 	}
 }
 
-// SendCommand sends a command to a specific agent.
+// SendCommand envoie une commande à un agent spécifique.
 func (cc *CommandChannel) SendCommand(machineID string, cmd Command) error {
 	cc.mu.RLock()
 	ac, ok := cc.conns[machineID]
 	cc.mu.RUnlock()
 
 	if !ok {
-		return fmt.Errorf("agent %s not connected", machineID)
+		return fmt.Errorf("agent %s non connecté", machineID)
 	}
 
 	ac.mu.Lock()
@@ -73,7 +73,7 @@ func (cc *CommandChannel) SendCommand(machineID string, cmd Command) error {
 	return ac.conn.WriteJSON(cmd)
 }
 
-// BroadcastCommand sends a command to all connected agents.
+// BroadcastCommand envoie une commande à tous les agents connectés.
 func (cc *CommandChannel) BroadcastCommand(cmd Command) map[string]error {
 	cc.mu.RLock()
 	defer cc.mu.RUnlock()
@@ -93,7 +93,7 @@ func (cc *CommandChannel) BroadcastCommand(cmd Command) map[string]error {
 	return errors
 }
 
-// ConnectedAgents returns the list of machine IDs with active WS connections.
+// ConnectedAgents return la liste des machine_id avec des connexions WS actives.
 func (cc *CommandChannel) ConnectedAgents() []string {
 	cc.mu.RLock()
 	defer cc.mu.RUnlock()
@@ -105,70 +105,70 @@ func (cc *CommandChannel) ConnectedAgents() []string {
 	return agents
 }
 
-// handleAgentWS handles WebSocket connections from agents.
+// handleAgentWS gère les connexions WebSocket des agents.
 func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 	if s.cmdChannel == nil {
-		http.Error(w, "command channel disabled", http.StatusServiceUnavailable)
+		http.Error(w, "canal de commandes désactivé", http.StatusServiceUnavailable)
 		return
 	}
 
-	// Authenticate via query param (token sent as ?token=xxx&machine_id=yyy)
+	// Authentification via paramètre de requête (token envoyé en ?token=xxx&machine_id=yyy)
 	machineID := r.URL.Query().Get("machine_id")
 	token := r.URL.Query().Get("token")
 
 	expectedToken, ok := s.tokens[machineID]
 	if !ok || token != expectedToken {
-		s.logger.Warn("ws auth failed", "machine_id", machineID)
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		s.logger.Warn("échec auth WS", "machine_id", machineID)
+		http.Error(w, "non autorisé", http.StatusUnauthorized)
 		return
 	}
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		s.logger.Error("ws upgrade failed", "error", err)
+		s.logger.Error("échec de l'upgrade WS", "error", err)
 		return
 	}
 
 	ac := &agentConn{conn: conn, machineID: machineID}
 
 	s.cmdChannel.mu.Lock()
-	// Close existing connection if any
+	// Fermeture de la connexion existante si présente
 	if existing, ok := s.cmdChannel.conns[machineID]; ok {
 		existing.conn.Close()
 	}
 	s.cmdChannel.conns[machineID] = ac
 	s.cmdChannel.mu.Unlock()
 
-	s.logger.Info("agent connected to command channel", "machine_id", machineID)
+	s.logger.Info("agent connecté au canal de commandes", "machine_id", machineID)
 
-	// Read loop: receive command results from agent
+	// Boucle de lecture : réception des résultats de commandes depuis l'agent
 	defer func() {
 		s.cmdChannel.mu.Lock()
 		delete(s.cmdChannel.conns, machineID)
 		s.cmdChannel.mu.Unlock()
 		conn.Close()
-		s.logger.Info("agent disconnected from command channel", "machine_id", machineID)
+		s.logger.Info("agent déconnecté du canal de commandes", "machine_id", machineID)
 	}()
 
 	for {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseNormalClosure) {
-				s.logger.Warn("ws read error", "machine_id", machineID, "error", err)
+				s.logger.Warn("erreur de lecture WS", "machine_id", machineID, "error", err)
 			}
 			return
 		}
 
 		var result CommandResult
 		if err := json.Unmarshal(msg, &result); err != nil {
-			s.logger.Warn("invalid command result", "machine_id", machineID, "error", err)
+			s.logger.Warn("résultat de commande invalide", "machine_id", machineID, "error", err)
 			continue
 		}
 
 		result.MachineID = machineID
-		s.logger.Debug("command result received", "machine_id", machineID, "command_id", result.CommandID, "status", result.Status)
+		s.logger.Debug("résultat de commande reçu", "machine_id", machineID, "command_id", result.CommandID, "status", result.Status)
 
-		// Publish to SSE
+		// Publication via SSE
 		s.sse.Publish(SSEEvent{
 			Type: "command_result",
 			Data: result,
@@ -176,22 +176,22 @@ func (s *Server) handleAgentWS(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleSendCommand allows the dashboard to send commands to agents.
+// handleSendCommand permet au dashboard d'envoyer des commandes aux agents.
 func (s *Server) handleSendCommand(w http.ResponseWriter, r *http.Request) {
 	if s.cmdChannel == nil {
-		http.Error(w, "command channel disabled", http.StatusServiceUnavailable)
+		http.Error(w, "canal de commandes désactivé", http.StatusServiceUnavailable)
 		return
 	}
 
 	var cmd Command
 	if err := json.NewDecoder(r.Body).Decode(&cmd); err != nil {
-		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		http.Error(w, "JSON invalide", http.StatusBadRequest)
 		return
 	}
 
 	machineID := r.URL.Query().Get("machine_id")
 	if machineID == "" {
-		// Broadcast
+		// Diffusion à tous
 		errors := s.cmdChannel.BroadcastCommand(cmd)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{
@@ -210,10 +210,10 @@ func (s *Server) handleSendCommand(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "sent"})
 }
 
-// handleConnectedAgents lists agents with active WS connections.
+// handleConnectedAgents liste les agents avec des connexions WS actives.
 func (s *Server) handleConnectedAgents(w http.ResponseWriter, _ *http.Request) {
 	if s.cmdChannel == nil {
-		http.Error(w, "command channel disabled", http.StatusServiceUnavailable)
+		http.Error(w, "canal de commandes désactivé", http.StatusServiceUnavailable)
 		return
 	}
 

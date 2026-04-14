@@ -13,7 +13,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal/transport"
 )
 
-// Traefik API types (v3)
+// Types API Traefik (v3)
 type router struct {
 	Name    string `json:"name"`
 	Status  string `json:"status"`
@@ -32,8 +32,8 @@ type entrypoint struct {
 	Address string `json:"address"`
 }
 
-// Module collects Traefik router/service status via the API.
-// Detects Traefik via Docker (image traefik:*) or direct API endpoint.
+// Module collecte le statut des routeurs/services Traefik via l'API.
+// Détecte Traefik via Docker (image traefik:*) ou endpoint API direct.
 type Module struct {
 	apiURL       string // e.g. "http://localhost:8080" (Traefik API port)
 	dockerSocket string
@@ -54,7 +54,7 @@ func New(apiURL, dockerSocket string) *Module {
 func (m *Module) Name() string { return "traefik" }
 
 func (m *Module) Detect() bool {
-	// Method 1: direct API check
+	// Méthode 1 : vérification API directe
 	if m.apiURL != "" {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
@@ -70,7 +70,7 @@ func (m *Module) Detect() bool {
 		}
 	}
 
-	// Method 2: check for traefik container via Docker socket
+	// Méthode 2 : vérification du conteneur traefik via le socket Docker
 	if _, err := os.Stat(m.dockerSocket); err == nil {
 		return m.detectViaDocker()
 	}
@@ -112,7 +112,7 @@ func (m *Module) Collect(ctx context.Context) (transport.ModuleData, error) {
 	now := time.Now()
 	var metrics []transport.MetricPoint
 
-	// Routers
+	// Routeurs
 	routers, err := fetchJSON[[]router](ctx, m.client, m.apiURL+"/api/http/routers")
 	if err == nil {
 		var enabled, errored int
@@ -138,7 +138,7 @@ func (m *Module) Collect(ctx context.Context) (transport.ModuleData, error) {
 		)
 	}
 
-	// Entrypoints
+	// Points d'entrée
 	eps, err := fetchJSON[[]entrypoint](ctx, m.client, m.apiURL+"/api/entrypoints")
 	if err == nil {
 		metrics = append(metrics,
@@ -176,7 +176,7 @@ func fetchJSON[T any](ctx context.Context, client *http.Client, url string) (T, 
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return zero, fmt.Errorf("status %d", resp.StatusCode)
+		return zero, fmt.Errorf("statut %d", resp.StatusCode)
 	}
 	var result T
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {

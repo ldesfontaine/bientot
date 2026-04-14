@@ -7,15 +7,15 @@ import (
 	"strings"
 )
 
-// promMetric represents a single parsed Prometheus metric line.
+// promMetric représente une seule ligne de métrique Prometheus analysée.
 type promMetric struct {
 	Name   string
 	Labels map[string]string
 	Value  float64
 }
 
-// parsePrometheusMetrics parses Prometheus text exposition format.
-// Returns all metric lines as a slice (supports labels and duplicates).
+// parsePrometheusMetrics analyse le format texte d'exposition Prometheus.
+// return toutes les lignes de métriques en slice (supporte les labels et doublons).
 func parsePrometheusMetrics(body io.Reader) []promMetric {
 	var result []promMetric
 	scanner := bufio.NewScanner(body)
@@ -33,12 +33,12 @@ func parsePrometheusMetrics(body io.Reader) []promMetric {
 	return result
 }
 
-// parseLine parses a single Prometheus metric line.
-// Format: metric_name{label="value",...} value [timestamp]
+// parseLine analyse une seule ligne de métrique Prometheus.
+// Format : metric_name{label="value",...} value [timestamp]
 func parseLine(line string) (promMetric, bool) {
 	var m promMetric
 
-	// Split labels from name
+	// Séparation des labels du nom
 	braceOpen := strings.IndexByte(line, '{')
 	if braceOpen >= 0 {
 		m.Name = line[:braceOpen]
@@ -50,7 +50,7 @@ func parseLine(line string) (promMetric, bool) {
 		m.Labels = parseLabels(line[braceOpen+1 : braceClose])
 		line = strings.TrimSpace(line[braceClose+1:])
 	} else {
-		// No labels: "metric_name value [timestamp]"
+		// Pas de labels : "metric_name value [timestamp]"
 		parts := strings.Fields(line)
 		if len(parts) < 2 {
 			return m, false
@@ -59,7 +59,7 @@ func parseLine(line string) (promMetric, bool) {
 		line = parts[1]
 	}
 
-	// Parse value (first field of remaining)
+	// Analyse de la valeur (premier champ restant)
 	valStr := strings.Fields(line)[0]
 	val, err := strconv.ParseFloat(valStr, 64)
 	if err != nil {
@@ -69,11 +69,11 @@ func parseLine(line string) (promMetric, bool) {
 	return m, true
 }
 
-// parseLabels parses label="value",label2="value2"
+// parseLabels analyse label="value",label2="value2"
 func parseLabels(s string) map[string]string {
 	labels := make(map[string]string)
 	for s != "" {
-		// Find key
+		// Trouver la clé
 		eq := strings.IndexByte(s, '=')
 		if eq < 0 {
 			break
@@ -81,7 +81,7 @@ func parseLabels(s string) map[string]string {
 		key := s[:eq]
 		s = s[eq+1:]
 
-		// Value is quoted
+		// La valeur est entre guillemets
 		if len(s) == 0 || s[0] != '"' {
 			break
 		}
@@ -93,7 +93,7 @@ func parseLabels(s string) map[string]string {
 		labels[key] = s[:end]
 		s = s[end+1:]
 
-		// Skip comma
+		// Ignorer la virgule
 		if len(s) > 0 && s[0] == ',' {
 			s = s[1:]
 		}

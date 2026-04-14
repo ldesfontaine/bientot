@@ -7,10 +7,10 @@ import (
 	"time"
 )
 
-// Pipeline orchestrates IP enrichment: dedup → score → local → API → store.
+// Pipeline orchestre l'enrichissement IP : dédupliquage → score → local → API → stockage.
 type Pipeline struct {
-	geoip      *GeoIP             // nil = disabled
-	blocklists *BlocklistChecker   // nil = disabled
+	geoip      *GeoIP             // nil = désactivé
+	blocklists *BlocklistChecker   // nil = désactivé
 	providers  []Provider
 	budget     *BudgetTracker
 	store      Store
@@ -18,7 +18,7 @@ type Pipeline struct {
 	logger     *slog.Logger
 }
 
-// Store is the interface for enrichment persistence.
+// Store est l'interface pour la persistance de l'enrichissement.
 type Store interface {
 	UpsertIPIntel(ctx context.Context, intel *IPIntel) error
 	GetIPIntel(ctx context.Context, ip string) (*IPIntel, error)
@@ -30,7 +30,7 @@ type Store interface {
 	BudgetStatus(ctx context.Context) (map[string]map[string]int, error)
 }
 
-// PipelineConfig holds pipeline configuration.
+// PipelineConfig contient la configuration du pipeline.
 type PipelineConfig struct {
 	GeoIPPath        string
 	BlocklistSources []BlocklistSource
@@ -38,7 +38,7 @@ type PipelineConfig struct {
 	BudgetLimits     map[string]int
 }
 
-// NewPipeline creates a fully configured enrichment pipeline.
+// NewPipeline crée un pipeline d'enrichissement entièrement configuré.
 func NewPipeline(cfg PipelineConfig, store Store, logger *slog.Logger) (*Pipeline, error) {
 	p := &Pipeline{
 		providers: cfg.Providers,
@@ -47,7 +47,7 @@ func NewPipeline(cfg PipelineConfig, store Store, logger *slog.Logger) (*Pipelin
 		logger:    logger,
 	}
 
-	// GeoIP (optional)
+	// GeoIP (optionnel)
 	if cfg.GeoIPPath != "" {
 		geoip, err := NewGeoIP(cfg.GeoIPPath)
 		if err != nil {
@@ -58,7 +58,7 @@ func NewPipeline(cfg PipelineConfig, store Store, logger *slog.Logger) (*Pipelin
 		}
 	}
 
-	// Blocklists (optional)
+	// Blocklists (optionnel)
 	if len(cfg.BlocklistSources) > 0 {
 		p.blocklists = NewBlocklistChecker(cfg.BlocklistSources, logger)
 		if err := p.blocklists.Load(); err != nil {
@@ -75,9 +75,9 @@ func NewPipeline(cfg PipelineConfig, store Store, logger *slog.Logger) (*Pipelin
 	return p, nil
 }
 
-// EnrichIP runs the full pipeline for a single IP.
+// EnrichIP exécute le pipeline complet pour une IP.
 func (p *Pipeline) EnrichIP(ctx context.Context, ip string, reqCount int, paths []string, crowdsecBanned bool) (*IPIntel, error) {
-	// Dedup: skip if already enriched in the last 24h
+	// Dédupliquage : ignorer si déjà enrichi dans les dernières 24h
 	if p.cache.seen(ip) {
 		return p.store.GetIPIntel(ctx, ip)
 	}
@@ -92,26 +92,26 @@ func (p *Pipeline) EnrichIP(ctx context.Context, ip string, reqCount int, paths 
 		EnrichedAt:     time.Now(),
 	}
 
-	// Check if we already have data
+	// Vérification si on a déjà des données
 	existing, _ := p.store.GetIPIntel(ctx, ip)
 	if existing != nil {
 		intel.FirstSeen = existing.FirstSeen
 		intel.TotalRequests = existing.TotalRequests + reqCount
 	}
 
-	// Local enrichment (always, free)
+	// Enrichissement local (toujours, gratuit)
 	p.enrichLocal(ip, intel)
 
-	// Score
+	// Score de priorité
 	inBlocklist := len(intel.BlocklistsMatched) > 0
 	intel.PriorityScore = ScoreIP(reqCount, paths, inBlocklist, crowdsecBanned)
 
-	// API enrichment (only if score > 0 and budget available)
+	// Enrichissement API (seulement si score > 0 et budget disponible)
 	if intel.PriorityScore > 0 {
 		p.enrichAPI(ip, intel)
 	}
 
-	// Persist
+	// Persistance
 	if err := p.store.UpsertIPIntel(ctx, intel); err != nil {
 		return nil, err
 	}
@@ -119,9 +119,9 @@ func (p *Pipeline) EnrichIP(ctx context.Context, ip string, reqCount int, paths 
 	return intel, nil
 }
 
-// enrichLocal runs GeoIP + blocklists + CrowdSec correlation.
+// enrichLocal exécute GeoIP + blocklists + corrélation CrowdSec.
 func (p *Pipeline) enrichLocal(ip string, intel *IPIntel) {
-	// GeoIP
+	// GeoIP (géolocalisation)
 	if p.geoip != nil {
 		if geo, err := p.geoip.Lookup(ip); err == nil {
 			intel.Country = geo.Country
@@ -134,7 +134,7 @@ func (p *Pipeline) enrichLocal(ip string, intel *IPIntel) {
 		}
 	}
 
-	// Blocklists
+	// Blocklists (listes de blocage)
 	if p.blocklists != nil {
 		matched := p.blocklists.Check(ip)
 		if len(matched) > 0 {
@@ -144,7 +144,7 @@ func (p *Pipeline) enrichLocal(ip string, intel *IPIntel) {
 	}
 }
 
-// enrichAPI queries external providers respecting budget.
+// enrichAPI interroge les fournisseurs externes en respectant le budget.
 func (p *Pipeline) enrichAPI(ip string, intel *IPIntel) {
 	for _, prov := range p.providers {
 		if p.budget != nil && !p.budget.CanSpend(prov.Name()) {
@@ -161,7 +161,7 @@ func (p *Pipeline) enrichAPI(ip string, intel *IPIntel) {
 			p.budget.Spend(prov.Name())
 		}
 
-		// Apply provider results
+		// Application des résultats du fournisseur
 		switch prov.Name() {
 		case "abuseipdb":
 			intel.AbuseScore = result.Score
@@ -169,7 +169,7 @@ func (p *Pipeline) enrichAPI(ip string, intel *IPIntel) {
 			intel.GreyNoiseClass = result.Data["classification"]
 			intel.GreyNoiseName = result.Data["name"]
 		case "crowdsec_cti":
-			// CrowdSec CTI data supplements local CrowdSec data
+			// Les données CrowdSec CTI complètent les données CrowdSec locales
 			if result.Data["reputation"] == "malicious" && !intel.CrowdSecBanned {
 				intel.CrowdSecReason = "cti:" + result.Data["behaviors"]
 			}
@@ -179,14 +179,14 @@ func (p *Pipeline) enrichAPI(ip string, intel *IPIntel) {
 	}
 }
 
-// StartBlocklistRefresh starts periodic blocklist updates.
+// StartBlocklistRefresh démarre les mises à jour périodiques des blocklists.
 func (p *Pipeline) StartBlocklistRefresh(ctx context.Context, interval time.Duration) {
 	if p.blocklists != nil {
 		go p.blocklists.StartAutoRefresh(ctx, interval)
 	}
 }
 
-// BudgetStatus returns current API budget state.
+// BudgetStatus return l'état actuel du budget API.
 func (p *Pipeline) BudgetStatus() map[string]map[string]int {
 	if p.budget == nil {
 		return nil
@@ -194,7 +194,7 @@ func (p *Pipeline) BudgetStatus() map[string]map[string]int {
 	return p.budget.Status()
 }
 
-// Close releases pipeline resources.
+// Close libère les ressources du pipeline.
 func (p *Pipeline) Close() error {
 	if p.geoip != nil {
 		return p.geoip.Close()
@@ -202,7 +202,7 @@ func (p *Pipeline) Close() error {
 	return nil
 }
 
-// dedupCache tracks recently enriched IPs to avoid redundant work.
+// dedupCache suit les IPs récemment enrichies pour éviter le travail redondant.
 type dedupCache struct {
 	mu  sync.Mutex
 	ips map[string]time.Time

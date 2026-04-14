@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// BudgetTracker tracks daily API usage per provider.
+// BudgetTracker suit l'utilisation API quotidienne par fournisseur.
 type BudgetTracker struct {
 	mu      sync.Mutex
 	budgets map[string]*providerBudget
@@ -18,7 +18,7 @@ type providerBudget struct {
 	LastReset  time.Time
 }
 
-// NewBudgetTracker creates a tracker with configured limits.
+// NewBudgetTracker crée un tracker avec les limites configurées.
 func NewBudgetTracker(limits map[string]int) *BudgetTracker {
 	budgets := make(map[string]*providerBudget, len(limits))
 	now := time.Now().UTC()
@@ -32,7 +32,7 @@ func NewBudgetTracker(limits map[string]int) *BudgetTracker {
 	return &BudgetTracker{budgets: budgets}
 }
 
-// CanSpend checks if a provider has budget remaining today.
+// CanSpend vérifie si un fournisseur a du budget restant aujourd'hui.
 func (bt *BudgetTracker) CanSpend(provider string) bool {
 	bt.mu.Lock()
 	defer bt.mu.Unlock()
@@ -46,26 +46,26 @@ func (bt *BudgetTracker) CanSpend(provider string) bool {
 	return b.UsedToday < b.DailyLimit
 }
 
-// Spend consumes one API call for a provider.
+// Spend consomme un appel API pour un fournisseur.
 func (bt *BudgetTracker) Spend(provider string) error {
 	bt.mu.Lock()
 	defer bt.mu.Unlock()
 
 	b, ok := bt.budgets[provider]
 	if !ok {
-		return fmt.Errorf("unknown provider: %s", provider)
+		return fmt.Errorf("fournisseur inconnu: %s", provider)
 	}
 
 	bt.resetIfNewDay(b)
 	if b.UsedToday >= b.DailyLimit {
-		return fmt.Errorf("budget exhausted for %s (%d/%d)", provider, b.UsedToday, b.DailyLimit)
+		return fmt.Errorf("budget épuisé pour %s (%d/%d)", provider, b.UsedToday, b.DailyLimit)
 	}
 
 	b.UsedToday++
 	return nil
 }
 
-// Status returns current budget state for all providers.
+// Status return l'état du budget actuel pour tous les fournisseurs.
 func (bt *BudgetTracker) Status() map[string]map[string]int {
 	bt.mu.Lock()
 	defer bt.mu.Unlock()

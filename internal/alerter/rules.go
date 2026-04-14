@@ -7,7 +7,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal"
 )
 
-// Operator defines comparison operators
+// Operator définit les opérateurs de comparaison
 type Operator string
 
 const (
@@ -19,7 +19,7 @@ const (
 	OpNotEqual     Operator = "!="
 )
 
-// Rule defines an alert rule
+// Rule définit une règle d'alerte
 type Rule struct {
 	Name       string
 	MetricName string
@@ -30,7 +30,7 @@ type Rule struct {
 	Message    string
 }
 
-// Evaluate checks if the rule condition is met
+// Evaluate vérifie si la condition de la règle est remplie
 func (r Rule) Evaluate(value float64) bool {
 	switch r.Operator {
 	case OpGreater:
@@ -50,7 +50,7 @@ func (r Rule) Evaluate(value float64) bool {
 	}
 }
 
-// FormatMessage formats the alert message with metric data
+// FormatMessage formate le message d'alerte avec les données de métrique
 func (r Rule) FormatMessage(value float64, labels map[string]string) string {
 	msg := r.Message
 	msg = strings.ReplaceAll(msg, "{{ .Value }}", fmt.Sprintf("%.2f", value))
@@ -62,7 +62,7 @@ func (r Rule) FormatMessage(value float64, labels map[string]string) string {
 	return msg
 }
 
-// ParseOperator parses an operator string
+// ParseOperator analyse une chaîne d'opérateur
 func ParseOperator(s string) (Operator, error) {
 	switch s {
 	case ">":
@@ -78,6 +78,6 @@ func ParseOperator(s string) (Operator, error) {
 	case "!=":
 		return OpNotEqual, nil
 	default:
-		return "", fmt.Errorf("unknown operator: %s", s)
+		return "", fmt.Errorf("opérateur inconnu: %s", s)
 	}
 }

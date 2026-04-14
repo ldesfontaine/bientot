@@ -10,7 +10,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal/transport"
 )
 
-// ServiceInfo represents a service discovered via Docker labels.
+// ServiceInfo représente un service découvert via les labels Docker.
 type ServiceInfo struct {
 	Name    string `json:"name"`
 	URL     string `json:"url"`
@@ -21,11 +21,11 @@ type ServiceInfo struct {
 	Machine string `json:"machine"` // machine_id source
 }
 
-// serviceStore holds discovered services per machine, updated on each push.
+// serviceStore contient les services découverts par machine, mis à jour à chaque push.
 type serviceStore struct {
 	mu       sync.RWMutex
 	byMachine map[string][]ServiceInfo // machine_id -> services
-	lastSeen  map[string]time.Time     // machine_id -> last push
+	lastSeen  map[string]time.Time     // machine_id -> dernier push
 }
 
 func newServiceStore() *serviceStore {
@@ -35,7 +35,7 @@ func newServiceStore() *serviceStore {
 	}
 }
 
-// update replaces all services for a machine from a push payload.
+// update remplace tous les services d'une machine depuis un payload de push.
 func (ss *serviceStore) update(machineID string, payload transport.Payload) {
 	var services []ServiceInfo
 
@@ -44,7 +44,7 @@ func (ss *serviceStore) update(machineID string, payload transport.Payload) {
 			continue
 		}
 
-		// Collect service names from svc_<container>_name entries
+		// Collecte des noms de services depuis les entrées svc_<container>_name
 		containers := make(map[string]bool)
 		for key := range mod.Metadata {
 			if strings.HasPrefix(key, "svc_") && strings.HasSuffix(key, "_name") {
@@ -74,7 +74,7 @@ func (ss *serviceStore) update(machineID string, payload transport.Payload) {
 	ss.lastSeen[machineID] = time.Now()
 }
 
-// all returns all discovered services across machines.
+// all return tous les services découverts sur toutes les machines.
 func (ss *serviceStore) all() []ServiceInfo {
 	ss.mu.RLock()
 	defer ss.mu.RUnlock()
@@ -86,7 +86,7 @@ func (ss *serviceStore) all() []ServiceInfo {
 	return all
 }
 
-// handleServices returns all discovered services as JSON.
+// handleServices return tous les services découverts en JSON.
 func (s *Server) handleServices(w http.ResponseWriter, _ *http.Request) {
 	services := s.services.all()
 	if services == nil {

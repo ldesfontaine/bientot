@@ -11,7 +11,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal"
 )
 
-// DockerCollector collects container health from Docker API
+// DockerCollector collecte la santé des conteneurs depuis l'API Docker
 type DockerCollector struct {
 	name       string
 	socketPath string
@@ -26,7 +26,7 @@ type dockerContainer struct {
 	Status string `json:"Status"`
 }
 
-// NewDockerCollector creates a new Docker collector
+// NewDockerCollector crée un nouveau collecteur Docker
 func NewDockerCollector(name, socketPath string, interval time.Duration) *DockerCollector {
 	transport := &http.Transport{
 		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
@@ -52,18 +52,18 @@ func (c *DockerCollector) Interval() time.Duration { return c.interval }
 func (c *DockerCollector) Collect(ctx context.Context) ([]internal.Metric, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", "http://localhost/containers/json?all=true", nil)
 	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
+		return nil, fmt.Errorf("création de la requête: %w", err)
 	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("fetching containers: %w", err)
+		return nil, fmt.Errorf("récupération des conteneurs: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var containers []dockerContainer
 	if err := json.NewDecoder(resp.Body).Decode(&containers); err != nil {
-		return nil, fmt.Errorf("decoding response: %w", err)
+		return nil, fmt.Errorf("décodage de la réponse: %w", err)
 	}
 
 	now := time.Now()
@@ -75,7 +75,7 @@ func (c *DockerCollector) Collect(ctx context.Context) ([]internal.Metric, error
 			name = name[1:]
 		}
 
-		// Container running status (1 = running, 0 = stopped)
+		// Statut du conteneur (1 = actif, 0 = arrêté)
 		running := 0.0
 		if container.State == "running" {
 			running = 1.0
@@ -88,7 +88,7 @@ func (c *DockerCollector) Collect(ctx context.Context) ([]internal.Metric, error
 			Source:    c.name,
 		})
 
-		// Container health status
+		// Statut de santé du conteneur
 		healthValue := c.parseHealthStatus(container.Status)
 		metrics = append(metrics, internal.Metric{
 			Name:      "container_health",
@@ -99,7 +99,7 @@ func (c *DockerCollector) Collect(ctx context.Context) ([]internal.Metric, error
 		})
 	}
 
-	// Total containers
+	// Total des conteneurs
 	metrics = append(metrics, internal.Metric{
 		Name:      "containers_total",
 		Value:     float64(len(containers)),
@@ -111,7 +111,7 @@ func (c *DockerCollector) Collect(ctx context.Context) ([]internal.Metric, error
 }
 
 func (c *DockerCollector) parseHealthStatus(status string) float64 {
-	// 2 = healthy, 1 = unhealthy, 0 = no healthcheck
+	// 2 = sain, 1 = défaillant, 0 = pas de healthcheck
 	switch {
 	case contains(status, "(healthy)"):
 		return 2

@@ -11,23 +11,23 @@ import (
 	"github.com/ldesfontaine/bientot/internal/storage"
 )
 
-// SyncerConfig configures the veille-secu sync loop.
+// SyncerConfig configure la boucle de synchronisation veille-secu.
 type SyncerConfig struct {
 	PollInterval   time.Duration
-	SyncTools      bool     // if true, push inventory to veille-secu
-	SeverityFilter []string // only process these severities
+	SyncTools      bool     // si true, push l'inventaire vers veille-secu
+	SeverityFilter []string // ne traiter que ces sévérités
 }
 
-// Syncer periodically fetches veille-secu alerts and correlates with inventory.
+// Syncer récupère périodiquement les alertes veille-secu et les corrèle avec l'inventaire.
 type Syncer struct {
 	client   *Client
 	store    *storage.SQLiteStorage
 	cfg      SyncerConfig
 	logger   *slog.Logger
-	onMatch  func(internal.VulnMatch) // callback for new matches (alerting)
+	onMatch  func(internal.VulnMatch) // callback pour les nouvelles correspondances (alerting)
 }
 
-// NewSyncer creates a veille-secu syncer.
+// NewSyncer crée un syncer veille-secu.
 func NewSyncer(client *Client, store *storage.SQLiteStorage, cfg SyncerConfig, logger *slog.Logger) *Syncer {
 	return &Syncer{
 		client: client,
@@ -37,21 +37,21 @@ func NewSyncer(client *Client, store *storage.SQLiteStorage, cfg SyncerConfig, l
 	}
 }
 
-// OnMatch sets a callback fired when a new CVE match is found.
+// OnMatch définit un callback déclenché quand une nouvelle correspondance CVE est trouvée.
 func (s *Syncer) OnMatch(fn func(internal.VulnMatch)) {
 	s.onMatch = fn
 }
 
-// Run starts the sync loop. Blocks until ctx is cancelled.
+// Run démarre la boucle de synchronisation. Bloque jusqu'à l'annulation du ctx.
 func (s *Syncer) Run(ctx context.Context) {
 	interval := s.cfg.PollInterval
 	if interval == 0 {
 		interval = 15 * time.Minute
 	}
 
-	s.logger.Info("veille syncer started", "interval", interval, "sync_tools", s.cfg.SyncTools)
+	s.logger.Info("syncer veille démarré", "interval", interval, "sync_tools", s.cfg.SyncTools)
 
-	// Initial sync
+	// Synchronisation initiale
 	s.sync(ctx)
 
 	ticker := time.NewTicker(interval)
@@ -60,7 +60,7 @@ func (s *Syncer) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			s.logger.Info("veille syncer stopping")
+			s.logger.Info("arrêt du syncer veille")
 			return
 		case <-ticker.C:
 			s.sync(ctx)
@@ -69,24 +69,24 @@ func (s *Syncer) Run(ctx context.Context) {
 }
 
 func (s *Syncer) sync(ctx context.Context) {
-	// Check health first
+	// Vérification de santé d'abord
 	if err := s.client.Health(); err != nil {
-		s.logger.Warn("veille-secu unreachable, skipping sync", "error", err)
+		s.logger.Warn("veille-secu injoignable, synchronisation ignorée", "error", err)
 		s.store.InsertSyncLog(ctx, 0, 0, "unreachable")
 		return
 	}
 
-	// Fetch new alerts
+	// Récupération des nouvelles alertes
 	alerts, err := s.client.FetchAlerts("new", s.cfg.SeverityFilter, 200)
 	if err != nil {
-		s.logger.Error("failed to fetch veille alerts", "error", err)
+		s.logger.Error("échec de la récupération des alertes veille", "error", err)
 		s.store.InsertSyncLog(ctx, 0, 0, fmt.Sprintf("error: %v", err))
 		return
 	}
 
-	s.logger.Debug("veille alerts fetched", "count", len(alerts))
+	s.logger.Debug("alertes veille récupérées", "count", len(alerts))
 
-	// Correlate with software inventory
+	// Corrélation avec l'inventaire logiciel
 	matchCount := 0
 	for _, alert := range alerts {
 		matches := s.correlate(ctx, alert)
@@ -94,23 +94,23 @@ func (s *Syncer) sync(ctx context.Context) {
 	}
 
 	s.store.InsertSyncLog(ctx, len(alerts), matchCount, "ok")
-	s.logger.Info("veille sync complete", "alerts", len(alerts), "matches", matchCount)
+	s.logger.Info("synchronisation veille terminée", "alerts", len(alerts), "matches", matchCount)
 
-	// Optionally sync tools back to veille-secu
+	// Synchronisation optionnelle des outils vers veille-secu
 	if s.cfg.SyncTools {
 		s.syncToolsToVeille(ctx)
 	}
 }
 
-// correlate checks if an alert's matched_tools appear in software_inventory.
+// correlate vérifie si les matched_tools d'une alerte apparaissent dans software_inventory.
 func (s *Syncer) correlate(ctx context.Context, alert Alert) []internal.VulnMatch {
 	var matches []internal.VulnMatch
 
 	for _, toolName := range alert.MatchedTools {
-		// Find all machines with this software
+		// Recherche de toutes les machines avec ce logiciel
 		items, err := s.store.FindSoftwareByName(ctx, toolName)
 		if err != nil {
-			s.logger.Warn("software lookup failed", "tool", toolName, "error", err)
+			s.logger.Warn("échec de la recherche logicielle", "tool", toolName, "error", err)
 			continue
 		}
 
@@ -133,7 +133,7 @@ func (s *Syncer) correlate(ctx context.Context, alert Alert) []internal.VulnMatc
 			}
 
 			if err := s.store.UpsertVulnMatch(ctx, &match); err != nil {
-				s.logger.Warn("vuln match upsert failed", "cve", alert.CVEID, "machine", item.Machine, "error", err)
+				s.logger.Warn("échec de l'upsert de correspondance vuln", "cve", alert.CVEID, "machine", item.Machine, "error", err)
 				continue
 			}
 
@@ -148,46 +148,46 @@ func (s *Syncer) correlate(ctx context.Context, alert Alert) []internal.VulnMatc
 	return matches
 }
 
-// determineConfidence classifies the match quality.
+// determineConfidence classifie la qualité de la correspondance.
 func determineConfidence(alert Alert, item internal.SoftwareItem) string {
-	// Check if the CVE description mentions a specific version range
+	// Vérification si la description CVE mentionne une plage de versions spécifique
 	desc := strings.ToLower(alert.Title + " " + alert.Description)
 	version := strings.ToLower(item.Version)
 
-	// If version is explicitly mentioned in the alert text → confirmed
+	// Si la version est explicitement mentionnée dans le texte de l'alerte → confirmed
 	if version != "" && version != "latest" && strings.Contains(desc, version) {
 		return "confirmed"
 	}
 
-	// If version is very old (heuristic: "latest" or empty) → likely
+	// Si la version est très ancienne (heuristique : "latest" ou vide) → likely
 	if version == "latest" || version == "" {
 		return "likely"
 	}
 
-	// Check for "before X.Y.Z" patterns — if our version is mentioned,
-	// the alert probably applies to versions before a fixed version
+	// Vérification des patterns "before X.Y.Z" — si notre version est mentionnée,
+	// l'alerte s'applique probablement aux versions antérieures à la version corrigée
 	if strings.Contains(desc, "before") || strings.Contains(desc, "prior to") {
 		return "likely"
 	}
 
-	// Default: tool matched but no version confirmation
+	// Par défaut : outil correspondant mais sans confirmation de version
 	return "likely"
 }
 
-// isCISAKEV checks if the alert comes from CISA KEV source.
+// isCISAKEV vérifie si l'alerte provient de la source CISA KEV.
 func isCISAKEV(alert Alert) bool {
 	return alert.SourceID == "cisa-kev" || strings.Contains(strings.ToLower(alert.SourceName), "kev")
 }
 
-// syncToolsToVeille pushes the bientot software inventory to veille-secu as tools.
+// syncToolsToVeille push l'inventaire logiciel bientot vers veille-secu en tant qu'outils.
 func (s *Syncer) syncToolsToVeille(ctx context.Context) {
 	items, err := s.store.QuerySoftware(ctx, "")
 	if err != nil {
-		s.logger.Warn("failed to query software inventory for sync", "error", err)
+		s.logger.Warn("échec de la requête inventaire logiciel pour synchronisation", "error", err)
 		return
 	}
 
-	// Deduplicate by name (only push unique software names)
+	// Déduplication par nom (ne push que les noms de logiciels uniques)
 	seen := make(map[string]bool)
 	synced := 0
 
@@ -205,13 +205,13 @@ func (s *Syncer) syncToolsToVeille(ctx context.Context) {
 		}
 
 		if err := s.client.AddTool(tool); err != nil {
-			s.logger.Debug("tool sync failed", "name", item.Name, "error", err)
+			s.logger.Debug("échec de la synchronisation de l'outil", "name", item.Name, "error", err)
 			continue
 		}
 		synced++
 	}
 
 	if synced > 0 {
-		s.logger.Info("tools synced to veille-secu", "count", synced)
+		s.logger.Info("outils synchronisés vers veille-secu", "count", synced)
 	}
 }

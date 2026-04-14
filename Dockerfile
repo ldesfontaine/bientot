@@ -19,7 +19,9 @@ RUN CGO_ENABLED=1 GOARCH=$TARGETARCH go build -ldflags="-s -w" -o /bientot-serve
 # ── Image agent (~15MB) ──
 FROM alpine:3.21 AS agent
 RUN apk add --no-cache ca-certificates tzdata \
-    && addgroup -S bientot && adduser -S bientot -G bientot
+    && addgroup -S -g 999 docker \
+    && addgroup -S bientot && adduser -S bientot -G bientot \
+    && adduser bientot docker
 COPY --from=build-agent /bientot-agent /usr/local/bin/
 USER bientot
 HEALTHCHECK --interval=60s --timeout=5s --retries=3 CMD kill -0 1 || exit 1
@@ -31,6 +33,7 @@ RUN apk add --no-cache ca-certificates tzdata \
     && addgroup -S bientot && adduser -S bientot -G bientot \
     && mkdir -p /data && chown bientot:bientot /data
 COPY --from=build-server /bientot-server /usr/local/bin/
+COPY --from=build-server /app/config /app/config
 USER bientot
 EXPOSE 3001 3002
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -q --spider http://localhost:3001/ || exit 1

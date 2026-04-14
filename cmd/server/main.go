@@ -98,6 +98,7 @@ func main() {
 						Name:       "ntfy",
 						URL:        nc.URL,
 						Topic:      nc.Topic,
+						Token:      nc.Token,
 						Severities: severities,
 					}))
 					logger.Info("ntfy notifier registered", "url", nc.URL, "topic", nc.Topic)

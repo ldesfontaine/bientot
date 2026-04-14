@@ -8,13 +8,13 @@ import (
 	"github.com/oschwald/maxminddb-golang"
 )
 
-// GeoIP performs lookups against a MaxMind MMDB database.
+// GeoIP effectue des recherches dans une base de données MaxMind MMDB.
 type GeoIP struct {
 	mu sync.RWMutex
 	db *maxminddb.Reader
 }
 
-// maxmindRecord matches the GeoLite2-City MMDB schema.
+// maxmindRecord correspond au schéma MMDB GeoLite2-City.
 type maxmindRecord struct {
 	Country struct {
 		ISOCode string `maxminddb:"iso_code"`
@@ -32,20 +32,20 @@ type maxmindRecord struct {
 	} `maxminddb:"traits"`
 }
 
-// NewGeoIP opens a MaxMind MMDB file.
+// NewGeoIP ouvre un fichier MaxMind MMDB.
 func NewGeoIP(dbPath string) (*GeoIP, error) {
 	db, err := maxminddb.Open(dbPath)
 	if err != nil {
-		return nil, fmt.Errorf("opening geoip db: %w", err)
+		return nil, fmt.Errorf("ouverture de la base GeoIP: %w", err)
 	}
 	return &GeoIP{db: db}, nil
 }
 
-// Lookup resolves geo data for an IP string.
+// Lookup résout les données géo pour une IP.
 func (g *GeoIP) Lookup(ipStr string) (*GeoResult, error) {
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
-		return nil, fmt.Errorf("invalid IP: %s", ipStr)
+		return nil, fmt.Errorf("IP invalide: %s", ipStr)
 	}
 
 	g.mu.RLock()
@@ -53,7 +53,7 @@ func (g *GeoIP) Lookup(ipStr string) (*GeoResult, error) {
 
 	var record maxmindRecord
 	if err := g.db.Lookup(ip, &record); err != nil {
-		return nil, fmt.Errorf("geoip lookup: %w", err)
+		return nil, fmt.Errorf("recherche GeoIP: %w", err)
 	}
 
 	city := ""
@@ -71,7 +71,7 @@ func (g *GeoIP) Lookup(ipStr string) (*GeoResult, error) {
 	}, nil
 }
 
-// Close releases the MMDB reader.
+// Close libère le lecteur MMDB.
 func (g *GeoIP) Close() error {
 	g.mu.Lock()
 	defer g.mu.Unlock()

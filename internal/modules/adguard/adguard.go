@@ -25,8 +25,8 @@ type statsResp struct {
 	AvgProcessingTime       float64 `json:"avg_processing_time"`
 }
 
-// Module collects AdGuard Home metrics via its REST API.
-// Active only when ADGUARD_URL is set (Pi). Skips on VPS.
+// Module collecte les métriques AdGuard Home via son API REST.
+// Actif uniquement quand ADGUARD_URL est défini (Pi). Ignoré sur VPS.
 type Module struct {
 	url      string // e.g. "http://adguard:3000"
 	user     string
@@ -138,7 +138,7 @@ func (m *Module) fetchStatus(ctx context.Context) (*statusResp, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("statut inattendu : %d", resp.StatusCode)
 	}
 	var data statusResp
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
@@ -159,7 +159,7 @@ func (m *Module) fetchStats(ctx context.Context) (*statsResp, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("statut inattendu : %d", resp.StatusCode)
 	}
 	var data statsResp
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {

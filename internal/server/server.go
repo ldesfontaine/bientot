@@ -17,13 +17,13 @@ import (
 	"github.com/ldesfontaine/bientot/internal/veille"
 )
 
-// AgentToken maps a machine_id to its shared secret.
+// AgentToken associe un machine_id à son secret partagé.
 type AgentToken struct {
 	MachineID string
 	Token     string
 }
 
-// Config holds server configuration.
+// Config contient la configuration du serveur.
 type Config struct {
 	DashboardAddr string // e.g. "0.0.0.0:3001"
 	AgentAddr     string // e.g. "0.0.0.0:3002"
@@ -32,23 +32,23 @@ type Config struct {
 	Agents        []AgentToken
 }
 
-// Server is the central bientot server with dual-listen.
+// Server est le serveur central bientot avec dual-listen.
 type Server struct {
 	cfg          Config
 	store        storage.Storage
 	tokens       map[string]string // machine_id -> token
 	nonces       *transport.NonceCache
-	alerter      *alerter.Alerter          // nil if no rules configured
-	pipeline     *enrichment.Pipeline      // nil if enrichment disabled
-	enrichStore  *storage.SQLiteStorage    // nil if enrichment disabled
+	alerter      *alerter.Alerter          // nil si aucune règle configurée
+	pipeline     *enrichment.Pipeline      // nil si enrichissement désactivé
+	enrichStore  *storage.SQLiteStorage    // nil si enrichissement désactivé
 	sse          *SSEBroker
-	cmdChannel   *CommandChannel    // nil if command channel disabled
-	veilleSyncer *veille.Syncer     // nil if veille-secu disabled
+	cmdChannel   *CommandChannel    // nil si canal de commandes désactivé
+	veilleSyncer *veille.Syncer     // nil si veille-secu désactivé
 	services     *serviceStore
 	logger       *slog.Logger
 }
 
-// New creates a server instance.
+// New crée une instance du serveur.
 func New(cfg Config, store storage.Storage, logger *slog.Logger) *Server {
 	tokens := make(map[string]string, len(cfg.Agents))
 	for _, a := range cfg.Agents {
@@ -66,11 +66,11 @@ func New(cfg Config, store storage.Storage, logger *slog.Logger) *Server {
 	}
 }
 
-// SetAlerter attaches an alerter to the server.
+// SetAlerter attache un alerter au serveur.
 func (s *Server) SetAlerter(a *alerter.Alerter) {
 	s.alerter = a
 
-	// Publish alert events to SSE
+	// Publication des événements d'alerte via SSE
 	a.OnAlert(func(alert internal.Alert, resolved bool) {
 		eventType := "alert_fired"
 		if resolved {
@@ -83,23 +83,23 @@ func (s *Server) SetAlerter(a *alerter.Alerter) {
 	})
 }
 
-// SetEnrichment attaches the enrichment pipeline to the server.
+// SetEnrichment attache le pipeline d'enrichissement au serveur.
 func (s *Server) SetEnrichment(p *enrichment.Pipeline, store *storage.SQLiteStorage) {
 	s.pipeline = p
 	s.enrichStore = store
 }
 
-// EnableCommandChannel activates the agent command channel.
+// EnableCommandChannel active le canal de commandes agent.
 func (s *Server) EnableCommandChannel() {
 	s.cmdChannel = NewCommandChannel(s.logger)
-	s.logger.Info("command channel enabled")
+	s.logger.Info("canal de commandes activé")
 }
 
-// SetVeilleSyncer attaches the veille-secu syncer.
+// SetVeilleSyncer attache le syncer veille-secu.
 func (s *Server) SetVeilleSyncer(syncer *veille.Syncer) {
 	s.veilleSyncer = syncer
 
-	// Publish CVE matches to SSE + trigger alerts for critical+KEV
+	// Publication des correspondances CVE via SSE + déclenchement d'alertes pour critical+KEV
 	syncer.OnMatch(func(match internal.VulnMatch) {
 		s.sse.Publish(SSEEvent{
 			Type: "vuln_match",
@@ -108,9 +108,9 @@ func (s *Server) SetVeilleSyncer(syncer *veille.Syncer) {
 	})
 }
 
-// Run starts both listeners. Blocks until ctx is cancelled.
+// Run démarre les deux listeners. Bloque jusqu'à l'annulation du ctx.
 func (s *Server) Run(ctx context.Context) error {
-	// Dashboard server (:3001) — exposed via Traefik
+	// Serveur dashboard (:3001) — exposé via Traefik
 	dashboardRouter := s.dashboardRouter()
 	dashboardSrv := &http.Server{
 		Addr:         s.cfg.DashboardAddr,
@@ -119,7 +119,7 @@ func (s *Server) Run(ctx context.Context) error {
 		WriteTimeout: 30 * time.Second,
 	}
 
-	// Agent server (:3002) — mesh direct, NOT via Traefik
+	// Serveur agent (:3002) — mesh direct, PAS via Traefik
 	agentRouter := s.agentRouter()
 	agentSrv := &http.Server{
 		Addr:         s.cfg.AgentAddr,
@@ -131,32 +131,32 @@ func (s *Server) Run(ctx context.Context) error {
 	errCh := make(chan error, 2)
 
 	go func() {
-		s.logger.Info("dashboard listening", "addr", s.cfg.DashboardAddr)
+		s.logger.Info("dashboard en écoute", "addr", s.cfg.DashboardAddr)
 		if err := dashboardSrv.ListenAndServe(); err != http.ErrServerClosed {
 			errCh <- err
 		}
 	}()
 
 	go func() {
-		s.logger.Info("agent endpoint listening", "addr", s.cfg.AgentAddr)
+		s.logger.Info("endpoint agent en écoute", "addr", s.cfg.AgentAddr)
 		if err := agentSrv.ListenAndServe(); err != http.ErrServerClosed {
 			errCh <- err
 		}
 	}()
 
-	// Start alerter eval loop if configured
+	// Démarrage de la boucle d'évaluation des alertes si configuré
 	if s.alerter != nil {
 		go s.runAlertLoop(ctx)
 	}
 
-	// Start veille-secu sync if configured
+	// Démarrage de la synchronisation veille-secu si configuré
 	if s.veilleSyncer != nil {
 		go s.veilleSyncer.Run(ctx)
 	}
 
 	select {
 	case <-ctx.Done():
-		s.logger.Info("shutting down server")
+		s.logger.Info("arrêt du serveur")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
@@ -168,16 +168,16 @@ func (s *Server) Run(ctx context.Context) error {
 	}
 }
 
-// runAlertLoop evaluates alert rules on a fixed interval.
+// runAlertLoop évalue les règles d'alerte à intervalle fixe.
 func (s *Server) runAlertLoop(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	s.logger.Info("alerter started", "interval", "30s")
+	s.logger.Info("alerter démarré", "interval", "30s")
 
-	// Initial evaluation
+	// Évaluation initiale
 	if err := s.alerter.Evaluate(ctx); err != nil {
-		s.logger.Error("initial alert evaluation failed", "error", err)
+		s.logger.Error("échec de l'évaluation initiale des alertes", "error", err)
 	}
 
 	for {
@@ -186,13 +186,13 @@ func (s *Server) runAlertLoop(ctx context.Context) {
 			return
 		case <-ticker.C:
 			if err := s.alerter.Evaluate(ctx); err != nil {
-				s.logger.Error("alert evaluation failed", "error", err)
+				s.logger.Error("échec de l'évaluation des alertes", "error", err)
 			}
 		}
 	}
 }
 
-// dashboardRouter serves the web UI and API on :3001.
+// dashboardRouter sert l'interface web et l'API sur :3001.
 func (s *Server) dashboardRouter() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -209,19 +209,19 @@ func (s *Server) dashboardRouter() http.Handler {
 		r.Get("/metrics/{name}", s.handleQueryMetric)
 		r.Get("/metrics/{name}/latest", s.handleLatestMetric)
 
-		// Alert endpoints
+		// Endpoints alertes
 		r.Get("/alerts", s.handleAlerts)
 		r.Get("/alerts/active", s.handleActiveAlerts)
 		r.Post("/alerts/{alertID}/ack", s.handleAckAlert)
 
-		// Threat intel endpoints
+		// Endpoints threat intel
 		r.Get("/threats", s.handleThreats)
 		r.Get("/threats/attackers", s.handleAttackers)
 		r.Get("/threats/patterns", s.handlePatterns)
 		r.Get("/threats/unblocked", s.handleUnblocked)
 		r.Get("/threats/budget", s.handleBudget)
 
-		// Vulnerability / CVE endpoints
+		// Endpoints vulnérabilités / CVE
 		r.Get("/vulns", s.handleVulns)
 		r.Get("/vulns/active", s.handleActiveVulns)
 		r.Get("/vulns/inventory", s.handleInventory)
@@ -229,13 +229,13 @@ func (s *Server) dashboardRouter() http.Handler {
 		r.Patch("/vulns/{id}/dismiss", s.handleDismissVuln)
 		r.Patch("/vulns/{id}/resolve", s.handleResolveVuln)
 
-		// Service discovery
+		// Découverte de services
 		r.Get("/services", s.handleServices)
 
-		// SSE real-time events
+		// Événements SSE en temps réel
 		r.Get("/events", s.handleSSE)
 
-		// Command channel (dashboard → agent)
+		// Canal de commandes (dashboard → agent)
 		r.Post("/commands", s.handleSendCommand)
 		r.Get("/commands/agents", s.handleConnectedAgents)
 	})
@@ -243,7 +243,7 @@ func (s *Server) dashboardRouter() http.Handler {
 	return r
 }
 
-// agentRouter handles push from agents on :3002.
+// agentRouter gère les push des agents sur :3002.
 func (s *Server) agentRouter() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
@@ -251,7 +251,7 @@ func (s *Server) agentRouter() http.Handler {
 	r.Post("/push", s.handlePush)
 	r.Get("/health", s.handleHealth)
 
-	// Command channel WebSocket (opt-in)
+	// Canal de commandes WebSocket (opt-in)
 	r.Get("/ws", s.handleAgentWS)
 
 	return r

@@ -10,7 +10,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal/transport"
 )
 
-// Module checks TLS certificate expiry for configured domains.
+// Module vérifie l'expiration des certificats TLS pour les domaines configurés.
 type Module struct {
 	domains []string
 }
@@ -76,13 +76,13 @@ func checkCert(domain string) (*certInfo, error) {
 		InsecureSkipVerify: false,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("TLS dial %s: %w", domain, err)
+		return nil, fmt.Errorf("connexion TLS %s : %w", domain, err)
 	}
 	defer conn.Close()
 
 	certs := conn.ConnectionState().PeerCertificates
 	if len(certs) == 0 {
-		return nil, fmt.Errorf("no certificates from %s", domain)
+		return nil, fmt.Errorf("aucun certificat depuis %s", domain)
 	}
 
 	leaf := certs[0]

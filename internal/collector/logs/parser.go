@@ -10,8 +10,8 @@ import (
 
 const maxMessageLen = 500
 
-// ParseSSH parses an SSH auth log line into a LogEntry.
-// Handles: accepted, failed password, invalid user, disconnected, connection closed.
+// ParseSSH analyse une ligne de log SSH et produit un LogEntry.
+// Gère : accepted, failed password, invalid user, disconnected, connection closed.
 func ParseSSH(line, machine string) *internal.LogEntry {
 	if line == "" {
 		return nil
@@ -20,7 +20,7 @@ func ParseSSH(line, machine string) *internal.LogEntry {
 	parsed := map[string]any{}
 	severity := "info"
 
-	// Failed password: "Failed password for root from 1.2.3.4 port 22 ssh2"
+	// Mot de passe échoué : "Failed password for root from 1.2.3.4 port 22 ssh2"
 	if m := reSSHFailed.FindStringSubmatch(line); m != nil {
 		parsed["user"] = m[1]
 		parsed["src_ip"] = m[2]
@@ -28,14 +28,14 @@ func ParseSSH(line, machine string) *internal.LogEntry {
 		parsed["action"] = "failed"
 		severity = "warning"
 	} else if m := reSSHInvalidUser.FindStringSubmatch(line); m != nil {
-		// Invalid user: "Invalid user admin from 1.2.3.4 port 22"
+		// Utilisateur invalide : "Invalid user admin from 1.2.3.4 port 22"
 		parsed["user"] = m[1]
 		parsed["src_ip"] = m[2]
 		parsed["port"] = m[3]
 		parsed["action"] = "invalid_user"
 		severity = "warning"
 	} else if m := reSSHAccepted.FindStringSubmatch(line); m != nil {
-		// Accepted: "Accepted publickey for lucas from 1.2.3.4 port 54321 ssh2"
+		// Accepté : "Accepted publickey for lucas from 1.2.3.4 port 54321 ssh2"
 		parsed["method"] = m[1]
 		parsed["user"] = m[2]
 		parsed["src_ip"] = m[3]
@@ -48,7 +48,7 @@ func ParseSSH(line, machine string) *internal.LogEntry {
 		parsed["action"] = "disconnected"
 		severity = "info"
 	} else {
-		// Not an interesting SSH line
+		// Ligne SSH non pertinente
 		return nil
 	}
 
@@ -62,8 +62,8 @@ func ParseSSH(line, machine string) *internal.LogEntry {
 	}
 }
 
-// ParseNftables parses an nftables drop log line.
-// Format: "nftables drop: IN=eth0 ... SRC=1.2.3.4 DST=5.6.7.8 ... PROTO=TCP DPT=22"
+// ParseNftables analyse une ligne de log nftables (drop).
+// Format : "nftables drop: IN=eth0 ... SRC=1.2.3.4 DST=5.6.7.8 ... PROTO=TCP DPT=22"
 func ParseNftables(line, machine string) *internal.LogEntry {
 	if !strings.Contains(line, "nftables") && !strings.Contains(line, "NFT") {
 		return nil
@@ -83,7 +83,7 @@ func ParseNftables(line, machine string) *internal.LogEntry {
 		parsed["protocol"] = m[1]
 	}
 
-	// Must have at least src_ip to be useful
+	// Nécessite au moins src_ip pour être utile
 	if _, ok := parsed["src_ip"]; !ok {
 		return nil
 	}
@@ -98,8 +98,8 @@ func ParseNftables(line, machine string) *internal.LogEntry {
 	}
 }
 
-// ParseUFW parses a UFW block log line.
-// Format: "[UFW BLOCK] IN=eth0 ... SRC=1.2.3.4 DST=5.6.7.8 ... PROTO=TCP DPT=22"
+// ParseUFW analyse une ligne de log UFW (block).
+// Format : "[UFW BLOCK] IN=eth0 ... SRC=1.2.3.4 DST=5.6.7.8 ... PROTO=TCP DPT=22"
 func ParseUFW(line, machine string) *internal.LogEntry {
 	if !strings.Contains(line, "UFW") {
 		return nil
@@ -107,7 +107,7 @@ func ParseUFW(line, machine string) *internal.LogEntry {
 
 	parsed := map[string]any{}
 
-	// Extract action: BLOCK, ALLOW, AUDIT, etc.
+	// Extraction de l'action : BLOCK, ALLOW, AUDIT, etc.
 	if m := reUFWAction.FindStringSubmatch(line); m != nil {
 		parsed["action"] = strings.ToLower(m[1])
 	} else {
@@ -143,8 +143,8 @@ func ParseUFW(line, machine string) *internal.LogEntry {
 	}
 }
 
-// ParseDockerLog parses a Docker container log line.
-// Only keeps stderr lines or lines containing error/warn/fatal/panic keywords.
+// ParseDockerLog analyse une ligne de log d'un conteneur Docker.
+// Ne garde que les lignes stderr ou contenant les mots-clés error/warn/fatal/panic.
 func ParseDockerLog(line, container, image, stream, machine string) *internal.LogEntry {
 	isError := stream == "stderr" || reDockerError.MatchString(strings.ToLower(line))
 	if !isError {
@@ -174,7 +174,7 @@ func ParseDockerLog(line, container, image, stream, machine string) *internal.Lo
 	}
 }
 
-// ParseCrowdSecDecision parses a CrowdSec decision (ban) from LAPI JSON.
+// ParseCrowdSecDecision analyse une décision CrowdSec (ban) depuis le JSON LAPI.
 func ParseCrowdSecDecision(ip, scenario, duration, scope, machine string) *internal.LogEntry {
 	return &internal.LogEntry{
 		Timestamp: time.Now(),
@@ -198,22 +198,22 @@ func truncate(s string) string {
 	return s
 }
 
-// Compiled regexes for parsing
+// Expressions régulières compilées pour l'analyse
 var (
-	// SSH patterns
+	// Patterns SSH
 	reSSHFailed      = regexp.MustCompile(`Failed password for (\S+) from (\S+) port (\d+)`)
 	reSSHInvalidUser = regexp.MustCompile(`Invalid user (\S+) from (\S+) port (\d+)`)
 	reSSHAccepted    = regexp.MustCompile(`Accepted (\S+) for (\S+) from (\S+) port (\d+)`)
 	reSSHDisconnected = regexp.MustCompile(`Disconnected from (\S+) port (\d+)`)
 
-	// Firewall patterns (shared between nftables and UFW)
+	// Patterns firewall (partagés entre nftables et UFW)
 	reSrcIP  = regexp.MustCompile(`SRC=(\S+)`)
 	reDstPort = regexp.MustCompile(`DPT=(\d+)`)
 	reProto  = regexp.MustCompile(`PROTO=(\S+)`)
 
-	// UFW specific
+	// Spécifique UFW
 	reUFWAction = regexp.MustCompile(`\[UFW (\w+)\]`)
 
-	// Docker error keywords
+	// Mots-clés d'erreur Docker
 	reDockerError = regexp.MustCompile(`\b(error|warn|warning|fatal|panic)\b`)
 )

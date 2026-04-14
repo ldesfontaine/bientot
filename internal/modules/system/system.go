@@ -12,8 +12,8 @@ import (
 	"github.com/ldesfontaine/bientot/internal/transport"
 )
 
-// Module collects system metrics from node-exporter's Prometheus endpoint.
-// Replaces direct /proc access so the agent can run inside a container.
+// Module collecte les métriques système depuis l'endpoint Prometheus de node-exporter.
+// Remplace l'accès direct à /proc pour que l'agent puisse tourner dans un conteneur.
 type Module struct {
 	url    string // e.g. "http://node-exporter:9100"
 	client *http.Client
@@ -51,7 +51,7 @@ func (m *Module) Detect() bool {
 func (m *Module) Collect(ctx context.Context) (transport.ModuleData, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", m.url+"/metrics", nil)
 	if err != nil {
-		return transport.ModuleData{}, fmt.Errorf("creating request: %w", err)
+		return transport.ModuleData{}, fmt.Errorf("création de la requête : %w", err)
 	}
 
 	resp, err := m.client.Do(req)
@@ -100,7 +100,7 @@ func (m *Module) Collect(ctx context.Context) (transport.ModuleData, error) {
 	}, nil
 }
 
-// extractCPU computes CPU usage from node_cpu_seconds_total.
+// extractCPU calcule l'utilisation CPU depuis node_cpu_seconds_total.
 func extractCPU(all []promMetric) []transport.MetricPoint {
 	var user, system, idle, iowait, total float64
 	for _, m := range all {
@@ -134,7 +134,7 @@ func extractCPU(all []promMetric) []transport.MetricPoint {
 	}
 }
 
-// extractMemory reads node_memory_* metrics.
+// extractMemory lit les métriques node_memory_*.
 func extractMemory(all []promMetric) []transport.MetricPoint {
 	vals := make(map[string]float64)
 	for _, m := range all {
@@ -166,7 +166,7 @@ func extractMemory(all []promMetric) []transport.MetricPoint {
 	}
 }
 
-// extractLoad reads node_load1, node_load5, node_load15.
+// extractLoad lit node_load1, node_load5, node_load15.
 func extractLoad(all []promMetric) []transport.MetricPoint {
 	var load1, load5, load15 float64
 	var found bool
@@ -191,7 +191,7 @@ func extractLoad(all []promMetric) []transport.MetricPoint {
 	}
 }
 
-// extractDisk reads node_filesystem_* metrics for real mountpoints.
+// extractDisk lit les métriques node_filesystem_* pour les points de montage réels.
 func extractDisk(all []promMetric) []transport.MetricPoint {
 	type diskInfo struct {
 		total, avail float64
@@ -203,7 +203,7 @@ func extractDisk(all []promMetric) []transport.MetricPoint {
 		if mount == "" {
 			continue
 		}
-		// Skip virtual filesystems
+		// Ignorer les systèmes de fichiers virtuels
 		fstype := m.Labels["fstype"]
 		if fstype == "tmpfs" || fstype == "devtmpfs" || fstype == "overlay" {
 			continue
@@ -239,7 +239,7 @@ func extractDisk(all []promMetric) []transport.MetricPoint {
 	return metrics
 }
 
-// extractTemperature reads node_hwmon_temp_celsius if available.
+// extractTemperature lit node_hwmon_temp_celsius si disponible.
 func extractTemperature(all []promMetric) []transport.MetricPoint {
 	var metrics []transport.MetricPoint
 	for _, m := range all {
@@ -260,7 +260,7 @@ func extractTemperature(all []promMetric) []transport.MetricPoint {
 	return metrics
 }
 
-// extractZFS reads node_zfs_zpool_* metrics if the ZFS collector is enabled.
+// extractZFS lit les métriques node_zfs_zpool_* si le collecteur ZFS est activé.
 func extractZFS(all []promMetric) []transport.MetricPoint {
 	var metrics []transport.MetricPoint
 	for _, m := range all {
@@ -271,7 +271,7 @@ func extractZFS(all []promMetric) []transport.MetricPoint {
 			if pool == "" || state == "" {
 				continue
 			}
-			// state label is "online", "degraded", etc. Value=1 means active state.
+			// le label state est "online", "degraded", etc. Value=1 signifie l'état actif.
 			if m.Value != 1 {
 				continue
 			}
@@ -309,7 +309,7 @@ func extractZFS(all []promMetric) []transport.MetricPoint {
 		}
 	}
 
-	// Compute available and used_percent from size and allocated
+	// Calcul de la disponibilité et du pourcentage utilisé depuis la taille et l'allocation
 	poolSizes := make(map[string]float64)
 	poolUsed := make(map[string]float64)
 	for _, m := range metrics {
@@ -339,7 +339,7 @@ func extractZFS(all []promMetric) []transport.MetricPoint {
 	return metrics
 }
 
-// extractUname reads node_uname_info labels into metadata.
+// extractUname lit les labels node_uname_info dans les métadonnées.
 func extractUname(all []promMetric, metadata map[string]string) {
 	for _, m := range all {
 		if m.Name != "node_uname_info" {

@@ -11,13 +11,13 @@ import (
 	"github.com/ldesfontaine/bientot/internal/alerter"
 )
 
-// Config holds the application configuration
+// Config contient la configuration de l'application
 type Config struct {
 	Targets TargetsConfig
 	Alerts  AlertsConfig
 }
 
-// TargetsConfig holds targets.yml content
+// TargetsConfig contient le contenu de targets.yml
 type TargetsConfig struct {
 	Collectors CollectorsConfig `yaml:"collectors"`
 }
@@ -69,13 +69,13 @@ type LogsConfig struct {
 	CrowdSecURL  string        `yaml:"crowdsec_url"`
 }
 
-// AlertsConfig holds alerts.yml content
+// AlertsConfig contient le contenu de alerts.yml
 type AlertsConfig struct {
 	Alerts    []AlertRule      `yaml:"alerts"`
 	Notifiers []NotifierConfig `yaml:"notifiers"`
 }
 
-// EnrichmentConfig holds enrichment section of server config
+// EnrichmentConfig contient la section enrichissement de la config serveur
 type EnrichmentConfig struct {
 	Enabled    bool                       `yaml:"enabled"`
 	GeoIP      GeoIPConfig                `yaml:"geoip"`
@@ -115,14 +115,15 @@ type AlertRule struct {
 }
 
 type NotifierConfig struct {
-	Type           string   `yaml:"type"`
-	URL            string   `yaml:"url"`
-	Topic          string   `yaml:"topic"`
-	SeverityFilter []string `yaml:"severity_filter"`
+	Type           string            `yaml:"type"`
+	URL            string            `yaml:"url"`
+	Topic          string            `yaml:"topic"`
+	Token          string            `yaml:"token,omitempty"`
+	SeverityFilter []string          `yaml:"severity_filter"`
 	Headers        map[string]string `yaml:"headers,omitempty"`
 }
 
-// VeilleConfig holds veille-secu integration config.
+// VeilleConfig contient la configuration d'intégration veille-secu.
 type VeilleConfig struct {
 	Enabled        bool     `yaml:"enabled"`
 	URL            string   `yaml:"url"`
@@ -132,7 +133,7 @@ type VeilleConfig struct {
 	SeverityFilter []string `yaml:"severity_filter"`
 }
 
-// LoadVeille loads veille-secu config from YAML with env expansion.
+// LoadVeille charge la config veille-secu depuis le YAML avec expansion des variables d'environnement.
 func LoadVeille(path string) (*VeilleConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -148,7 +149,7 @@ func LoadVeille(path string) (*VeilleConfig, error) {
 		return nil, err
 	}
 
-	// VEILLE_ENABLED env var overrides the YAML enabled field
+	// La variable d'environnement VEILLE_ENABLED surcharge le champ enabled du YAML
 	if v := os.Getenv("VEILLE_ENABLED"); v != "" {
 		wrapper.Veille.Enabled = v == "true" || v == "1"
 	}
@@ -156,7 +157,7 @@ func LoadVeille(path string) (*VeilleConfig, error) {
 	return &wrapper.Veille, nil
 }
 
-// LoadEnrichment loads enrichment config from YAML with env expansion.
+// LoadEnrichment charge la config d'enrichissement depuis le YAML avec expansion des variables d'environnement.
 func LoadEnrichment(path string) (*EnrichmentConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -165,7 +166,7 @@ func LoadEnrichment(path string) (*EnrichmentConfig, error) {
 
 	expanded := os.ExpandEnv(string(data))
 
-	// Wrap: the enrichment section may be at root or nested
+	// La section enrichissement peut être à la racine ou imbriquée
 	var wrapper struct {
 		Enrichment EnrichmentConfig `yaml:"enrichment"`
 	}
@@ -176,7 +177,7 @@ func LoadEnrichment(path string) (*EnrichmentConfig, error) {
 	return &wrapper.Enrichment, nil
 }
 
-// LoadTargets loads targets.yml with environment variable expansion
+// LoadTargets charge targets.yml avec expansion des variables d'environnement
 func LoadTargets(path string) (*TargetsConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -193,14 +194,14 @@ func LoadTargets(path string) (*TargetsConfig, error) {
 	return &config, nil
 }
 
-// LoadAlerts loads alerts.yml
+// LoadAlerts charge alerts.yml
 func LoadAlerts(path string) (*AlertsConfig, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	// Expand environment variables
+	// Expansion des variables d'environnement
 	expanded := os.ExpandEnv(string(data))
 
 	var config AlertsConfig
@@ -211,7 +212,7 @@ func LoadAlerts(path string) (*AlertsConfig, error) {
 	return &config, nil
 }
 
-// ParseRules converts AlertRule configs to alerter.Rule
+// ParseRules convertit les configs AlertRule en alerter.Rule
 func ParseRules(configs []AlertRule) ([]alerter.Rule, error) {
 	var rules []alerter.Rule
 
@@ -227,10 +228,10 @@ func ParseRules(configs []AlertRule) ([]alerter.Rule, error) {
 }
 
 func parseRule(cfg AlertRule) (alerter.Rule, error) {
-	// Parse expression
+	// Analyse de l'expression
 	expr, err := alerter.ParseExpression(cfg.Expr)
 	if err != nil {
-		return alerter.Rule{}, fmt.Errorf("parsing rule %s: %w", cfg.Name, err)
+		return alerter.Rule{}, fmt.Errorf("analyse de la règle %s: %w", cfg.Name, err)
 	}
 
 	var severity internal.Severity

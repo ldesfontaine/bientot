@@ -1,6 +1,6 @@
 package enrichment
 
-// sensitivePaths are paths that indicate targeted reconnaissance.
+// sensitivePaths sont les chemins indiquant une reconnaissance ciblée.
 var sensitivePaths = map[string]bool{
 	"/.env":       true,
 	"/.git":       true,
@@ -14,28 +14,28 @@ var sensitivePaths = map[string]bool{
 	"/config":     true,
 }
 
-// ScoreIP computes a priority score for an IP.
-// Higher score = more interesting = worth spending API budget.
+// ScoreIP calcule un score de priorité pour une IP.
+// Score élevé = plus intéressant = mérite de dépenser du budget API.
 func ScoreIP(reqCount int, paths []string, inBlocklist bool, inCrowdSec bool) int {
 	score := 0
 
-	// Not in CrowdSec = passes through defenses
+	// Pas dans CrowdSec = passe à travers les défenses
 	if !inCrowdSec {
 		score += 50
 	}
 
-	// Request volume: +10 per 10 requests/hour
+	// Volume de requêtes : +10 par tranche de 10 requêtes/heure
 	score += (reqCount / 10) * 10
 
-	// Sensitive paths targeted
+	// Chemins sensibles ciblés
 	for _, p := range paths {
 		if sensitivePaths[p] {
 			score += 20
-			break // count once
+			break // compter une seule fois
 		}
 	}
 
-	// Already in blocklist = less interesting, we already know
+	// Déjà en blocklist = moins intéressant, on sait déjà
 	if inBlocklist {
 		score -= 30
 	}

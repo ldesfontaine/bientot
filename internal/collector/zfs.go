@@ -12,14 +12,14 @@ import (
 	"github.com/ldesfontaine/bientot/internal"
 )
 
-// ZFSCollector collects ZFS pool metrics
+// ZFSCollector collecte les métriques des pools ZFS
 type ZFSCollector struct {
 	name     string
 	pools    []string
 	interval time.Duration
 }
 
-// NewZFSCollector creates a new ZFS collector
+// NewZFSCollector crée un nouveau collecteur ZFS
 func NewZFSCollector(name string, pools []string, interval time.Duration) *ZFSCollector {
 	return &ZFSCollector{
 		name:     name,
@@ -39,7 +39,7 @@ func (c *ZFSCollector) Collect(ctx context.Context) ([]internal.Metric, error) {
 	for _, pool := range c.pools {
 		poolMetrics, err := c.collectPool(ctx, pool, now)
 		if err != nil {
-			return nil, fmt.Errorf("collecting pool %s: %w", pool, err)
+			return nil, fmt.Errorf("collecte du pool %s: %w", pool, err)
 		}
 		metrics = append(metrics, poolMetrics...)
 	}
@@ -51,7 +51,7 @@ func (c *ZFSCollector) collectPool(ctx context.Context, pool string, now time.Ti
 	var metrics []internal.Metric
 	labels := map[string]string{"pool": pool}
 
-	// Get pool status
+	// Récupération du statut du pool
 	health, err := c.getPoolHealth(ctx, pool)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func (c *ZFSCollector) collectPool(ctx context.Context, pool string, now time.Ti
 		Source:    c.name,
 	})
 
-	// Get pool space
+	// Récupération de l'espace du pool
 	used, avail, err := c.getPoolSpace(ctx, pool)
 	if err != nil {
 		return nil, err
@@ -104,11 +104,11 @@ func (c *ZFSCollector) getPoolHealth(ctx context.Context, pool string) (float64,
 	cmd.Stdout = &out
 
 	if err := cmd.Run(); err != nil {
-		return 0, fmt.Errorf("running zpool status: %w", err)
+		return 0, fmt.Errorf("exécution de zpool status: %w", err)
 	}
 
 	output := strings.TrimSpace(out.String())
-	// "pool 'X' is healthy" = 2, degraded = 1, other = 0
+	// "pool 'X' is healthy" = 2, dégradé = 1, autre = 0
 	switch {
 	case strings.Contains(output, "is healthy"):
 		return 2, nil
@@ -125,22 +125,22 @@ func (c *ZFSCollector) getPoolSpace(ctx context.Context, pool string) (used, ava
 	cmd.Stdout = &out
 
 	if err := cmd.Run(); err != nil {
-		return 0, 0, fmt.Errorf("running zpool list: %w", err)
+		return 0, 0, fmt.Errorf("exécution de zpool list: %w", err)
 	}
 
 	fields := strings.Fields(strings.TrimSpace(out.String()))
 	if len(fields) < 3 {
-		return 0, 0, fmt.Errorf("unexpected output format")
+		return 0, 0, fmt.Errorf("format de sortie inattendu")
 	}
 
 	used, err = strconv.ParseFloat(fields[1], 64)
 	if err != nil {
-		return 0, 0, fmt.Errorf("parsing used: %w", err)
+		return 0, 0, fmt.Errorf("analyse de l'espace utilisé: %w", err)
 	}
 
 	avail, err = strconv.ParseFloat(fields[2], 64)
 	if err != nil {
-		return 0, 0, fmt.Errorf("parsing available: %w", err)
+		return 0, 0, fmt.Errorf("analyse de l'espace disponible: %w", err)
 	}
 
 	return used, avail, nil

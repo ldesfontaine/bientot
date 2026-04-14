@@ -13,6 +13,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write    # Requis pour cosign keyless (signing OIDC)
 
     strategy:
       matrix:
@@ -54,3 +55,14 @@ jobs:
             ${{ env.REGISTRY }}/ldesfontaine/${{ matrix.image }}:latest
           cache-from: type=gha,scope=${{ matrix.target }}
           cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+
+      - name: Installer cosign
+        uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+
+      - name: Signer l'image
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image }}"
+          DIGEST=$(docker buildx imagetools inspect "${IMAGE}:${{ steps.version.outputs.version }}" --format '{{.Manifest.Digest}}')
+          cosign sign --yes "${IMAGE}@${DIGEST}"

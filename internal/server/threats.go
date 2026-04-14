@@ -9,7 +9,7 @@ import (
 
 func (s *Server) handleThreats(w http.ResponseWriter, r *http.Request) {
 	if s.enrichStore == nil {
-		http.Error(w, "enrichment not configured", http.StatusServiceUnavailable)
+		http.Error(w, "enrichissement non configuré", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -30,7 +30,7 @@ func (s *Server) handleThreats(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleAttackers(w http.ResponseWriter, r *http.Request) {
 	if s.enrichStore == nil {
-		http.Error(w, "enrichment not configured", http.StatusServiceUnavailable)
+		http.Error(w, "enrichissement non configuré", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -54,7 +54,7 @@ func (s *Server) handleAttackers(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handlePatterns(w http.ResponseWriter, r *http.Request) {
 	if s.enrichStore == nil {
-		http.Error(w, "enrichment not configured", http.StatusServiceUnavailable)
+		http.Error(w, "enrichissement non configuré", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -73,7 +73,7 @@ func (s *Server) handlePatterns(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleUnblocked(w http.ResponseWriter, r *http.Request) {
 	if s.enrichStore == nil {
-		http.Error(w, "enrichment not configured", http.StatusServiceUnavailable)
+		http.Error(w, "enrichissement non configuré", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -95,7 +95,7 @@ func (s *Server) handleUnblocked(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleBudget(w http.ResponseWriter, _ *http.Request) {
 	if s.pipeline == nil {
-		http.Error(w, "enrichment not configured", http.StatusServiceUnavailable)
+		http.Error(w, "enrichissement non configuré", http.StatusServiceUnavailable)
 		return
 	}
 

@@ -12,9 +12,9 @@ import (
 
 const maxEntriesPerCollect = 200
 
-// LogsCollector implements the collector.Collector interface.
-// It auto-detects available log sources and collects structured log entries,
-// writing them to storage and returning summary metrics.
+// LogsCollector implémente l'interface collector.Collector.
+// Il auto-détecte les sources de logs disponibles et collecte des entrées structurées,
+// les écrit dans le stockage et return des métriques résumées.
 type LogsCollector struct {
 	machine  string
 	interval time.Duration
@@ -23,7 +23,7 @@ type LogsCollector struct {
 	logger   *slog.Logger
 }
 
-// Config holds configuration for the logs collector.
+// Config contient la configuration du collecteur de logs.
 type Config struct {
 	Enabled      bool          `yaml:"enabled"`
 	Machine      string        `yaml:"machine"`
@@ -32,8 +32,8 @@ type Config struct {
 	CrowdSecURL  string        `yaml:"crowdsec_url"`
 }
 
-// New creates a LogsCollector. It probes all possible sources
-// and keeps only those that are available on this machine.
+// New crée un LogsCollector. Il sonde toutes les sources possibles
+// et ne garde que celles disponibles sur cette machine.
 func New(cfg Config, store storage.Storage, logger *slog.Logger) *LogsCollector {
 	if cfg.Interval <= 0 {
 		cfg.Interval = 5 * time.Minute
@@ -66,13 +66,13 @@ func New(cfg Config, store storage.Storage, logger *slog.Logger) *LogsCollector 
 func buildCandidates(cfg Config) []Source {
 	var candidates []Source
 
-	// Journald sources
+	// Sources journald
 	candidates = append(candidates,
 		NewJournaldSSHSource(),
 		NewJournaldNftablesSource(),
 	)
 
-	// UFW: prefer journald, fall back to file
+	// UFW : préférer journald, fallback sur fichier
 	ufwJournald := NewJournaldUFWSource()
 	if ufwJournald.Available() {
 		candidates = append(candidates, ufwJournald)
@@ -99,8 +99,8 @@ func (c *LogsCollector) Name() string            { return "logs" }
 func (c *LogsCollector) Type() string            { return "logs" }
 func (c *LogsCollector) Interval() time.Duration { return c.interval }
 
-// Collect gathers log entries from all active sources, writes them to storage,
-// and returns summary metrics (entry counts by source).
+// Collect collecte les entrées de log depuis toutes les sources actives, les écrit dans le stockage,
+// et return des métriques résumées (nombre d'entrées par source).
 func (c *LogsCollector) Collect(ctx context.Context) ([]internal.Metric, error) {
 	var allEntries []internal.LogEntry
 
@@ -113,19 +113,19 @@ func (c *LogsCollector) Collect(ctx context.Context) ([]internal.Metric, error) 
 		allEntries = append(allEntries, entries...)
 	}
 
-	// Cap at maxEntriesPerCollect (keep most recent)
+	// Plafonnement à maxEntriesPerCollect (garder les plus récents)
 	if len(allEntries) > maxEntriesPerCollect {
 		allEntries = allEntries[len(allEntries)-maxEntriesPerCollect:]
 	}
 
-	// Write to storage
+	// Écriture dans le stockage
 	if len(allEntries) > 0 {
 		if err := c.store.InsertLogs(ctx, allEntries); err != nil {
-			return nil, fmt.Errorf("storing log entries: %w", err)
+			return nil, fmt.Errorf("stockage des entrées de log: %w", err)
 		}
 	}
 
-	// Build summary metrics
+	// Construction des métriques résumées
 	now := time.Now()
 	counts := map[string]int{}
 	severityCounts := map[string]int{}
@@ -166,7 +166,7 @@ func (c *LogsCollector) Collect(ctx context.Context) ([]internal.Metric, error) 
 	return metrics, nil
 }
 
-// SourceNames returns the names of active sources (for health/status).
+// SourceNames return les noms des sources actives (pour l'état/statut).
 func (c *LogsCollector) SourceNames() []string {
 	names := make([]string, len(c.sources))
 	for i, s := range c.sources {

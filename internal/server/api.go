@@ -53,7 +53,7 @@ func (s *Server) handleMachineMetrics(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Get all metric names, then filter by machine_id via label query
+	// Récupération de tous les noms de métriques, puis filtrage par machine_id via les labels
 	names, err := s.store.List(ctx)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

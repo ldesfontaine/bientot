@@ -8,11 +8,11 @@ import (
 	"fmt"
 )
 
-// Sign computes HMAC-SHA256 over the JSON-encoded body using the shared secret.
+// Sign calcule le HMAC-SHA256 sur le body encodé en JSON avec le secret partagé.
 func Sign(body Body, secret string) (string, error) {
 	data, err := json.Marshal(body)
 	if err != nil {
-		return "", fmt.Errorf("marshal body for signing: %w", err)
+		return "", fmt.Errorf("sérialisation du body pour signature: %w", err)
 	}
 
 	mac := hmac.New(sha256.New, []byte(secret))
@@ -20,15 +20,15 @@ func Sign(body Body, secret string) (string, error) {
 	return hex.EncodeToString(mac.Sum(nil)), nil
 }
 
-// Verify checks that the signature matches the HMAC-SHA256 of the body.
+// Verify vérifie que la signature correspond au HMAC-SHA256 du body.
 func Verify(body Body, secret, signature string) error {
 	expected, err := Sign(body, secret)
 	if err != nil {
-		return fmt.Errorf("computing expected signature: %w", err)
+		return fmt.Errorf("calcul de la signature attendue: %w", err)
 	}
 
 	if !hmac.Equal([]byte(expected), []byte(signature)) {
-		return fmt.Errorf("signature mismatch")
+		return fmt.Errorf("signature invalide")
 	}
 	return nil
 }

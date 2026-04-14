@@ -12,7 +12,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal"
 )
 
-// PrometheusCollector scrapes Prometheus-format metrics endpoints
+// PrometheusCollector scrape les endpoints de métriques au format Prometheus
 type PrometheusCollector struct {
 	name     string
 	url      string
@@ -20,7 +20,7 @@ type PrometheusCollector struct {
 	client   *http.Client
 }
 
-// NewPrometheusCollector creates a new Prometheus collector
+// NewPrometheusCollector crée un nouveau collecteur Prometheus
 func NewPrometheusCollector(name, url string, interval time.Duration) *PrometheusCollector {
 	return &PrometheusCollector{
 		name:     name,
@@ -39,17 +39,17 @@ func (c *PrometheusCollector) Interval() time.Duration { return c.interval }
 func (c *PrometheusCollector) Collect(ctx context.Context) ([]internal.Metric, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", c.url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
+		return nil, fmt.Errorf("création de la requête: %w", err)
 	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("fetching metrics: %w", err)
+		return nil, fmt.Errorf("récupération des métriques: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("statut inattendu: %d", resp.StatusCode)
 	}
 
 	return c.parse(resp.Body, time.Now())
@@ -67,7 +67,7 @@ func (c *PrometheusCollector) parse(r interface{ Read([]byte) (int, error) }, ts
 
 		metric, err := c.parseLine(line, ts)
 		if err != nil {
-			continue // skip malformed lines
+			continue // ignore les lignes malformées
 		}
 		metrics = append(metrics, metric)
 	}
@@ -76,8 +76,8 @@ func (c *PrometheusCollector) parse(r interface{ Read([]byte) (int, error) }, ts
 }
 
 func (c *PrometheusCollector) parseLine(line string, ts time.Time) (internal.Metric, error) {
-	// Parse: metric_name{label="value"} 123.45
-	// or:    metric_name 123.45
+	// Analyse : metric_name{label="value"} 123.45
+	// ou :     metric_name 123.45
 
 	var name string
 	var labels map[string]string
@@ -87,14 +87,14 @@ func (c *PrometheusCollector) parseLine(line string, ts time.Time) (internal.Met
 		name = line[:idx]
 		endIdx := strings.Index(line, "}")
 		if endIdx == -1 {
-			return internal.Metric{}, fmt.Errorf("malformed labels")
+			return internal.Metric{}, fmt.Errorf("labels malformés")
 		}
 		labels = parseLabels(line[idx+1 : endIdx])
 		valueStr = strings.TrimSpace(line[endIdx+1:])
 	} else {
 		parts := strings.Fields(line)
 		if len(parts) < 2 {
-			return internal.Metric{}, fmt.Errorf("malformed line")
+			return internal.Metric{}, fmt.Errorf("ligne malformée")
 		}
 		name = parts[0]
 		valueStr = parts[1]
@@ -102,7 +102,7 @@ func (c *PrometheusCollector) parseLine(line string, ts time.Time) (internal.Met
 
 	value, err := strconv.ParseFloat(valueStr, 64)
 	if err != nil {
-		return internal.Metric{}, fmt.Errorf("parsing value: %w", err)
+		return internal.Metric{}, fmt.Errorf("analyse de la valeur: %w", err)
 	}
 
 	return internal.Metric{

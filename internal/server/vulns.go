@@ -10,7 +10,7 @@ import (
 
 func (s *Server) handleVulns(w http.ResponseWriter, r *http.Request) {
 	if s.enrichStore == nil {
-		http.Error(w, "veille not configured", http.StatusServiceUnavailable)
+		http.Error(w, "veille non configurée", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -29,7 +29,7 @@ func (s *Server) handleVulns(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleActiveVulns(w http.ResponseWriter, r *http.Request) {
 	if s.enrichStore == nil {
-		http.Error(w, "veille not configured", http.StatusServiceUnavailable)
+		http.Error(w, "veille non configurée", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -48,7 +48,7 @@ func (s *Server) handleActiveVulns(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleInventory(w http.ResponseWriter, r *http.Request) {
 	if s.enrichStore == nil {
-		http.Error(w, "veille not configured", http.StatusServiceUnavailable)
+		http.Error(w, "veille non configurée", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -66,13 +66,13 @@ func (s *Server) handleInventory(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleDismissVuln(w http.ResponseWriter, r *http.Request) {
 	if s.enrichStore == nil {
-		http.Error(w, "veille not configured", http.StatusServiceUnavailable)
+		http.Error(w, "veille non configurée", http.StatusServiceUnavailable)
 		return
 	}
 
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		http.Error(w, "id invalide", http.StatusBadRequest)
 		return
 	}
 
@@ -87,13 +87,13 @@ func (s *Server) handleDismissVuln(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleResolveVuln(w http.ResponseWriter, r *http.Request) {
 	if s.enrichStore == nil {
-		http.Error(w, "veille not configured", http.StatusServiceUnavailable)
+		http.Error(w, "veille non configurée", http.StatusServiceUnavailable)
 		return
 	}
 
 	id, err := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		http.Error(w, "id invalide", http.StatusBadRequest)
 		return
 	}
 
@@ -108,7 +108,7 @@ func (s *Server) handleResolveVuln(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleSyncLogs(w http.ResponseWriter, r *http.Request) {
 	if s.enrichStore == nil {
-		http.Error(w, "veille not configured", http.StatusServiceUnavailable)
+		http.Error(w, "veille non configurée", http.StatusServiceUnavailable)
 		return
 	}
 

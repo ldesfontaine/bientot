@@ -17,13 +17,13 @@ import (
 	"github.com/ldesfontaine/bientot/internal"
 )
 
-// Source reads log entries from a specific backend.
+// Source lit les entrées de log depuis un backend spécifique.
 type Source interface {
-	// Name returns the source identifier (ssh, nftables, ufw, docker, crowdsec)
+	// Name return l'identifiant de la source (ssh, nftables, ufw, docker, crowdsec)
 	Name() string
-	// Available checks if this source is accessible on the current machine
+	// Available vérifie si cette source est accessible sur la machine courante
 	Available() bool
-	// Collect reads new entries since last call
+	// Collect lit les nouvelles entrées depuis le dernier appel
 	Collect(ctx context.Context, machine string) ([]internal.LogEntry, error)
 }
 
@@ -75,7 +75,7 @@ func (s *JournaldSource) Available() bool {
 		return false
 	}
 
-	// Quick probe: can we read anything?
+	// Sonde rapide : peut-on lire quelque chose ?
 	args := s.buildArgs("1min ago")
 	args = append(args, "-n", "0") // just check access, no output
 	cmd := exec.Command("journalctl", args...)
@@ -158,11 +158,11 @@ func (s *FileSource) Collect(ctx context.Context, machine string) ([]internal.Lo
 
 	f, err := os.Open(s.path)
 	if err != nil {
-		return nil, fmt.Errorf("opening %s: %w", s.path, err)
+		return nil, fmt.Errorf("ouverture de %s: %w", s.path, err)
 	}
 	defer f.Close()
 
-	// Check if file was truncated (log rotation)
+	// Vérification si le fichier a été tronqué (rotation de logs)
 	info, err := f.Stat()
 	if err != nil {
 		return nil, fmt.Errorf("stat %s: %w", s.path, err)
@@ -173,7 +173,7 @@ func (s *FileSource) Collect(ctx context.Context, machine string) ([]internal.Lo
 
 	if s.offset > 0 {
 		if _, err := f.Seek(s.offset, io.SeekStart); err != nil {
-			return nil, fmt.Errorf("seeking %s: %w", s.path, err)
+			return nil, fmt.Errorf("positionnement dans %s: %w", s.path, err)
 		}
 	}
 
@@ -190,7 +190,7 @@ func (s *FileSource) Collect(ctx context.Context, machine string) ([]internal.Lo
 		}
 	}
 
-	// Update offset
+	// Mise à jour de l'offset
 	pos, _ := f.Seek(0, io.SeekCurrent)
 	s.offset = pos
 
@@ -246,16 +246,16 @@ func (s *DockerSource) Collect(ctx context.Context, machine string) ([]internal.
 	s.lastRead = time.Now()
 	s.mu.Unlock()
 
-	// List running containers
+	// Liste des conteneurs actifs
 	url := s.baseURL() + "/containers/json"
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
+		return nil, fmt.Errorf("création de la requête: %w", err)
 	}
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("listing containers: %w", err)
+		return nil, fmt.Errorf("listage des conteneurs: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -265,7 +265,7 @@ func (s *DockerSource) Collect(ctx context.Context, machine string) ([]internal.
 		Image string   `json:"Image"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&containers); err != nil {
-		return nil, fmt.Errorf("decoding containers: %w", err)
+		return nil, fmt.Errorf("décodage des conteneurs: %w", err)
 	}
 
 	var entries []internal.LogEntry
@@ -305,9 +305,9 @@ func (s *DockerSource) collectContainerLogs(ctx context.Context, id, name, image
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
 		raw := scanner.Bytes()
-		// Docker multiplexed stream: first 8 bytes are header
-		// byte 0: stream type (1=stdout, 2=stderr)
-		// bytes 4-7: payload size (big-endian)
+		// Flux multiplexé Docker : les 8 premiers octets sont l'en-tête
+		// octet 0 : type de flux (1=stdout, 2=stderr)
+		// octets 4-7 : taille du payload (big-endian)
 		stream := "stdout"
 		line := scanner.Text()
 
@@ -340,7 +340,7 @@ func (s *DockerSource) baseURL() string {
 type CrowdSecSource struct {
 	url      string
 	client   *http.Client
-	knownIPs map[string]bool // track already-reported bans to avoid duplicates
+	knownIPs map[string]bool // suivi des bans déjà rapportés pour éviter les doublons
 	mu       sync.Mutex
 }
 
@@ -366,17 +366,17 @@ func (s *CrowdSecSource) Available() bool {
 func (s *CrowdSecSource) Collect(ctx context.Context, machine string) ([]internal.LogEntry, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", s.url+"/v1/decisions", nil)
 	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
+		return nil, fmt.Errorf("création de la requête: %w", err)
 	}
 
 	resp, err := s.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("fetching decisions: %w", err)
+		return nil, fmt.Errorf("récupération des décisions: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("statut inattendu: %d", resp.StatusCode)
 	}
 
 	var decisions []struct {
@@ -386,7 +386,7 @@ func (s *CrowdSecSource) Collect(ctx context.Context, machine string) ([]interna
 		Scope    string `json:"scope"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&decisions); err != nil {
-		// CrowdSec returns null instead of [] when empty
+		// CrowdSec return null au lieu de [] quand c'est vide
 		return nil, nil
 	}
 
@@ -400,7 +400,7 @@ func (s *CrowdSecSource) Collect(ctx context.Context, machine string) ([]interna
 		key := d.Value + "|" + d.Scenario
 		currentIPs[key] = true
 
-		// Only report new bans
+		// Ne rapporter que les nouveaux bans
 		if !s.knownIPs[key] {
 			entry := ParseCrowdSecDecision(d.Value, d.Scenario, d.Duration, d.Scope, machine)
 			if entry != nil {

@@ -13,10 +13,10 @@ import (
 	"github.com/ldesfontaine/bientot/internal/storage"
 )
 
-// AlertCallback is called when an alert fires or resolves.
+// AlertCallback est appelé quand une alerte se déclenche ou se résout.
 type AlertCallback func(alert internal.Alert, resolved bool)
 
-// Alerter evaluates alert rules and triggers notifications
+// Alerter évalue les règles d'alerte et déclenche les notifications
 type Alerter struct {
 	rules     []Rule
 	storage   storage.Storage
@@ -27,7 +27,7 @@ type Alerter struct {
 	onAlert   AlertCallback
 }
 
-// New creates a new alerter
+// New crée un nouvel alerter
 func New(rules []Rule, store storage.Storage, notifiers *notifier.Registry, logger *slog.Logger) *Alerter {
 	return &Alerter{
 		rules:     rules,
@@ -38,7 +38,7 @@ func New(rules []Rule, store storage.Storage, notifiers *notifier.Registry, logg
 	}
 }
 
-// Evaluate checks all rules against current metrics
+// Evaluate vérifie toutes les règles par rapport aux métriques courantes
 func (a *Alerter) Evaluate(ctx context.Context) error {
 	for _, rule := range a.rules {
 		if err := a.evaluateRule(ctx, rule); err != nil {
@@ -51,10 +51,10 @@ func (a *Alerter) Evaluate(ctx context.Context) error {
 func (a *Alerter) evaluateRule(ctx context.Context, rule Rule) error {
 	metric, err := a.storage.QueryLatest(ctx, rule.MetricName, rule.Labels)
 	if err != nil {
-		return fmt.Errorf("querying metric: %w", err)
+		return fmt.Errorf("requête de la métrique: %w", err)
 	}
 	if metric == nil {
-		return nil // No data yet
+		return nil // Pas encore de données
 	}
 
 	firing := rule.Evaluate(metric.Value)
@@ -65,7 +65,7 @@ func (a *Alerter) evaluateRule(ctx context.Context, rule Rule) error {
 
 	if firing {
 		if _, exists := a.active[alertID]; !exists {
-			// New alert
+			// Nouvelle alerte
 			alert := &internal.Alert{
 				ID:       alertID,
 				Name:     rule.Name,
@@ -77,7 +77,7 @@ func (a *Alerter) evaluateRule(ctx context.Context, rule Rule) error {
 			}
 			a.active[alertID] = alert
 
-			// Notify
+			// Notification
 			go func(alert internal.Alert) {
 				if errs := a.notifiers.Notify(alert); len(errs) > 0 {
 					for _, err := range errs {
@@ -94,7 +94,7 @@ func (a *Alerter) evaluateRule(ctx context.Context, rule Rule) error {
 		}
 	} else {
 		if alert, exists := a.active[alertID]; exists {
-			// Alert resolved
+			// Alerte résolue
 			now := time.Now()
 			alert.ResolvedAt = &now
 			delete(a.active, alertID)
@@ -119,7 +119,7 @@ func (a *Alerter) alertID(rule Rule, labels map[string]string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))[:16]
 }
 
-// ActiveAlerts returns all currently firing alerts
+// ActiveAlerts return toutes les alertes actuellement déclenchées
 func (a *Alerter) ActiveAlerts() []internal.Alert {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -131,12 +131,12 @@ func (a *Alerter) ActiveAlerts() []internal.Alert {
 	return alerts
 }
 
-// OnAlert sets a callback for alert state changes.
+// OnAlert définit un callback pour les changements d'état d'alerte.
 func (a *Alerter) OnAlert(cb AlertCallback) {
 	a.onAlert = cb
 }
 
-// Acknowledge marks an alert as acknowledged
+// Acknowledge marque une alerte comme acquittée
 func (a *Alerter) Acknowledge(alertID string) bool {
 	a.mu.Lock()
 	defer a.mu.Unlock()

@@ -1,5 +1,5 @@
-// Package template is a skeleton for new agent modules.
-// Copy this directory, rename the package, and implement the 3 methods.
+// Package template est un squelette pour les nouveaux modules agent.
+// Copier ce répertoire, renommer le package, et implémenter les 3 méthodes.
 package template
 
 import (
@@ -9,20 +9,20 @@ import (
 	"github.com/ldesfontaine/bientot/internal/transport"
 )
 
-// Module is a template module. Rename and implement.
+// Module est un module template. Renommer et implémenter.
 type Module struct {
-	// Add configuration fields here.
+	// Ajouter les champs de configuration ici.
 }
 
 func New() *Module { return &Module{} }
 
-// Name returns the module identifier (must be unique across all modules).
+// Name return l'identifiant du module (doit être unique parmi tous les modules).
 func (m *Module) Name() string { return "template" }
 
-// Detect returns true if this module's prerequisites are available.
+// Detect return true si les prérequis de ce module sont disponibles.
 func (m *Module) Detect() bool { return false }
 
-// Collect gathers metrics. Only called if Detect() returned true.
+// Collect collecte les métriques. Appelé uniquement si Detect() a retourné true.
 func (m *Module) Collect(_ context.Context) (transport.ModuleData, error) {
 	return transport.ModuleData{
 		Module:    m.Name(),

@@ -10,14 +10,14 @@ import (
 	"github.com/ldesfontaine/bientot/internal"
 )
 
-// JSONFileCollector reads metrics from JSON files (e.g., backup status)
+// JSONFileCollector lit les métriques depuis des fichiers JSON (ex: statut de sauvegarde)
 type JSONFileCollector struct {
 	name     string
 	path     string
 	interval time.Duration
 }
 
-// NewJSONFileCollector creates a new JSON file collector
+// NewJSONFileCollector crée un nouveau collecteur de fichier JSON
 func NewJSONFileCollector(name, path string, interval time.Duration) *JSONFileCollector {
 	return &JSONFileCollector{
 		name:     name,
@@ -33,18 +33,18 @@ func (c *JSONFileCollector) Interval() time.Duration { return c.interval }
 func (c *JSONFileCollector) Collect(ctx context.Context) ([]internal.Metric, error) {
 	data, err := os.ReadFile(c.path)
 	if err != nil {
-		return nil, fmt.Errorf("reading file: %w", err)
+		return nil, fmt.Errorf("lecture du fichier: %w", err)
 	}
 
 	var content map[string]interface{}
 	if err := json.Unmarshal(data, &content); err != nil {
-		return nil, fmt.Errorf("parsing JSON: %w", err)
+		return nil, fmt.Errorf("analyse du JSON: %w", err)
 	}
 
 	now := time.Now()
 	metrics := c.extractMetrics(content, "", now)
 
-	// Add file modification time as metric
+	// Ajout du temps de modification du fichier comme métrique
 	info, err := os.Stat(c.path)
 	if err == nil {
 		age := now.Sub(info.ModTime())
@@ -91,7 +91,7 @@ func (c *JSONFileCollector) extractMetrics(data map[string]interface{}, prefix s
 				Source:    c.name,
 			})
 		case string:
-			// Try to parse as timestamp for age calculation
+			// Tentative d'analyse comme timestamp pour calculer l'âge
 			if t, err := time.Parse(time.RFC3339, v); err == nil {
 				age := ts.Sub(t)
 				metrics = append(metrics, internal.Metric{
@@ -103,7 +103,7 @@ func (c *JSONFileCollector) extractMetrics(data map[string]interface{}, prefix s
 				})
 			}
 		case map[string]interface{}:
-			// Recurse into nested objects
+			// Récursion dans les objets imbriqués
 			nested := c.extractMetrics(v, metricName, ts)
 			metrics = append(metrics, nested...)
 		}

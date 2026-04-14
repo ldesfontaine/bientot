@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Alert represents a veille-secu alert.
+// Alert représente une alerte veille-secu.
 type Alert struct {
 	ID           int64     `json:"id"`
 	SourceID     string    `json:"source_id"`
@@ -26,7 +26,7 @@ type Alert struct {
 	Notified     bool      `json:"notified"`
 }
 
-// Tool represents a software tool in veille-secu.
+// Tool représente un outil logiciel dans veille-secu.
 type Tool struct {
 	ID       string   `json:"id,omitempty"`
 	Name     string   `json:"name"`
@@ -36,14 +36,14 @@ type Tool struct {
 	Source   string   `json:"source"`
 }
 
-// Client queries the veille-secu API.
+// Client interroge l'API veille-secu.
 type Client struct {
 	baseURL string
 	token   string
 	client  *http.Client
 }
 
-// NewClient creates a veille-secu API client.
+// NewClient crée un client API veille-secu.
 func NewClient(baseURL, token string) *Client {
 	return &Client{
 		baseURL: baseURL,
@@ -52,25 +52,25 @@ func NewClient(baseURL, token string) *Client {
 	}
 }
 
-// Health checks if veille-secu is reachable.
+// Health vérifie si veille-secu est joignable.
 func (c *Client) Health() error {
 	resp, err := c.doGet("/health")
 	if err != nil {
-		return fmt.Errorf("veille-secu unreachable: %w", err)
+		return fmt.Errorf("veille-secu injoignable : %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("veille-secu health: status %d", resp.StatusCode)
+		return fmt.Errorf("veille-secu health : statut %d", resp.StatusCode)
 	}
 	return nil
 }
 
-// FetchAlerts retrieves alerts, optionally filtered by status and severity.
+// FetchAlerts récupère les alertes, optionnellement filtrées par statut et sévérité.
 func (c *Client) FetchAlerts(status string, severities []string, limit int) ([]Alert, error) {
 	req, err := http.NewRequest("GET", c.baseURL+"/api/alerts", nil)
 	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
+		return nil, fmt.Errorf("création de la requête : %w", err)
 	}
 
 	q := req.URL.Query()
@@ -88,69 +88,71 @@ func (c *Client) FetchAlerts(status string, severities []string, limit int) ([]A
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("fetching alerts: %w", err)
+		return nil, fmt.Errorf("récupération des alertes : %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("veille-secu alerts: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("veille-secu alertes : statut %d", resp.StatusCode)
 	}
 
 	var wrapper struct {
 		Alerts []Alert `json:"alerts"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
-		return nil, fmt.Errorf("decoding alerts: %w", err)
+		return nil, fmt.Errorf("décodage des alertes : %w", err)
 	}
 
 	return wrapper.Alerts, nil
 }
 
-// AddTool registers a software tool in veille-secu for matching.
+// AddTool enregistre un outil logiciel dans veille-secu pour le matching.
 func (c *Client) AddTool(tool Tool) error {
 	data, err := json.Marshal(tool)
 	if err != nil {
-		return fmt.Errorf("marshaling tool: %w", err)
+		return fmt.Errorf("sérialisation de l'outil : %w", err)
 	}
 
 	req, err := http.NewRequest("POST", c.baseURL+"/api/tools", bytes.NewReader(data))
 	if err != nil {
-		return fmt.Errorf("creating request: %w", err)
+		return fmt.Errorf("création de la requête : %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	c.setAuth(req)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return fmt.Errorf("adding tool: %w", err)
+		return fmt.Errorf("ajout de l'outil : %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("veille-secu add tool: status %d", resp.StatusCode)
+		return fmt.Errorf("veille-secu ajout outil : statut %d", resp.StatusCode)
 	}
 
 	return nil
 }
 
-// FetchTools lists all watched tools.
+// FetchTools liste tous les outils surveillés.
 func (c *Client) FetchTools() ([]Tool, error) {
 	resp, err := c.doGet("/api/tools")
 	if err != nil {
-		return nil, fmt.Errorf("fetching tools: %w", err)
+		return nil, fmt.Errorf("récupération des outils : %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("veille-secu tools: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("veille-secu outils : statut %d", resp.StatusCode)
 	}
 
-	var tools []Tool
-	if err := json.NewDecoder(resp.Body).Decode(&tools); err != nil {
-		return nil, fmt.Errorf("decoding tools: %w", err)
+	var wrapper struct {
+		Tools []Tool `json:"tools"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&wrapper); err != nil {
+		return nil, fmt.Errorf("décodage des outils : %w", err)
 	}
 
-	return tools, nil
+	return wrapper.Tools, nil
 }
 
 func (c *Client) doGet(path string) (*http.Response, error) {

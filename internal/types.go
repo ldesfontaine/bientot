@@ -2,7 +2,7 @@ package internal
 
 import "time"
 
-// Metric represents a single metric data point
+// Metric représente un point de donnée métrique
 type Metric struct {
 	Name      string            `json:"name"`
 	Value     float64           `json:"value"`
@@ -11,7 +11,7 @@ type Metric struct {
 	Source    string            `json:"source"`
 }
 
-// Point represents a time-series data point for queries
+// Point représente un point de données temporelles pour les requêtes
 type Point struct {
 	Timestamp time.Time `json:"timestamp"`
 	Value     float64   `json:"value"`
@@ -20,7 +20,7 @@ type Point struct {
 	Avg       float64   `json:"avg,omitempty"`
 }
 
-// Alert represents an active or historical alert
+// Alert représente une alerte active ou historique
 type Alert struct {
 	ID        string            `json:"id"`
 	Name      string            `json:"name"`
@@ -41,16 +41,16 @@ const (
 	SeverityInfo     Severity = "info"
 )
 
-// Resolution defines time-series granularity
+// Resolution définit la granularité des séries temporelles
 type Resolution string
 
 const (
 	ResolutionRaw    Resolution = "raw"    // 30s
 	Resolution5Min   Resolution = "5min"   // 5 minutes
-	ResolutionHourly Resolution = "hourly" // 1 hour
+	ResolutionHourly Resolution = "hourly" // 1 heure
 )
 
-// HealthStatus represents system health
+// HealthStatus représente l'état de santé du système
 type HealthStatus string
 
 const (
@@ -60,35 +60,35 @@ const (
 	HealthUnknown  HealthStatus = "unknown"
 )
 
-// LogEntry represents a structured log entry from any source
+// LogEntry représente une entrée de log structurée provenant de n'importe quelle source
 type LogEntry struct {
 	Timestamp time.Time      `json:"timestamp"`
 	Source    string         `json:"source"`   // "ssh", "nftables", "ufw", "docker", "crowdsec"
 	Machine  string         `json:"machine"`
 	Severity string         `json:"severity"` // "info", "warning", "error", "critical"
-	Message  string         `json:"message"`  // raw line, truncated to 500 chars
-	Parsed   map[string]any `json:"parsed"`   // extracted fields (IP, port, user, action, container...)
+	Message  string         `json:"message"`  // ligne brute, tronquée à 500 caractères
+	Parsed   map[string]any `json:"parsed"`   // champs extraits (IP, port, user, action, container...)
 }
 
-// LogStats holds log counts by source and severity
+// LogStats contient les compteurs de logs par source et sévérité
 type LogStats struct {
 	BySource   map[string]int `json:"by_source"`
 	BySeverity map[string]int `json:"by_severity"`
 }
 
-// SoftwareItem represents a detected software on a machine.
+// SoftwareItem représente un logiciel détecté sur une machine.
 type SoftwareItem struct {
 	ID        int64     `json:"id"`
 	Machine   string    `json:"machine"`
 	Name      string    `json:"name"`
 	Version   string    `json:"version"`
-	Source    string    `json:"source"`    // "docker", "binary", "package"
+	Source    string    `json:"source"`    // "docker", "binaire", "paquet"
 	Container string    `json:"container,omitempty"`
 	FirstSeen time.Time `json:"first_seen"`
 	LastSeen  time.Time `json:"last_seen"`
 }
 
-// VulnMatch represents a CVE matched against installed software.
+// VulnMatch représente une CVE correspondant à un logiciel installé.
 type VulnMatch struct {
 	ID               int64      `json:"id"`
 	CVEID            string     `json:"cve_id"`
@@ -99,7 +99,7 @@ type VulnMatch struct {
 	MatchedSoftware  string     `json:"matched_software"`
 	Machine          string     `json:"machine"`
 	InstalledVersion string     `json:"installed_version"`
-	Confidence       string     `json:"confidence"` // confirmed, likely, outdated
+	Confidence       string     `json:"confidence"` // confirmé, probable, obsolète
 	VeilleAlertID    int64      `json:"veille_alert_id"`
 	CISAKEV          bool       `json:"cisa_kev"`
 	FirstSeen        time.Time  `json:"first_seen"`
@@ -107,7 +107,7 @@ type VulnMatch struct {
 	Dismissed        bool       `json:"dismissed"`
 }
 
-// Status represents the global system status
+// Status représente le statut global du système
 type Status struct {
 	Health      HealthStatus     `json:"health"`
 	Collectors  []CollectorStatus `json:"collectors"`

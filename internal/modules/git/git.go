@@ -12,9 +12,9 @@ import (
 	"github.com/ldesfontaine/bientot/internal/transport"
 )
 
-// Module checks git repository status for configured directories.
+// Module vérifie le statut des dépôts git pour les répertoires configurés.
 type Module struct {
-	repos []string // list of repo directories to monitor
+	repos []string // liste des répertoires de dépôts à surveiller
 }
 
 func New(repos []string) *Module {
@@ -50,7 +50,7 @@ func (m *Module) Collect(ctx context.Context) (transport.ModuleData, error) {
 		}
 		metadata["branch_"+name] = branch
 
-		// Dirty files count
+		// Nombre de fichiers modifiés
 		status, _ := gitCmd(ctx, repo, "status", "--porcelain")
 		dirtyCount := 0
 		if status != "" {
@@ -68,14 +68,14 @@ func (m *Module) Collect(ctx context.Context) (transport.ModuleData, error) {
 			Name: "git_dirty", Value: dirty, Labels: labels,
 		})
 
-		// Ahead/behind
+		// En avance/en retard
 		ahead, behind := aheadBehind(ctx, repo, branch)
 		metrics = append(metrics,
 			transport.MetricPoint{Name: "git_ahead", Value: float64(ahead), Labels: labels},
 			transport.MetricPoint{Name: "git_behind", Value: float64(behind), Labels: labels},
 		)
 
-		// Last commit age
+		// Âge du dernier commit
 		lastCommit, err := gitCmd(ctx, repo, "log", "-1", "--format=%ct")
 		if err == nil {
 			lastCommit = strings.TrimSpace(lastCommit)

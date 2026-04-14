@@ -6,9 +6,9 @@ import (
 	"github.com/ldesfontaine/bientot/internal/transport"
 )
 
-// Module is the interface every agent module implements.
-// Detect returns true if the module's prerequisites are available on this machine.
-// Collect gathers metrics and returns them as ModuleData.
+// Module est l'interface que chaque module agent implémente.
+// Detect return true si les prérequis du module sont disponibles sur cette machine.
+// Collect collecte les métriques et les return en tant que ModuleData.
 type Module interface {
 	Name() string
 	Detect() bool

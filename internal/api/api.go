@@ -14,14 +14,14 @@ import (
 	"github.com/ldesfontaine/bientot/internal/storage"
 )
 
-// API handles HTTP endpoints
+// API gère les endpoints HTTP
 type API struct {
 	storage  storage.Storage
 	alerter  *alerter.Alerter
 	startTime time.Time
 }
 
-// New creates a new API handler
+// New crée un nouveau handler API
 func New(store storage.Storage, alert *alerter.Alerter) *API {
 	return &API{
 		storage:   store,
@@ -30,7 +30,7 @@ func New(store storage.Storage, alert *alerter.Alerter) *API {
 	}
 }
 
-// Router returns the HTTP router
+// Router return le routeur HTTP
 func (a *API) Router() http.Handler {
 	r := chi.NewRouter()
 
@@ -38,10 +38,10 @@ func (a *API) Router() http.Handler {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RealIP)
 
-	// Health check
+	// Vérification de santé
 	r.Get("/health", a.handleHealth)
 
-	// API routes
+	// Routes API
 	r.Route("/api", func(r chi.Router) {
 		r.Get("/status", a.handleStatus)
 		r.Get("/metrics", a.handleListMetrics)
@@ -102,7 +102,7 @@ func (a *API) handleQueryMetric(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	name := chi.URLParam(r, "name")
 
-	// Parse query params
+	// Analyse des paramètres de requête
 	from := time.Now().Add(-24 * time.Hour)
 	to := time.Now()
 	resolution := internal.ResolutionRaw
@@ -175,7 +175,7 @@ func (a *API) handleLatestMetric(w http.ResponseWriter, r *http.Request) {
 func (a *API) handleOverview(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// Key metrics to display in overview
+	// Métriques clés à afficher dans la vue d'ensemble
 	keyMetrics := []string{
 		"node_cpu_seconds_total",
 		"node_memory_MemAvailable_bytes",
@@ -202,10 +202,10 @@ func (a *API) handleOverview(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Add alerts
+	// Ajout des alertes
 	overview["alerts"] = a.alerter.ActiveAlerts()
 
-	// Add status
+	// Ajout du statut
 	activeAlerts := a.alerter.ActiveAlerts()
 	health := internal.HealthOK
 	for _, alert := range activeAlerts {

@@ -9,7 +9,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal"
 )
 
-// Expression represents a parsed alert expression
+// Expression représente une expression d'alerte analysée
 type Expression struct {
 	MetricName string
 	Labels     map[string]string
@@ -19,13 +19,13 @@ type Expression struct {
 
 var exprRegex = regexp.MustCompile(`^(\w+)(?:\{([^}]*)\})?\s*(>=|<=|==|!=|>|<)\s*(.+)$`)
 
-// ParseExpression parses an expression string like "disk_used_percent > 90"
+// ParseExpression analyse une expression comme "disk_used_percent > 90"
 func ParseExpression(expr string) (*Expression, error) {
 	expr = strings.TrimSpace(expr)
 
 	matches := exprRegex.FindStringSubmatch(expr)
 	if matches == nil {
-		return nil, fmt.Errorf("invalid expression format: %s", expr)
+		return nil, fmt.Errorf("format d'expression invalide: %s", expr)
 	}
 
 	metricName := matches[1]
@@ -33,19 +33,19 @@ func ParseExpression(expr string) (*Expression, error) {
 	opStr := matches[3]
 	thresholdStr := matches[4]
 
-	// Parse operator
+	// Analyse de l'opérateur
 	op, err := ParseOperator(opStr)
 	if err != nil {
 		return nil, err
 	}
 
-	// Parse threshold
+	// Analyse du seuil
 	threshold, err := strconv.ParseFloat(strings.TrimSpace(thresholdStr), 64)
 	if err != nil {
-		return nil, fmt.Errorf("invalid threshold: %s", thresholdStr)
+		return nil, fmt.Errorf("seuil invalide: %s", thresholdStr)
 	}
 
-	// Parse labels if present
+	// Analyse des labels si présents
 	labels := make(map[string]string)
 	if labelsStr != "" {
 		pairs := strings.Split(labelsStr, ",")
@@ -67,7 +67,7 @@ func ParseExpression(expr string) (*Expression, error) {
 	}, nil
 }
 
-// ToRule converts an Expression to a Rule
+// ToRule convertit une Expression en Rule
 func (e *Expression) ToRule(name string, severity internal.Severity, message string) Rule {
 	return Rule{
 		Name:       name,

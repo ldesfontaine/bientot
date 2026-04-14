@@ -9,7 +9,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal/enrichment"
 )
 
-// GreyNoise queries the GreyNoise Community API.
+// GreyNoise interroge l'API communautaire GreyNoise.
 type GreyNoise struct {
 	apiKey     string
 	dailyLimit int
@@ -20,12 +20,12 @@ type greyNoiseResponse struct {
 	IP             string `json:"ip"`
 	Noise          bool   `json:"noise"`
 	Riot           bool   `json:"riot"`
-	Classification string `json:"classification"` // benign, malicious, unknown
+	Classification string `json:"classification"` // bénin, malveillant, inconnu
 	Name           string `json:"name"`
 	Link           string `json:"link"`
 }
 
-// NewGreyNoise creates a GreyNoise provider.
+// NewGreyNoise crée un fournisseur GreyNoise.
 func NewGreyNoise(apiKey string, dailyLimit int) *GreyNoise {
 	return &GreyNoise{
 		apiKey:     apiKey,
@@ -41,7 +41,7 @@ func (g *GreyNoise) Enrich(ip string) (*enrichment.ProviderResult, error) {
 	url := fmt.Sprintf("https://api.greynoise.io/v3/community/%s", ip)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
+		return nil, fmt.Errorf("création de la requête: %w", err)
 	}
 
 	req.Header.Set("key", g.apiKey)
@@ -49,17 +49,17 @@ func (g *GreyNoise) Enrich(ip string) (*enrichment.ProviderResult, error) {
 
 	resp, err := g.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("greynoise request: %w", err)
+		return nil, fmt.Errorf("requête GreyNoise: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("greynoise: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("GreyNoise: statut %d", resp.StatusCode)
 	}
 
 	var result greyNoiseResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("decoding greynoise response: %w", err)
+		return nil, fmt.Errorf("décodage de la réponse GreyNoise: %w", err)
 	}
 
 	score := 0

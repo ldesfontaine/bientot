@@ -10,7 +10,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal/enrichment"
 )
 
-// AbuseIPDB queries the AbuseIPDB v2 API.
+// AbuseIPDB interroge l'API AbuseIPDB v2.
 type AbuseIPDB struct {
 	apiKey     string
 	dailyLimit int
@@ -27,7 +27,7 @@ type abuseIPDBResponse struct {
 	} `json:"data"`
 }
 
-// NewAbuseIPDB creates an AbuseIPDB provider.
+// NewAbuseIPDB crée un fournisseur AbuseIPDB.
 func NewAbuseIPDB(apiKey string, dailyLimit int) *AbuseIPDB {
 	return &AbuseIPDB{
 		apiKey:     apiKey,
@@ -42,7 +42,7 @@ func (a *AbuseIPDB) DailyLimit() int { return a.dailyLimit }
 func (a *AbuseIPDB) Enrich(ip string) (*enrichment.ProviderResult, error) {
 	req, err := http.NewRequest("GET", "https://api.abuseipdb.com/api/v2/check", nil)
 	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
+		return nil, fmt.Errorf("création de la requête: %w", err)
 	}
 
 	q := req.URL.Query()
@@ -54,17 +54,17 @@ func (a *AbuseIPDB) Enrich(ip string) (*enrichment.ProviderResult, error) {
 
 	resp, err := a.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("abuseipdb request: %w", err)
+		return nil, fmt.Errorf("requête AbuseIPDB: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("abuseipdb: status %d", resp.StatusCode)
+		return nil, fmt.Errorf("AbuseIPDB: statut %d", resp.StatusCode)
 	}
 
 	var result abuseIPDBResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("decoding abuseipdb response: %w", err)
+		return nil, fmt.Errorf("décodage de la réponse AbuseIPDB: %w", err)
 	}
 
 	return &enrichment.ProviderResult{

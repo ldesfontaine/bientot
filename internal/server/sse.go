@@ -8,27 +8,27 @@ import (
 	"time"
 )
 
-// SSEEvent is a typed event sent to SSE clients.
+// SSEEvent est un événement typé envoyé aux clients SSE.
 type SSEEvent struct {
 	Type string      `json:"type"` // "alert", "metric", "push", "pattern"
 	Data interface{} `json:"data"`
 	Time time.Time   `json:"time"`
 }
 
-// SSEBroker manages SSE client connections and event fanout.
+// SSEBroker gère les connexions clients SSE et la diffusion des événements.
 type SSEBroker struct {
 	mu      sync.RWMutex
 	clients map[chan SSEEvent]struct{}
 }
 
-// NewSSEBroker creates a new broker.
+// NewSSEBroker crée un nouveau broker.
 func NewSSEBroker() *SSEBroker {
 	return &SSEBroker{
 		clients: make(map[chan SSEEvent]struct{}),
 	}
 }
 
-// Subscribe adds a client. Returns channel and unsubscribe func.
+// Subscribe ajoute un client. return le canal et la fonction de désinscription.
 func (b *SSEBroker) Subscribe() (chan SSEEvent, func()) {
 	ch := make(chan SSEEvent, 64)
 	b.mu.Lock()
@@ -39,13 +39,13 @@ func (b *SSEBroker) Subscribe() (chan SSEEvent, func()) {
 		b.mu.Lock()
 		delete(b.clients, ch)
 		b.mu.Unlock()
-		// Drain remaining events
+		// Vidage des événements restants
 		for range ch {
 		}
 	}
 }
 
-// Publish sends an event to all connected clients.
+// Publish envoie un événement à tous les clients connectés.
 func (b *SSEBroker) Publish(event SSEEvent) {
 	event.Time = time.Now()
 	b.mu.RLock()
@@ -55,23 +55,23 @@ func (b *SSEBroker) Publish(event SSEEvent) {
 		select {
 		case ch <- event:
 		default:
-			// Client too slow, drop event
+			// Client trop lent, événement ignoré
 		}
 	}
 }
 
-// ClientCount returns the number of connected SSE clients.
+// ClientCount return le nombre de clients SSE connectés.
 func (b *SSEBroker) ClientCount() int {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 	return len(b.clients)
 }
 
-// handleSSE streams server-sent events to the client.
+// handleSSE envoie les événements SSE au client en streaming.
 func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		http.Error(w, "streaming not supported", http.StatusInternalServerError)
+		http.Error(w, "streaming non supporté", http.StatusInternalServerError)
 		return
 	}
 
@@ -83,20 +83,20 @@ func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
 	ch, unsub := s.sse.Subscribe()
 	defer unsub()
 
-	s.logger.Debug("sse client connected", "clients", s.sse.ClientCount())
+	s.logger.Debug("client SSE connecté", "clients", s.sse.ClientCount())
 
-	// Send initial keepalive
+	// Envoi du keepalive initial
 	fmt.Fprintf(w, ": connected\n\n")
 	flusher.Flush()
 
-	// Keepalive ticker
+	// Timer de keepalive
 	keepalive := time.NewTicker(30 * time.Second)
 	defer keepalive.Stop()
 
 	for {
 		select {
 		case <-r.Context().Done():
-			s.logger.Debug("sse client disconnected", "clients", s.sse.ClientCount()-1)
+			s.logger.Debug("client SSE déconnecté", "clients", s.sse.ClientCount()-1)
 			return
 
 		case event := <-ch:

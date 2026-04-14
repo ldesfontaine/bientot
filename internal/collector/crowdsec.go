@@ -10,7 +10,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal"
 )
 
-// CrowdSecCollector collects metrics from CrowdSec API
+// CrowdSecCollector collecte les métriques depuis l'API CrowdSec
 type CrowdSecCollector struct {
 	name     string
 	url      string
@@ -36,7 +36,7 @@ type crowdsecMetrics struct {
 	} `json:"buckets"`
 }
 
-// NewCrowdSecCollector creates a new CrowdSec collector
+// NewCrowdSecCollector crée un nouveau collecteur CrowdSec
 func NewCrowdSecCollector(name, url string, interval time.Duration) *CrowdSecCollector {
 	return &CrowdSecCollector{
 		name:     name,
@@ -56,13 +56,13 @@ func (c *CrowdSecCollector) Collect(ctx context.Context) ([]internal.Metric, err
 	now := time.Now()
 	var metrics []internal.Metric
 
-	// Fetch metrics from CrowdSec API
+	// Récupération des métriques depuis l'API CrowdSec
 	metricsData, err := c.fetchMetrics(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Decisions
+	// Décisions
 	metrics = append(metrics, internal.Metric{
 		Name:      "crowdsec_decisions_total",
 		Value:     float64(metricsData.Decisions.Total),
@@ -76,7 +76,7 @@ func (c *CrowdSecCollector) Collect(ctx context.Context) ([]internal.Metric, err
 		Source:    c.name,
 	})
 
-	// Alerts
+	// Alertes
 	metrics = append(metrics, internal.Metric{
 		Name:      "crowdsec_alerts_total",
 		Value:     float64(metricsData.Alerts.Total),
@@ -84,7 +84,7 @@ func (c *CrowdSecCollector) Collect(ctx context.Context) ([]internal.Metric, err
 		Source:    c.name,
 	})
 
-	// Parsers
+	// Parseurs
 	metrics = append(metrics, internal.Metric{
 		Name:      "crowdsec_parsed_total",
 		Value:     float64(metricsData.Parsers.Parsed),
@@ -98,7 +98,7 @@ func (c *CrowdSecCollector) Collect(ctx context.Context) ([]internal.Metric, err
 		Source:    c.name,
 	})
 
-	// Buckets
+	// Buckets (seaux)
 	metrics = append(metrics, internal.Metric{
 		Name:      "crowdsec_buckets_total",
 		Value:     float64(metricsData.Buckets.Total),
@@ -106,7 +106,7 @@ func (c *CrowdSecCollector) Collect(ctx context.Context) ([]internal.Metric, err
 		Source:    c.name,
 	})
 
-	// Fetch active decisions (bans)
+	// Récupération des décisions actives (bans)
 	bans, err := c.fetchDecisions(ctx)
 	if err == nil {
 		metrics = append(metrics, internal.Metric{
@@ -123,22 +123,22 @@ func (c *CrowdSecCollector) Collect(ctx context.Context) ([]internal.Metric, err
 func (c *CrowdSecCollector) fetchMetrics(ctx context.Context) (*crowdsecMetrics, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", c.url+"/v1/metrics", nil)
 	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
+		return nil, fmt.Errorf("création de la requête: %w", err)
 	}
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("fetching metrics: %w", err)
+		return nil, fmt.Errorf("récupération des métriques: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("statut inattendu: %d", resp.StatusCode)
 	}
 
 	var metrics crowdsecMetrics
 	if err := json.NewDecoder(resp.Body).Decode(&metrics); err != nil {
-		return nil, fmt.Errorf("decoding response: %w", err)
+		return nil, fmt.Errorf("décodage de la réponse: %w", err)
 	}
 
 	return &metrics, nil
@@ -157,7 +157,7 @@ func (c *CrowdSecCollector) fetchDecisions(ctx context.Context) (int, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return 0, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		return 0, fmt.Errorf("statut inattendu: %d", resp.StatusCode)
 	}
 
 	var decisions []interface{}

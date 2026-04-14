@@ -36,7 +36,7 @@ func (s *Server) handleActiveAlerts(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) handleAckAlert(w http.ResponseWriter, r *http.Request) {
 	if s.alerter == nil {
-		http.Error(w, "alerter not configured", http.StatusServiceUnavailable)
+		http.Error(w, "alerter non configuré", http.StatusServiceUnavailable)
 		return
 	}
 
@@ -45,6 +45,6 @@ func (s *Server) handleAckAlert(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": "acknowledged"})
 	} else {
-		http.Error(w, "alert not found", http.StatusNotFound)
+		http.Error(w, "alerte introuvable", http.StatusNotFound)
 	}
 }

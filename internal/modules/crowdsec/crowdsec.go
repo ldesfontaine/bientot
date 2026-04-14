@@ -28,8 +28,8 @@ type metricsResp struct {
 	} `json:"buckets"`
 }
 
-// Module collects CrowdSec metrics from the LAPI HTTP endpoints.
-// Active only when CROWDSEC_URL is set (VPS). Skips on Pi.
+// Module collecte les métriques CrowdSec depuis les endpoints HTTP LAPI.
+// Actif uniquement quand CROWDSEC_URL est défini (VPS). Ignoré sur Pi.
 type Module struct {
 	url    string // e.g. "http://crowdsec:8080"
 	client *http.Client
@@ -111,7 +111,7 @@ func (m *Module) fetchMetrics(ctx context.Context) (*metricsResp, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		return nil, fmt.Errorf("statut inattendu : %d", resp.StatusCode)
 	}
 	var data metricsResp
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
@@ -131,7 +131,7 @@ func (m *Module) fetchDecisionCount(ctx context.Context) (int, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return 0, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+		return 0, fmt.Errorf("statut inattendu : %d", resp.StatusCode)
 	}
 	var decisions []json.RawMessage
 	if err := json.NewDecoder(resp.Body).Decode(&decisions); err != nil {
