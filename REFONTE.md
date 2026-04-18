@@ -2,7 +2,7 @@
 # Bientôt v2 — Journal de refonte
 
 > **Document de référence vivant.** Mis à jour à chaque feature/palier validé.
-> Dernière mise à jour : **2026-04-18** — palier 2 validé, feature 3.3 validée.
+> Dernière mise à jour : **2026-04-18** — palier 2 validé, feature 3.4 validée.
 
 ---
 
@@ -186,6 +186,8 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (nuit)** — Feature 3.1 ✅ : buf + protoc-gen-go configurés, contrat protobuf `PushRequest` v1 posé (`api/v1/ingest.proto`). Makefile étend `PATH` avec `$GOPATH/bin` pour que `buf generate` trouve le plugin sans modifier le shell rc. `PACKAGE_DIRECTORY_MATCH` exclu explicitement (mono-produit, pas besoin du nesting `bientot/v1/`). Round-trip marshal/unmarshal validé.
 - **2026-04-18 (nuit)** — Feature 3.2 ✅ : package `internal/shared/crypto/` avec Sign/Verify Ed25519 sur PushRequest. Canonical encoding via `proto.MarshalOptions{Deterministic: true}`, signature cleared pattern pour éviter le chicken-and-egg. 5 tests couvrent roundtrip, tamper, wrong key, determinism, invalid key.
 - **2026-04-18 (nuit)** — Feature 3.3 ✅ : package `internal/shared/keys/` + extension du bootstrap script. Chaque agent a sa paire Ed25519 (`signing.key`/`signing.pub`), clé publique copiée côté dashboard dans `agent-keys/<machine_id>.pub`. Loader fail-fast sur clé corrompue. 5 tests (roundtrip priv/pub, scan dir + filtrage `.pub`, fichier manquant, PEM malformé).
+- **2026-04-18 (nuit)** — Feature 3.4 ✅ : endpoint `/v1/push` sur echo-server. Pipeline de vérif en 11 étapes (version, skew 60s, cross-check TLS CN ↔ payload machine_id, lookup clé publique, Ed25519 verify, nonce). Cache nonce TTL 5min, éviction 1min. 3 pushes consécutifs validés.
+- **2026-04-18 (nuit)** — Fix d'ordre : vérif signature avant nonce cache (sinon un attaquant mTLS-valide mais sans signing key pouvait polluer le cache — DoS pré-authentification).
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
