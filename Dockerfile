@@ -13,6 +13,8 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -ldflags="-s -w" -o /out/bientot-agent ./cmd/agent
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
     go build -ldflags="-s -w" -o /out/bientot-dashboard ./cmd/dashboard
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} \
+    go build -ldflags="-s -w" -o /out/bientot-echo-server ./cmd/echo-server
 
 
 FROM alpine:3.20 AS agent
@@ -27,3 +29,10 @@ RUN adduser -D -u 10001 bientot
 COPY --from=builder /out/bientot-dashboard /usr/local/bin/
 USER bientot
 ENTRYPOINT ["/usr/local/bin/bientot-dashboard"]
+
+
+FROM alpine:3.20 AS echo-server
+RUN adduser -D -u 10001 bientot
+COPY --from=builder /out/bientot-echo-server /usr/local/bin/
+USER bientot
+ENTRYPOINT ["/usr/local/bin/bientot-echo-server"]
