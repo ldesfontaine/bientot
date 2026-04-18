@@ -2,7 +2,7 @@
 # Bientôt v2 — Journal de refonte
 
 > **Document de référence vivant.** Mis à jour à chaque feature/palier validé.
-> Dernière mise à jour : **2026-04-18** — palier 2 validé, feature 3.4 validée.
+> Dernière mise à jour : **2026-04-18** — palier 3 validé.
 
 ---
 
@@ -108,7 +108,7 @@ bientot/
 | 0 | Squelette | ✅ VALIDÉ | `make build` + `docker-up` → logs "starting" des deux binaires |
 | 1 | Agent autonome + interface Module | ✅ VALIDÉ | Module `heartbeat` détecté et collecté en boucle |
 | 2 | mTLS bootstrap | ✅ VALIDÉ | Agent handshake mTLS vers echo-server, tamper cert → rejet |
-| 3 | Protocole signé (protobuf + Ed25519) | 🟡 EN COURS | PushRequest signée, tamper 1 byte → rejet |
+| 3 | Protocole signé (protobuf + Ed25519) | ✅ VALIDÉ | PushRequest signée, tamper 1 byte → rejet |
 | 4 | 1er module qui push (system) | ⬜ | Métriques CPU/RAM visibles côté dashboard de test |
 | 5 | Tous les modules + software_inventory | ⬜ | 8 modules actifs, inventaire logiciel rempli |
 | 6 | Agent production-ready | ⬜ | Healthcheck basé last-push, backoff, rotation cert auto |
@@ -189,6 +189,8 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (nuit)** — Feature 3.4 ✅ : endpoint `/v1/push` sur echo-server. Pipeline de vérif en 11 étapes (version, skew 60s, cross-check TLS CN ↔ payload machine_id, lookup clé publique, Ed25519 verify, nonce). Cache nonce TTL 5min, éviction 1min. 3 pushes consécutifs validés.
 - **2026-04-18 (nuit)** — Fix d'ordre : vérif signature avant nonce cache (sinon un attaquant mTLS-valide mais sans signing key pouvait polluer le cache — DoS pré-authentification).
 - **2026-04-18 (nuit)** — Feature 3.5 ✅ : agent passe de `Ping` à `Push` signé. Pipeline bout-en-bout Collect → ToProto → Sign Ed25519 → POST mTLS `/v1/push` → Verify + Accept. Décision design : une seule `pushLoop` globale (30s) qui collecte tous les modules actifs et push en batch — simplification volontaire du palier 3, le per-module scheduling arrive au palier 5/6. `Ping` conservé pour healthcheck/debug (`make test-echo` OK). Conversion `modules.Data → bientotv1.ModuleData` isolée dans `convert.go` pour découpler les modules du protobuf. 5 scénarios validés : push initial, ticks 30s, echo-server down (warn + agent up), recovery, /ping toujours fonctionnel.
+- **2026-04-18 (nuit)** — Feature 3.6 ✅ : 7 tests de non-régression sécurité sur `/v1/push` (happy path + 6 rejets). Chaque invariant du handler couvert par un test Go automatisable en CI.
+- **2026-04-18 (nuit)** — 🎉 **Palier 3 VALIDÉ**. Protocole push signé Ed25519 bout-en-bout, contract protobuf versionné, 0 dette de sécurité identifiée (ordre signature/nonce corrigé en cours de palier).
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
@@ -204,6 +206,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **Palier 6** — Certs 24h nécessitent régénération manuelle en dev. Renouvellement auto via step toolkit à implémenter.
 - **Palier 6** — Les tests mTLS utilisent les certs `deploy/certs/` via paths relatifs (`../../../`). Refactor en fixtures embarquées (`go:embed`) au palier 6.
 - **Palier 6** — `AGENTS=("vps")` en dur dans `bootstrap-ca.sh` : extraire dans un fichier de config (`deploy/agents.yaml`) ou ajouter un `scripts/add-agent.sh <name>` qui génère juste les certs/clés d'un nouvel agent sans régénérer les existants.
+- **Palier 6** — Logs stdlib "TLS handshake error EOF" pendant les tests viennent de la sonde `net.Dial` d'attente du port. Fix possible via `http.Server.ErrorLog = io.Discard` ou sonde `tls.Dial`. Bruit cosmétique, pas bloquant.
 
 ## 📝 Conventions
 
