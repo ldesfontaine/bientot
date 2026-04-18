@@ -105,7 +105,7 @@ bientot/
 
 | # | Nom | Statut | Résultat attendu |
 |---|---|---|---|
-| 0 | Squelette | 🟡 EN COURS | `make build` + `docker-up` → logs "starting" des deux binaires |
+| 0 | Squelette | ✅ VALIDÉ | `make build` + `docker-up` → logs "starting" des deux binaires |
 | 1 | Agent autonome + interface Module | ⬜ | Module `heartbeat` détecté et collecté en boucle |
 | 2 | mTLS bootstrap | ⬜ | Agent handshake mTLS vers echo-server de test, tamper cert → rejet |
 | 3 | Protocole signé (protobuf + Ed25519) | ⬜ | PushRequest signée, tamper 1 byte → rejet au serveur |
@@ -147,7 +147,7 @@ make build
 ```
 **Commit** : `feat(refonte): add agent and dashboard binaries with signal handling`
 
-#### Feature 0.3 — Les deux binaires qui tournent en Docker ⬜
+#### Feature 0.3 — Les deux binaires qui tournent en Docker ✅
 **Fichiers** : `Dockerfile`, `deploy/compose.dev.yml`
 **Résultat** :
 ```bash
@@ -175,6 +175,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (après-midi)** — Workflow clarifié : travail **feature-par-feature** (pas fichier-par-fichier). Palier 0 redécoupé en features 0.1, 0.2, 0.3.
 - **2026-04-18 (soir)** — Feature 0.1 en cours : `.gitignore` ✅ et `go.mod` ✅ commités. Reste `README.md`.
 - **2026-04-18 (soir)** — Feature 0.2 ✅ : agent et dashboard démarrent, loggent en JSON, gèrent SIGINT/SIGTERM proprement.
+- **2026-04-18 (soir)** — Feature 0.3 ✅ : Dockerfile multi-stage/multi-target, compose dev, user non-root UID 10001. Palier 0 validé.
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
