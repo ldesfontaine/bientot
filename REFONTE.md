@@ -178,6 +178,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (soir)** — Feature 0.3 ✅ : Dockerfile multi-stage/multi-target, compose dev, user non-root UID 10001. Palier 0 validé.
 - **2026-04-18 (nuit)** — 🎉 **Palier 1 VALIDÉ**. Interface Module posée (prête pour CVE+CTI), module heartbeat testé, boucle agent multi-goroutine fonctionnelle. Premier test unitaire du projet en place. 12 collectes régulières validées à 3s d'interval (ramené à 30s).
 - **2026-04-18 (nuit)** — Feature 2.1 ✅ : step-ca containerisé, isolé sur réseau dédié, password admin piloté par `.env`. Piège Docker Compose attrapé : l'interpolation `${VAR}` lit `.env` dans le project-dir (dossier du compose par défaut), pas via `env_file:`. Fix : `--project-directory .` + fail-fast `${STEP_CA_PASSWORD:?...}`. Validation contractuelle via `step ca provisioner list`.
+- **2026-04-18 (nuit)** — Feature 2.2 ✅ : `scripts/bootstrap-ca.sh` idempotent, génère root+intermediate+leafs (dashboard server, agent-vps client) avec SAN `dashboard,localhost`. Chaîne vérifiée par `openssl verify`. TTL 24h (renouvellement auto au palier 6).
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 

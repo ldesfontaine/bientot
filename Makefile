@@ -1,6 +1,6 @@
 COMPOSE := docker compose -f deploy/compose.dev.yml --project-directory .
 
-.PHONY: build run-agent run-dashboard test clean docker-build docker-up docker-down docker-logs
+.PHONY: build run-agent run-dashboard test clean docker-build docker-up docker-down docker-logs bootstrap-ca
 
 build:
 	go build -ldflags="-s -w" -o bin/bientot-agent ./cmd/agent
@@ -29,3 +29,6 @@ docker-down:
 
 docker-logs:
 	$(COMPOSE) logs -f
+
+bootstrap-ca:
+	./scripts/bootstrap-ca.sh
