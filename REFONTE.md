@@ -177,6 +177,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (soir)** — Feature 0.2 ✅ : agent et dashboard démarrent, loggent en JSON, gèrent SIGINT/SIGTERM proprement.
 - **2026-04-18 (soir)** — Feature 0.3 ✅ : Dockerfile multi-stage/multi-target, compose dev, user non-root UID 10001. Palier 0 validé.
 - **2026-04-18 (nuit)** — 🎉 **Palier 1 VALIDÉ**. Interface Module posée (prête pour CVE+CTI), module heartbeat testé, boucle agent multi-goroutine fonctionnelle. Premier test unitaire du projet en place. 12 collectes régulières validées à 3s d'interval (ramené à 30s).
+- **2026-04-18 (nuit)** — Feature 2.1 ✅ : step-ca containerisé, isolé sur réseau dédié, password admin piloté par `.env` (pas de secret random dans les logs).
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
