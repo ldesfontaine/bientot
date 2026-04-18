@@ -180,6 +180,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (nuit)** — Feature 2.1 ✅ : step-ca containerisé, isolé sur réseau dédié, password admin piloté par `.env`. Piège Docker Compose attrapé : l'interpolation `${VAR}` lit `.env` dans le project-dir (dossier du compose par défaut), pas via `env_file:`. Fix : `--project-directory .` + fail-fast `${STEP_CA_PASSWORD:?...}`. Validation contractuelle via `step ca provisioner list`.
 - **2026-04-18 (nuit)** — Feature 2.2 ✅ : `scripts/bootstrap-ca.sh` idempotent, génère root+intermediate+leafs (dashboard server, agent-vps client) avec SAN `dashboard,localhost`. Chaîne vérifiée par `openssl verify`. TTL 24h (renouvellement auto au palier 6).
 - **2026-04-18 (nuit)** — Feature 2.3 ✅ : echo-server mTLS fonctionnel. Handshake `RequireAndVerifyClientCert` + TLS 1.3 validé sur 3 scénarios (cert légitime, aucun cert, cert d'une autre CA). Fix perms UID via `user: ${HOST_UID:-1000}` pour bind-mount certs.
+- **2026-04-18 (nuit)** — Feature 2.4 ✅ : helper `internal/shared/mtls/` avec `ClientConfig` + 3 tests (success, cert manquant, CA invalide). Enforce TLS 1.3 + ServerName obligatoire (anti-MITM).
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
