@@ -74,3 +74,18 @@ func (m *Module) Interval() time.Duration { return 30 * time.Second }
 
 // Compile-time check that *Module implements modules.Module.
 var _ modules.Module = (*Module)(nil)
+
+// Factory creates a system module from a config map.
+// Required config key:
+//   - node_exporter_url (string): URL of the node_exporter /metrics endpoint.
+func Factory(cfg map[string]interface{}) (modules.Module, error) {
+	url, _ := cfg["node_exporter_url"].(string)
+	if url == "" {
+		return nil, fmt.Errorf("system: node_exporter_url is required in config")
+	}
+	return New(url), nil
+}
+
+func init() {
+	modules.Register("system", Factory)
+}

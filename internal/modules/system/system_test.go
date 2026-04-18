@@ -88,3 +88,25 @@ func TestModule_Collect_Minimal(t *testing.T) {
 		t.Errorf("scrape_target = %q, want http://test", data.Metadata["scrape_target"])
 	}
 }
+
+func TestFactory_Valid(t *testing.T) {
+	cfg := map[string]interface{}{
+		"node_exporter_url": "http://test:9100",
+	}
+	m, err := Factory(cfg)
+	if err != nil {
+		t.Fatalf("Factory: %v", err)
+	}
+	if m.Name() != "system" {
+		t.Errorf("Name = %q, want system", m.Name())
+	}
+}
+
+func TestFactory_MissingURL(t *testing.T) {
+	if _, err := Factory(nil); err == nil {
+		t.Fatal("expected error for missing url, got nil")
+	}
+	if _, err := Factory(map[string]interface{}{"node_exporter_url": ""}); err == nil {
+		t.Fatal("expected error for empty url, got nil")
+	}
+}

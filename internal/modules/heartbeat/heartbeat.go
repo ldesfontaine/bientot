@@ -49,3 +49,13 @@ func (m *Module) Interval() time.Duration {
 
 // Compile-time check that *Module implements modules.Module.
 var _ modules.Module = (*Module)(nil)
+
+// Factory creates a heartbeat module from a config map.
+// The heartbeat module accepts no config.
+func Factory(_ map[string]interface{}) (modules.Module, error) {
+	return New(), nil
+}
+
+func init() {
+	modules.Register("heartbeat", Factory)
+}

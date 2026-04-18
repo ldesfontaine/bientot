@@ -57,3 +57,13 @@ func TestModule_Collect(t *testing.T) {
 		t.Errorf("Timestamp = %v, want >= %v", data.Timestamp, before)
 	}
 }
+
+func TestFactory(t *testing.T) {
+	m, err := Factory(nil)
+	if err != nil {
+		t.Fatalf("Factory: %v", err)
+	}
+	if m.Name() != "heartbeat" {
+		t.Errorf("Name = %q, want heartbeat", m.Name())
+	}
+}
