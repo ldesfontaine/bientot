@@ -41,6 +41,7 @@ services:
       - ./deploy/certs/dashboard/server.crt:/etc/bientot/certs/server.crt:ro
       - ./deploy/certs/dashboard/server.key:/etc/bientot/certs/server.key:ro
       - ./deploy/certs/dashboard/ca-bundle.crt:/etc/bientot/certs/ca-bundle.crt:ro
+      - ./deploy/certs/dashboard/agent-keys:/etc/bientot/agent-keys:ro
     networks:
       - bientot-internal
 

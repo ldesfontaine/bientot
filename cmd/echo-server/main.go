@@ -22,6 +22,7 @@ func main() {
 	cert := getEnv("ECHO_CERT", "/etc/bientot/certs/server.crt")
 	key := getEnv("ECHO_KEY", "/etc/bientot/certs/server.key")
 	ca := getEnv("ECHO_CA_BUNDLE", "/etc/bientot/certs/ca-bundle.crt")
+	agentKeys := getEnv("ECHO_AGENT_KEYS", "/etc/bientot/agent-keys")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -34,7 +35,7 @@ func main() {
 		cancel()
 	}()
 
-	s := echoserver.New(logger, addr, cert, key, ca)
+	s := echoserver.New(logger, addr, cert, key, ca, agentKeys)
 	if err := s.Run(ctx); err != nil {
 		logger.Error("echo-server failed", "err", err)
 		os.Exit(1)
