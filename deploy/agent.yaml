@@ -1,0 +1,21 @@
+# Dev config for agent-vps (mounted into the container at /etc/bientot/agent.yaml).
+machine_id: vps
+
+dashboard:
+  url: https://echo-server:8443
+  server_name: dashboard
+  cert: /etc/bientot/certs/client.crt
+  key: /etc/bientot/certs/client.key
+  ca_bundle: /etc/bientot/certs/ca-bundle.crt
+
+signing_key: /etc/bientot/keys/signing.key
+push_interval: 30s
+
+modules:
+  - type: heartbeat
+    enabled: true
+
+  - type: system
+    enabled: true
+    config:
+      node_exporter_url: http://node-exporter:9100

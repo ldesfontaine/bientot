@@ -73,16 +73,13 @@ services:
       - echo-server
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     environment:
-      DASHBOARD_URL: https://echo-server:8443
-      DASHBOARD_SERVER_NAME: dashboard
-      AGENT_SIGNING_KEY: /etc/bientot/keys/signing.key
-      BIENTOT_MACHINE_ID: vps
-      NODE_EXPORTER_URL: http://node-exporter:9100
+      BIENTOT_CONFIG: /etc/bientot/agent.yaml
     volumes:
       - ./deploy/certs/agent-vps/client.crt:/etc/bientot/certs/client.crt:ro
       - ./deploy/certs/agent-vps/client.key:/etc/bientot/certs/client.key:ro
       - ./deploy/certs/agent-vps/ca-bundle.crt:/etc/bientot/certs/ca-bundle.crt:ro
       - ./deploy/certs/agent-vps/signing.key:/etc/bientot/keys/signing.key:ro
+      - ./deploy/agent.yaml:/etc/bientot/agent.yaml:ro
     networks:
       - bientot-internal
 

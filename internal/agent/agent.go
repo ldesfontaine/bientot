@@ -13,10 +13,10 @@ import (
 // detectTimeout caps how long a single module's Detect may take at startup.
 const detectTimeout = 5 * time.Second
 
-// pushInterval is the single global frequency for pushing collected data.
+// defaultPushInterval is used when the caller passes 0.
 // At palier 3 all active modules are collected and shipped every tick,
 // ignoring per-module Interval(). Per-module scheduling lands at palier 5+.
-const pushInterval = 30 * time.Second
+const defaultPushInterval = 30 * time.Second
 
 // pushTimeout caps how long a single push (collect + HTTP) may take. Keeps a
 // stuck push from blocking the loop past the next tick.
@@ -24,15 +24,17 @@ const pushTimeout = 10 * time.Second
 
 // Agent runs the active modules on a unified push loop.
 type Agent struct {
-	modules    []modules.Module
-	pushClient *client.Client
-	log        *slog.Logger
+	modules      []modules.Module
+	pushClient   *client.Client
+	pushInterval time.Duration
+	log          *slog.Logger
 }
 
 // New filters available modules by calling Detect on each, and returns an Agent
 // holding only the ones that reported themselves as runnable. If pushClient is
-// non-nil, Run will launch a periodic push loop against the dashboard.
-func New(log *slog.Logger, pushClient *client.Client, available []modules.Module) *Agent {
+// non-nil, Run will launch a periodic push loop against the dashboard. A
+// pushInterval of 0 falls back to defaultPushInterval.
+func New(log *slog.Logger, pushClient *client.Client, available []modules.Module, pushInterval time.Duration) *Agent {
 	var active []modules.Module
 
 	for _, m := range available {
@@ -48,7 +50,11 @@ func New(log *slog.Logger, pushClient *client.Client, available []modules.Module
 		active = append(active, m)
 	}
 
-	return &Agent{modules: active, pushClient: pushClient, log: log}
+	if pushInterval <= 0 {
+		pushInterval = defaultPushInterval
+	}
+
+	return &Agent{modules: active, pushClient: pushClient, pushInterval: pushInterval, log: log}
 }
 
 // Run starts the push loop and blocks until ctx is cancelled.
@@ -68,7 +74,7 @@ func (a *Agent) Run(ctx context.Context) {
 }
 
 func (a *Agent) pushLoop(ctx context.Context) {
-	ticker := time.NewTicker(pushInterval)
+	ticker := time.NewTicker(a.pushInterval)
 	defer ticker.Stop()
 
 	a.doPush(ctx)

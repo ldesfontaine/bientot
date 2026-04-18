@@ -9,19 +9,66 @@ import (
 
 	"github.com/ldesfontaine/bientot/internal/agent"
 	"github.com/ldesfontaine/bientot/internal/agent/client"
+	"github.com/ldesfontaine/bientot/internal/config"
 	"github.com/ldesfontaine/bientot/internal/modules"
-	"github.com/ldesfontaine/bientot/internal/modules/heartbeat"
-	"github.com/ldesfontaine/bientot/internal/modules/system"
+	_ "github.com/ldesfontaine/bientot/internal/modules/registry"
 	"github.com/ldesfontaine/bientot/internal/shared/keys"
 )
 
-const version = "0.1.0-dev"
+const version = "0.2.0-dev"
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
 	logger.Info("agent starting", "version", version)
+
+	configPath := getEnv("BIENTOT_CONFIG", "/etc/bientot/agent.yaml")
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		logger.Error("failed to load config", "path", configPath, "error", err)
+		os.Exit(1)
+	}
+	logger.Info("config loaded",
+		"path", configPath,
+		"machine_id", cfg.MachineID,
+		"modules_declared", len(cfg.Modules),
+		"push_interval", cfg.PushInterval,
+	)
+
+	signKey, err := keys.LoadPrivateKey(cfg.SigningKey)
+	if err != nil {
+		logger.Error("failed to load signing key", "path", cfg.SigningKey, "error", err)
+		os.Exit(1)
+	}
+
+	pushClient, err := client.New(
+		cfg.Dashboard.URL,
+		cfg.Dashboard.Cert,
+		cfg.Dashboard.Key,
+		cfg.Dashboard.CABundle,
+		cfg.Dashboard.ServerName,
+		signKey,
+		cfg.MachineID,
+	)
+	if err != nil {
+		logger.Error("failed to init dashboard client", "error", err)
+		os.Exit(1)
+	}
+
+	moduleConfigs := make([]modules.ModuleConfig, len(cfg.Modules))
+	for i, mc := range cfg.Modules {
+		moduleConfigs[i] = modules.ModuleConfig{
+			Type:    mc.Type,
+			Enabled: mc.Enabled,
+			Config:  mc.Config,
+		}
+	}
+	builtModules, err := modules.Build(moduleConfigs, logger)
+	if err != nil {
+		logger.Error("failed to build modules", "error", err)
+		os.Exit(1)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -34,33 +81,7 @@ func main() {
 		cancel()
 	}()
 
-	dashboardURL := getEnv("DASHBOARD_URL", "https://echo-server:8443")
-	certPath := getEnv("AGENT_CERT", "/etc/bientot/certs/client.crt")
-	keyPath := getEnv("AGENT_KEY", "/etc/bientot/certs/client.key")
-	caPath := getEnv("AGENT_CA_BUNDLE", "/etc/bientot/certs/ca-bundle.crt")
-	serverName := getEnv("DASHBOARD_SERVER_NAME", "dashboard")
-	signingKeyPath := getEnv("AGENT_SIGNING_KEY", "/etc/bientot/keys/signing.key")
-	machineID := getEnv("BIENTOT_MACHINE_ID", "vps")
-	nodeExporterURL := getEnv("NODE_EXPORTER_URL", "")
-
-	signKey, err := keys.LoadPrivateKey(signingKeyPath)
-	if err != nil {
-		logger.Error("failed to load signing key", "error", err)
-		os.Exit(1)
-	}
-
-	pushClient, err := client.New(dashboardURL, certPath, keyPath, caPath, serverName, signKey, machineID)
-	if err != nil {
-		logger.Error("failed to init dashboard client", "error", err)
-		os.Exit(1)
-	}
-
-	available := []modules.Module{
-		heartbeat.New(),
-		system.New(nodeExporterURL),
-	}
-
-	a := agent.New(logger, pushClient, available)
+	a := agent.New(logger, pushClient, builtModules, cfg.PushInterval)
 	a.Run(ctx)
 
 	logger.Info("agent exited")
