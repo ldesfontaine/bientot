@@ -151,12 +151,6 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !s.nonces.CheckAndAdd(req.Nonce, time.Now()) {
-		s.log.Warn("replay detected", "nonce", req.Nonce, "machine_id", req.MachineId)
-		http.Error(w, "replay detected", http.StatusConflict)
-		return
-	}
-
 	if r.TLS == nil || len(r.TLS.PeerCertificates) == 0 {
 		http.Error(w, "no client cert", http.StatusUnauthorized)
 		return
@@ -181,6 +175,12 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	if err := crypto.Verify(&req, pubKey); err != nil {
 		s.log.Warn("signature invalid", "machine_id", req.MachineId, "error", err)
 		http.Error(w, "bad signature", http.StatusForbidden)
+		return
+	}
+
+	if !s.nonces.CheckAndAdd(req.Nonce, time.Now()) {
+		s.log.Warn("replay detected", "nonce", req.Nonce, "machine_id", req.MachineId)
+		http.Error(w, "replay detected", http.StatusConflict)
 		return
 	}
 
