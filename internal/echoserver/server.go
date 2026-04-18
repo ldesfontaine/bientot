@@ -2,15 +2,14 @@ package echoserver
 
 import (
 	"context"
-	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"time"
+
+	"github.com/ldesfontaine/bientot/internal/shared/mtls"
 )
 
 type Server struct {
@@ -32,25 +31,9 @@ func New(log *slog.Logger, addr, certPath, keyPath, caPath string) *Server {
 }
 
 func (s *Server) Run(ctx context.Context) error {
-	serverCert, err := tls.LoadX509KeyPair(s.cert, s.key)
+	tlsConfig, err := mtls.ServerConfig(s.cert, s.key, s.caCerts)
 	if err != nil {
-		return fmt.Errorf("load server keypair: %w", err)
-	}
-
-	caBytes, err := os.ReadFile(s.caCerts)
-	if err != nil {
-		return fmt.Errorf("read ca bundle: %w", err)
-	}
-	caPool := x509.NewCertPool()
-	if !caPool.AppendCertsFromPEM(caBytes) {
-		return fmt.Errorf("append ca certs from %s: no valid PEM found", s.caCerts)
-	}
-
-	tlsConfig := &tls.Config{
-		Certificates: []tls.Certificate{serverCert},
-		ClientCAs:    caPool,
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		MinVersion:   tls.VersionTLS13,
+		return fmt.Errorf("build tls config: %w", err)
 	}
 
 	mux := http.NewServeMux()
