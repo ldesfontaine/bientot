@@ -37,7 +37,7 @@ fi
 
 # ─── 3. Nettoyer + recréer l'arborescence cible ─────────────────
 rm -rf "$CERTS_DIR"
-mkdir -p "$CERTS_DIR/ca" "$CERTS_DIR/dashboard"
+mkdir -p "$CERTS_DIR/ca" "$CERTS_DIR/dashboard" "$CERTS_DIR/dashboard/agent-keys"
 for agent in "${AGENTS[@]}"; do
     mkdir -p "$CERTS_DIR/agent-$agent"
 done
@@ -85,6 +85,23 @@ for agent in "${AGENTS[@]}"; do
 
     cp "$CERTS_DIR/ca/bundle.crt" "$CERTS_DIR/agent-$agent/ca-bundle.crt"
     chmod 600 "$CERTS_DIR/agent-$agent/client.key"
+
+    echo ">>> Generating Ed25519 signing key for agent-$agent"
+
+    $COMPOSE exec -T step-ca \
+        step crypto keypair --kty OKP --crv Ed25519 --force \
+            --insecure --no-password \
+            /tmp/signing.pub /tmp/signing.key
+
+    $COMPOSE exec -T step-ca cat /tmp/signing.key > "$CERTS_DIR/agent-$agent/signing.key"
+    $COMPOSE exec -T step-ca cat /tmp/signing.pub > "$CERTS_DIR/agent-$agent/signing.pub"
+    $COMPOSE exec -T step-ca sh -c "rm -f /tmp/signing.key /tmp/signing.pub"
+
+    cp "$CERTS_DIR/agent-$agent/signing.pub" "$CERTS_DIR/dashboard/agent-keys/$agent.pub"
+
+    chmod 600 "$CERTS_DIR/agent-$agent/signing.key"
+    chmod 644 "$CERTS_DIR/agent-$agent/signing.pub"
+    chmod 644 "$CERTS_DIR/dashboard/agent-keys/$agent.pub"
 done
 
 # ─── 7. Récap ───────────────────────────────────────────────────
@@ -99,4 +116,8 @@ openssl x509 -in "$CERTS_DIR/dashboard/server.crt" -noout -subject -issuer -date
 for agent in "${AGENTS[@]}"; do
     echo "--- agent-$agent ---"
     openssl x509 -in "$CERTS_DIR/agent-$agent/client.crt" -noout -subject -issuer -dates
+done
+echo "--- Signing keys ---"
+for agent in "${AGENTS[@]}"; do
+    echo "  agent-$agent: $(openssl pkey -in "$CERTS_DIR/agent-$agent/signing.key" -pubout 2>/dev/null | openssl dgst -sha256)"
 done
