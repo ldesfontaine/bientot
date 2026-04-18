@@ -106,8 +106,8 @@ bientot/
 | # | Nom | Statut | Résultat attendu |
 |---|---|---|---|
 | 0 | Squelette | ✅ VALIDÉ | `make build` + `docker-up` → logs "starting" des deux binaires |
-| 1 | Agent autonome + interface Module | ⬜ | Module `heartbeat` détecté et collecté en boucle |
-| 2 | mTLS bootstrap | ⬜ | Agent handshake mTLS vers echo-server de test, tamper cert → rejet |
+| 1 | Agent autonome + interface Module | ✅ VALIDÉ | Module `heartbeat` détecté et collecté en boucle |
+| 2 | mTLS bootstrap | 🟡 EN COURS | Agent handshake mTLS vers echo-server de test, tamper cert → rejet |
 | 3 | Protocole signé (protobuf + Ed25519) | ⬜ | PushRequest signée, tamper 1 byte → rejet au serveur |
 | 4 | 1er module qui push (system) | ⬜ | Métriques CPU/RAM visibles côté dashboard de test |
 | 5 | Tous les modules + software_inventory | ⬜ | 8 modules actifs, inventaire logiciel rempli |
@@ -176,8 +176,14 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (soir)** — Feature 0.1 en cours : `.gitignore` ✅ et `go.mod` ✅ commités. Reste `README.md`.
 - **2026-04-18 (soir)** — Feature 0.2 ✅ : agent et dashboard démarrent, loggent en JSON, gèrent SIGINT/SIGTERM proprement.
 - **2026-04-18 (soir)** — Feature 0.3 ✅ : Dockerfile multi-stage/multi-target, compose dev, user non-root UID 10001. Palier 0 validé.
+- **2026-04-18 (nuit)** — 🎉 **Palier 1 VALIDÉ**. Interface Module posée (prête pour CVE+CTI), module heartbeat testé, boucle agent multi-goroutine fonctionnelle. Premier test unitaire du projet en place. 12 collectes régulières validées à 3s d'interval (ramené à 30s).
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
+
+## ⚠️ Dette technique (à traiter aux paliers indiqués)
+
+- **Palier 6** : `Agent.Run()` ne `WaitGroup`-pas ses goroutines au shutdown → le log `"module stopped"` est perdu parce que le process exit avant que `runModule` flush son cleanup. Ajout d'un `sync.WaitGroup` prévu.
+- **Palier 2 ou ultérieur** : `cmd/agent/main.go` utilise encore la goroutine manuelle de signal au lieu de `signal.NotifyContext` (idiomatique Go 1.16+). Refactor trivial à faire en passant.
 
 ## 📝 Conventions
 
