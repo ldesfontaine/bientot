@@ -2,7 +2,7 @@
 # Bientôt v2 — Journal de refonte
 
 > **Document de référence vivant.** Mis à jour à chaque feature/palier validé.
-> Dernière mise à jour : **2026-04-18** — palier 2 validé, feature 3.2 validée.
+> Dernière mise à jour : **2026-04-18** — palier 2 validé, feature 3.3 validée.
 
 ---
 
@@ -185,6 +185,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (nuit)** — 🎉 **Palier 2 VALIDÉ** — mTLS bout-en-bout. CA step-ca + bootstrap idempotent + echo-server mTLS + client agent avec tests de régression sécurité (no cert / wrong CA). Écart Go 1.21+ géré via `GetClientCertificate`. 6 features, ~300 lignes prod + ~200 lignes tests.
 - **2026-04-18 (nuit)** — Feature 3.1 ✅ : buf + protoc-gen-go configurés, contrat protobuf `PushRequest` v1 posé (`api/v1/ingest.proto`). Makefile étend `PATH` avec `$GOPATH/bin` pour que `buf generate` trouve le plugin sans modifier le shell rc. `PACKAGE_DIRECTORY_MATCH` exclu explicitement (mono-produit, pas besoin du nesting `bientot/v1/`). Round-trip marshal/unmarshal validé.
 - **2026-04-18 (nuit)** — Feature 3.2 ✅ : package `internal/shared/crypto/` avec Sign/Verify Ed25519 sur PushRequest. Canonical encoding via `proto.MarshalOptions{Deterministic: true}`, signature cleared pattern pour éviter le chicken-and-egg. 5 tests couvrent roundtrip, tamper, wrong key, determinism, invalid key.
+- **2026-04-18 (nuit)** — Feature 3.3 ✅ : package `internal/shared/keys/` + extension du bootstrap script. Chaque agent a sa paire Ed25519 (`signing.key`/`signing.pub`), clé publique copiée côté dashboard dans `agent-keys/<machine_id>.pub`. Loader fail-fast sur clé corrompue. 5 tests (roundtrip priv/pub, scan dir + filtrage `.pub`, fichier manquant, PEM malformé).
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
@@ -198,6 +199,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **Palier 7** — Aucun rate limiting côté echo-server/dashboard : un client authentifié peut saturer le serveur. `chi/middleware/httprate` dès que le vrai dashboard prend le relais.
 - **Palier 6** — Certs 24h nécessitent régénération manuelle en dev. Renouvellement auto via step toolkit à implémenter.
 - **Palier 6** — Les tests mTLS utilisent les certs `deploy/certs/` via paths relatifs (`../../../`). Refactor en fixtures embarquées (`go:embed`) au palier 6.
+- **Palier 6** — `AGENTS=("vps")` en dur dans `bootstrap-ca.sh` : extraire dans un fichier de config (`deploy/agents.yaml`) ou ajouter un `scripts/add-agent.sh <name>` qui génère juste les certs/clés d'un nouvel agent sans régénérer les existants.
 
 ## 📝 Conventions
 
