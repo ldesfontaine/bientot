@@ -3,14 +3,12 @@ services:
     image: smallstep/step-ca:0.27.5
     container_name: bientot-step-ca-dev
     restart: unless-stopped
-    env_file:
-      - ../.env
     environment:
       DOCKER_STEPCA_INIT_NAME: Bientot Internal CA
       DOCKER_STEPCA_INIT_DNS_NAMES: step-ca,localhost
       DOCKER_STEPCA_INIT_PROVISIONER_NAME: bientot
       DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT: "true"
-      DOCKER_STEPCA_INIT_PASSWORD: ${STEP_CA_PASSWORD}
+      DOCKER_STEPCA_INIT_PASSWORD: ${STEP_CA_PASSWORD:?STEP_CA_PASSWORD is required, see .env.example}
     volumes:
       - step-data:/home/step
     networks:
@@ -18,7 +16,7 @@ services:
 
   dashboard:
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile
       target: dashboard
     container_name: bientot-dashboard-dev
@@ -29,7 +27,7 @@ services:
 
   agent-vps:
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile
       target: agent
     container_name: bientot-agent-vps-dev

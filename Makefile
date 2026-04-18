@@ -1,4 +1,4 @@
-COMPOSE := docker compose -f deploy/compose.dev.yml
+COMPOSE := docker compose -f deploy/compose.dev.yml --project-directory .
 
 .PHONY: build run-agent run-dashboard test clean docker-build docker-up docker-down docker-logs
 
