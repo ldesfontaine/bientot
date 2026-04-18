@@ -2,7 +2,7 @@
 # Bientôt v2 — Journal de refonte
 
 > **Document de référence vivant.** Mis à jour à chaque feature/palier validé.
-> Dernière mise à jour : **2026-04-18** — palier 3 validé.
+> Dernière mise à jour : **2026-04-19** — feature 4.1 validée, architecture modules refactorée vers registry + config YAML.
 
 ---
 
@@ -101,6 +101,18 @@ bientot/
 
 **Règle de dépendance stricte** : `internal/agent/` et `internal/dashboard/` ne s'importent JAMAIS l'un l'autre. Ils communiquent uniquement via le contract `api/v1/gen/`.
 
+## 🧩 Architecture des modules
+
+Les modules sont chargés via un pattern registry + config YAML :
+
+- Chaque module implémente `modules.Module` et expose `Factory(config) (Module, error)`
+- Chaque module s'auto-enregistre via `init()` dans son package
+- Le main importe `_ "internal/modules/registry"` pour déclencher les inits
+- `modules.Build(configs)` assemble les modules selon `deploy/agent.yaml`
+
+Ajouter un nouveau module = écrire le code + 1 ligne dans `internal/modules/registry/registry.go`.
+Déployer différemment sur une machine = éditer `agent.yaml`, pas de rebuild.
+
 ## 📋 Paliers
 
 | # | Nom | Statut | Résultat attendu |
@@ -109,7 +121,7 @@ bientot/
 | 1 | Agent autonome + interface Module | ✅ VALIDÉ | Module `heartbeat` détecté et collecté en boucle |
 | 2 | mTLS bootstrap | ✅ VALIDÉ | Agent handshake mTLS vers echo-server, tamper cert → rejet |
 | 3 | Protocole signé (protobuf + Ed25519) | ✅ VALIDÉ | PushRequest signée, tamper 1 byte → rejet |
-| 4 | 1er module qui push (system) | ⬜ | Métriques CPU/RAM visibles côté dashboard de test |
+| 4 | 1er module qui push (system) | 🟡 | Métriques CPU/RAM visibles côté dashboard de test |
 | 5 | Tous les modules + software_inventory | ⬜ | 8 modules actifs, inventaire logiciel rempli |
 | 6 | Agent production-ready | ⬜ | Healthcheck basé last-push, backoff, rotation cert auto |
 | 7 | Dashboard — stockage + pipeline | ⬜ | SQLite + pipeline corrélation 6 stages |
@@ -191,6 +203,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (nuit)** — Feature 3.5 ✅ : agent passe de `Ping` à `Push` signé. Pipeline bout-en-bout Collect → ToProto → Sign Ed25519 → POST mTLS `/v1/push` → Verify + Accept. Décision design : une seule `pushLoop` globale (30s) qui collecte tous les modules actifs et push en batch — simplification volontaire du palier 3, le per-module scheduling arrive au palier 5/6. `Ping` conservé pour healthcheck/debug (`make test-echo` OK). Conversion `modules.Data → bientotv1.ModuleData` isolée dans `convert.go` pour découpler les modules du protobuf. 5 scénarios validés : push initial, ticks 30s, echo-server down (warn + agent up), recovery, /ping toujours fonctionnel.
 - **2026-04-18 (nuit)** — Feature 3.6 ✅ : 7 tests de non-régression sécurité sur `/v1/push` (happy path + 6 rejets). Chaque invariant du handler couvert par un test Go automatisable en CI.
 - **2026-04-18 (nuit)** — 🎉 **Palier 3 VALIDÉ**. Protocole push signé Ed25519 bout-en-bout, contract protobuf versionné, 0 dette de sécurité identifiée (ordre signature/nonce corrigé en cours de palier).
+- **2026-04-19** — Refactor architecture : migration vers registry + config YAML. 4 commits atomiques (config loader, Factory pattern, registry, migration main). Ajout/toggle/désactivation de modules désormais possible via `agent.yaml` sans rebuild. Feature 4.1 définitivement validée (le travail existait avant, pas commité ; réincorporé proprement dans cet historique).
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
