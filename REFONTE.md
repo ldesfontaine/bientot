@@ -181,6 +181,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (nuit)** — Feature 2.2 ✅ : `scripts/bootstrap-ca.sh` idempotent, génère root+intermediate+leafs (dashboard server, agent-vps client) avec SAN `dashboard,localhost`. Chaîne vérifiée par `openssl verify`. TTL 24h (renouvellement auto au palier 6).
 - **2026-04-18 (nuit)** — Feature 2.3 ✅ : echo-server mTLS fonctionnel. Handshake `RequireAndVerifyClientCert` + TLS 1.3 validé sur 3 scénarios (cert légitime, aucun cert, cert d'une autre CA). Fix perms UID via `user: ${HOST_UID:-1000}` pour bind-mount certs.
 - **2026-04-18 (nuit)** — Feature 2.4 ✅ : helper `internal/shared/mtls/` avec `ClientConfig` + 3 tests (success, cert manquant, CA invalide). Enforce TLS 1.3 + ServerName obligatoire (anti-MITM).
+- **2026-04-18 (nuit)** — Feature 2.5 ✅ : agent parle mTLS à echo-server bout-en-bout. Package `internal/agent/client/` avec retry implicite sur tick. Refactor `mtls.ServerConfig` utilisé par echo-server et tests. Cert serveur gagne SAN `echo-server`. Résilience testée : echo down → warn → retry → recovery.
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
@@ -190,6 +191,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **Palier 2 ou ultérieur** : `cmd/agent/main.go` utilise encore la goroutine manuelle de signal au lieu de `signal.NotifyContext` (idiomatique Go 1.16+). Refactor trivial à faire en passant.
 - **Palier 2.3** — UID mismatch host↔container sur bind-mount : pattern `user: "${HOST_UID:-1000}:${HOST_GID:-1000}"` en dev, Docker secrets ou image dédiée avec UID 10001 natif en prod.
 - **Palier 2.3** — La couche mTLS `RequireAndVerifyClientCert` garantit qu'aucune requête non-authentifiée n'atteint le code applicatif. Tout rejet se fait au handshake. Logs sécurité à brancher sur alerting au palier 7.
+- **Palier 6** — Le ping loop agent n'a pas de backoff exponentiel ni de circuit breaker : quand l'echo-server est down, l'agent spamme un warn toutes les 30s. À implémenter avec `cenkalti/backoff` ou équivalent.
 
 ## 📝 Conventions
 
