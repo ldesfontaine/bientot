@@ -137,7 +137,7 @@ Chaque feature = un résultat observable + un commit atomique.
 - [x] `go.mod` (via `go mod init github.com/ldesfontaine/bientot`)
 - [ ] `README.md` (minimal, "WIP refonte")
 
-#### Feature 0.2 — Les deux binaires qui tournent en local ⬜
+#### Feature 0.2 — Les deux binaires qui tournent en local ✅
 **Fichiers** : `cmd/agent/main.go`, `cmd/dashboard/main.go`, `Makefile`
 **Résultat** :
 ```bash
@@ -174,6 +174,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (matin)** — Démarrage. Branche `refonte` créée. Roadmap initialisée. Décisions d'architecture figées.
 - **2026-04-18 (après-midi)** — Workflow clarifié : travail **feature-par-feature** (pas fichier-par-fichier). Palier 0 redécoupé en features 0.1, 0.2, 0.3.
 - **2026-04-18 (soir)** — Feature 0.1 en cours : `.gitignore` ✅ et `go.mod` ✅ commités. Reste `README.md`.
+- **2026-04-18 (soir)** — Feature 0.2 ✅ : agent et dashboard démarrent, loggent en JSON, gèrent SIGINT/SIGTERM proprement.
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
