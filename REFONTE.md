@@ -188,6 +188,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (nuit)** — Feature 3.3 ✅ : package `internal/shared/keys/` + extension du bootstrap script. Chaque agent a sa paire Ed25519 (`signing.key`/`signing.pub`), clé publique copiée côté dashboard dans `agent-keys/<machine_id>.pub`. Loader fail-fast sur clé corrompue. 5 tests (roundtrip priv/pub, scan dir + filtrage `.pub`, fichier manquant, PEM malformé).
 - **2026-04-18 (nuit)** — Feature 3.4 ✅ : endpoint `/v1/push` sur echo-server. Pipeline de vérif en 11 étapes (version, skew 60s, cross-check TLS CN ↔ payload machine_id, lookup clé publique, Ed25519 verify, nonce). Cache nonce TTL 5min, éviction 1min. 3 pushes consécutifs validés.
 - **2026-04-18 (nuit)** — Fix d'ordre : vérif signature avant nonce cache (sinon un attaquant mTLS-valide mais sans signing key pouvait polluer le cache — DoS pré-authentification).
+- **2026-04-18 (nuit)** — Feature 3.5 ✅ : agent passe de `Ping` à `Push` signé. Pipeline bout-en-bout Collect → ToProto → Sign Ed25519 → POST mTLS `/v1/push` → Verify + Accept. Décision design : une seule `pushLoop` globale (30s) qui collecte tous les modules actifs et push en batch — simplification volontaire du palier 3, le per-module scheduling arrive au palier 5/6. `Ping` conservé pour healthcheck/debug (`make test-echo` OK). Conversion `modules.Data → bientotv1.ModuleData` isolée dans `convert.go` pour découpler les modules du protobuf. 5 scénarios validés : push initial, ticks 30s, echo-server down (warn + agent up), recovery, /ping toujours fonctionnel.
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
@@ -197,7 +198,8 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **Palier 2 ou ultérieur** : `cmd/agent/main.go` utilise encore la goroutine manuelle de signal au lieu de `signal.NotifyContext` (idiomatique Go 1.16+). Refactor trivial à faire en passant.
 - **Palier 2.3** — UID mismatch host↔container sur bind-mount : pattern `user: "${HOST_UID:-1000}:${HOST_GID:-1000}"` en dev, Docker secrets ou image dédiée avec UID 10001 natif en prod.
 - **Palier 2.3** — La couche mTLS `RequireAndVerifyClientCert` garantit qu'aucune requête non-authentifiée n'atteint le code applicatif. Tout rejet se fait au handshake. Logs sécurité à brancher sur alerting au palier 7.
-- **Palier 6** — Le ping loop agent n'a pas de backoff exponentiel ni de circuit breaker : quand l'echo-server est down, l'agent spamme un warn toutes les 30s. À implémenter avec `cenkalti/backoff` ou équivalent.
+- **Palier 6** — La `pushLoop` agent n'a pas de backoff exponentiel ni de circuit breaker : quand le dashboard est down, l'agent spamme un warn toutes les 30s. À implémenter avec `cenkalti/backoff` ou équivalent.
+- **Palier 10** — `client.ToProto` ignore silencieusement les `RawEvents.Fields` non-string (le proto est `map<string,string>` pour l'instant). Quand un module CTI enverra des fields typés (int, map, bool), ajouter un log warn ou sérialiser en JSON.
 - **Palier 7** — Aucun rate limiting côté echo-server/dashboard : un client authentifié peut saturer le serveur. `chi/middleware/httprate` dès que le vrai dashboard prend le relais.
 - **Palier 6** — Certs 24h nécessitent régénération manuelle en dev. Renouvellement auto via step toolkit à implémenter.
 - **Palier 6** — Les tests mTLS utilisent les certs `deploy/certs/` via paths relatifs (`../../../`). Refactor en fixtures embarquées (`go:embed`) au palier 6.
