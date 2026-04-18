@@ -11,6 +11,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal/agent/client"
 	"github.com/ldesfontaine/bientot/internal/modules"
 	"github.com/ldesfontaine/bientot/internal/modules/heartbeat"
+	"github.com/ldesfontaine/bientot/internal/modules/system"
 	"github.com/ldesfontaine/bientot/internal/shared/keys"
 )
 
@@ -40,6 +41,7 @@ func main() {
 	serverName := getEnv("DASHBOARD_SERVER_NAME", "dashboard")
 	signingKeyPath := getEnv("AGENT_SIGNING_KEY", "/etc/bientot/keys/signing.key")
 	machineID := getEnv("BIENTOT_MACHINE_ID", "vps")
+	nodeExporterURL := getEnv("NODE_EXPORTER_URL", "")
 
 	signKey, err := keys.LoadPrivateKey(signingKeyPath)
 	if err != nil {
@@ -55,6 +57,7 @@ func main() {
 
 	available := []modules.Module{
 		heartbeat.New(),
+		system.New(nodeExporterURL),
 	}
 
 	a := agent.New(logger, pushClient, available)

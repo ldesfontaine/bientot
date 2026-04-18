@@ -45,6 +45,23 @@ services:
     networks:
       - bientot-internal
 
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: bientot-node-exporter-dev
+    restart: unless-stopped
+    networks:
+      - bientot-internal
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--web.listen-address=:9100'
+
   agent-vps:
     build:
       context: .
@@ -60,6 +77,7 @@ services:
       DASHBOARD_SERVER_NAME: dashboard
       AGENT_SIGNING_KEY: /etc/bientot/keys/signing.key
       BIENTOT_MACHINE_ID: vps
+      NODE_EXPORTER_URL: http://node-exporter:9100
     volumes:
       - ./deploy/certs/agent-vps/client.crt:/etc/bientot/certs/client.crt:ro
       - ./deploy/certs/agent-vps/client.key:/etc/bientot/certs/client.key:ro
