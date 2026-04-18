@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package bientot.v1;
+
+option go_package = "github.com/ldesfontaine/bientot/api/v1/gen/v1;bientotv1";
+
+// PushRequest is the envelope sent by an agent to the dashboard's /v1/push endpoint.
+// All fields except `signature` are signed with the agent's Ed25519 private key,
+// producing the `signature` value. The dashboard verifies using the agent's public key.
+message PushRequest {
+  // Protocol version. Must be 1 for this version.
+  int32 v = 1;
+
+  // Identifier of the machine sending the push (e.g. "vps", "pi").
+  // Must match the cert's CN.
+  string machine_id = 2;
+
+  // Unix nanoseconds at the time the payload was built.
+  int64 timestamp_ns = 3;
+
+  // Unique nonce to prevent replay. UUIDv4 is the recommended format.
+  string nonce = 4;
+
+  // Data collected from each active module.
+  repeated ModuleData modules = 5;
+
+  // Ed25519 signature over a canonical encoding of fields 1-5.
+  bytes signature = 6;
+}
+
+// ModuleData is the output of one Module.Collect() call.
+message ModuleData {
+  string module = 1;
+
+  repeated Metric metrics = 2;
+
+  map<string, string> metadata = 3;
+
+  repeated SoftwareItem software = 4;
+
+  repeated RawEvent raw_events = 5;
+
+  // Unix nanoseconds at the time this module finished its collect.
+  int64 timestamp_ns = 6;
+}
+
+// Metric is a single numeric data point with Prometheus-style labels.
+message Metric {
+  string name = 1;
+  double value = 2;
+  map<string, string> labels = 3;
+}
+
+// SoftwareItem describes one piece of software detected on the machine.
+message SoftwareItem {
+  string name = 1;
+  string version = 2;
+  string source = 3;
+}
+
+// RawEvent is a loosely-typed event (used for CTI later).
+message RawEvent {
+  string source = 1;
+  int64 timestamp_ns = 2;
+  // JSON-encoded fields (string→string for now; will become bytes JSON at palier 10).
+  map<string, string> fields = 3;
+}
+
+// PushResponse is the reply sent by the dashboard after accepting a push.
+message PushResponse {
+  string status = 1;
+  int32 accepted_modules = 2;
+  int32 accepted_metrics = 3;
+}

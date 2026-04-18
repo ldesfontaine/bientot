@@ -1,0 +1,13 @@
+version: v2
+modules:
+  - path: api
+lint:
+  use:
+    - STANDARD
+  except:
+    # Single-product monorepo, no need for bientot/v1/ nesting.
+    # The package bientot.v1 lives in api/v1/ by design.
+    - PACKAGE_DIRECTORY_MATCH
+breaking:
+  use:
+    - FILE

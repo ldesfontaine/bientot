@@ -1,6 +1,6 @@
 COMPOSE := docker compose -f deploy/compose.dev.yml --project-directory .
 
-.PHONY: build run-agent run-dashboard test clean docker-build docker-up docker-down docker-logs bootstrap-ca test-echo
+.PHONY: build run-agent run-dashboard test clean docker-build docker-up docker-down docker-logs bootstrap-ca test-echo proto proto-lint proto-breaking
 
 build:
 	go build -ldflags="-s -w" -o bin/bientot-agent ./cmd/agent
@@ -40,3 +40,13 @@ test-echo:
 	      --key deploy/certs/agent-vps/client.key \
 	      https://localhost:8443/ping \
 	      || echo "ECHO TEST FAILED"
+
+proto:
+	rm -rf api/v1/gen
+	PATH="$(shell go env GOPATH)/bin:$(PATH)" buf generate
+
+proto-lint:
+	buf lint
+
+proto-breaking:
+	buf breaking --against '.git#branch=main'

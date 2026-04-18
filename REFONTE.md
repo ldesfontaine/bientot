@@ -183,6 +183,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (nuit)** — Feature 2.4 ✅ : helper `internal/shared/mtls/` avec `ClientConfig` + 3 tests (success, cert manquant, CA invalide). Enforce TLS 1.3 + ServerName obligatoire (anti-MITM).
 - **2026-04-18 (nuit)** — Feature 2.5 ✅ : agent parle mTLS à echo-server bout-en-bout. Package `internal/agent/client/` avec retry implicite sur tick. Refactor `mtls.ServerConfig` utilisé par echo-server et tests. Cert serveur gagne SAN `echo-server`. Résilience testée : echo down → warn → retry → recovery.
 - **2026-04-18 (nuit)** — 🎉 **Palier 2 VALIDÉ** — mTLS bout-en-bout. CA step-ca + bootstrap idempotent + echo-server mTLS + client agent avec tests de régression sécurité (no cert / wrong CA). Écart Go 1.21+ géré via `GetClientCertificate`. 6 features, ~300 lignes prod + ~200 lignes tests.
+- **2026-04-18 (nuit)** — Feature 3.1 ✅ : buf + protoc-gen-go configurés, contrat protobuf `PushRequest` v1 posé (`api/v1/ingest.proto`). Makefile étend `PATH` avec `$GOPATH/bin` pour que `buf generate` trouve le plugin sans modifier le shell rc. `PACKAGE_DIRECTORY_MATCH` exclu explicitement (mono-produit, pas besoin du nesting `bientot/v1/`). Round-trip marshal/unmarshal validé.
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
