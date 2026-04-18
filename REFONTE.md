@@ -2,7 +2,7 @@
 # Bientôt v2 — Journal de refonte
 
 > **Document de référence vivant.** Mis à jour à chaque feature/palier validé.
-> Dernière mise à jour : **2026-04-18** — palier 0 redécoupé en features.
+> Dernière mise à jour : **2026-04-18** — palier 2 validé, palier 3 ouvert.
 
 ---
 
@@ -107,8 +107,8 @@ bientot/
 |---|---|---|---|
 | 0 | Squelette | ✅ VALIDÉ | `make build` + `docker-up` → logs "starting" des deux binaires |
 | 1 | Agent autonome + interface Module | ✅ VALIDÉ | Module `heartbeat` détecté et collecté en boucle |
-| 2 | mTLS bootstrap | 🟡 EN COURS | Agent handshake mTLS vers echo-server de test, tamper cert → rejet |
-| 3 | Protocole signé (protobuf + Ed25519) | ⬜ | PushRequest signée, tamper 1 byte → rejet au serveur |
+| 2 | mTLS bootstrap | ✅ VALIDÉ | Agent handshake mTLS vers echo-server, tamper cert → rejet |
+| 3 | Protocole signé (protobuf + Ed25519) | 🟡 EN COURS | PushRequest signée, tamper 1 byte → rejet |
 | 4 | 1er module qui push (system) | ⬜ | Métriques CPU/RAM visibles côté dashboard de test |
 | 5 | Tous les modules + software_inventory | ⬜ | 8 modules actifs, inventaire logiciel rempli |
 | 6 | Agent production-ready | ⬜ | Healthcheck basé last-push, backoff, rotation cert auto |
@@ -182,6 +182,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (nuit)** — Feature 2.3 ✅ : echo-server mTLS fonctionnel. Handshake `RequireAndVerifyClientCert` + TLS 1.3 validé sur 3 scénarios (cert légitime, aucun cert, cert d'une autre CA). Fix perms UID via `user: ${HOST_UID:-1000}` pour bind-mount certs.
 - **2026-04-18 (nuit)** — Feature 2.4 ✅ : helper `internal/shared/mtls/` avec `ClientConfig` + 3 tests (success, cert manquant, CA invalide). Enforce TLS 1.3 + ServerName obligatoire (anti-MITM).
 - **2026-04-18 (nuit)** — Feature 2.5 ✅ : agent parle mTLS à echo-server bout-en-bout. Package `internal/agent/client/` avec retry implicite sur tick. Refactor `mtls.ServerConfig` utilisé par echo-server et tests. Cert serveur gagne SAN `echo-server`. Résilience testée : echo down → warn → retry → recovery.
+- **2026-04-18 (nuit)** — 🎉 **Palier 2 VALIDÉ** — mTLS bout-en-bout. CA step-ca + bootstrap idempotent + echo-server mTLS + client agent avec tests de régression sécurité (no cert / wrong CA). Écart Go 1.21+ géré via `GetClientCertificate`. 6 features, ~300 lignes prod + ~200 lignes tests.
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
@@ -192,6 +193,9 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **Palier 2.3** — UID mismatch host↔container sur bind-mount : pattern `user: "${HOST_UID:-1000}:${HOST_GID:-1000}"` en dev, Docker secrets ou image dédiée avec UID 10001 natif en prod.
 - **Palier 2.3** — La couche mTLS `RequireAndVerifyClientCert` garantit qu'aucune requête non-authentifiée n'atteint le code applicatif. Tout rejet se fait au handshake. Logs sécurité à brancher sur alerting au palier 7.
 - **Palier 6** — Le ping loop agent n'a pas de backoff exponentiel ni de circuit breaker : quand l'echo-server est down, l'agent spamme un warn toutes les 30s. À implémenter avec `cenkalti/backoff` ou équivalent.
+- **Palier 7** — Aucun rate limiting côté echo-server/dashboard : un client authentifié peut saturer le serveur. `chi/middleware/httprate` dès que le vrai dashboard prend le relais.
+- **Palier 6** — Certs 24h nécessitent régénération manuelle en dev. Renouvellement auto via step toolkit à implémenter.
+- **Palier 6** — Les tests mTLS utilisent les certs `deploy/certs/` via paths relatifs (`../../../`). Refactor en fixtures embarquées (`go:embed`) au palier 6.
 
 ## 📝 Conventions
 
