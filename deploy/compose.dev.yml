@@ -58,10 +58,13 @@ services:
     environment:
       DASHBOARD_URL: https://echo-server:8443
       DASHBOARD_SERVER_NAME: dashboard
+      AGENT_SIGNING_KEY: /etc/bientot/keys/signing.key
+      BIENTOT_MACHINE_ID: vps
     volumes:
       - ./deploy/certs/agent-vps/client.crt:/etc/bientot/certs/client.crt:ro
       - ./deploy/certs/agent-vps/client.key:/etc/bientot/certs/client.key:ro
       - ./deploy/certs/agent-vps/ca-bundle.crt:/etc/bientot/certs/ca-bundle.crt:ro
+      - ./deploy/certs/agent-vps/signing.key:/etc/bientot/keys/signing.key:ro
     networks:
       - bientot-internal
 

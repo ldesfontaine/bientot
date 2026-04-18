@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	bientotv1 "github.com/ldesfontaine/bientot/api/v1/gen/v1"
 	"github.com/ldesfontaine/bientot/internal/agent/client"
 	"github.com/ldesfontaine/bientot/internal/modules"
 )
@@ -12,25 +13,26 @@ import (
 // detectTimeout caps how long a single module's Detect may take at startup.
 const detectTimeout = 5 * time.Second
 
-// pingInterval is how often the agent pings the dashboard. Independent of
-// module intervals: it's a liveness check of the mTLS channel, not a metric.
-const pingInterval = 30 * time.Second
+// pushInterval is the single global frequency for pushing collected data.
+// At palier 3 all active modules are collected and shipped every tick,
+// ignoring per-module Interval(). Per-module scheduling lands at palier 5+.
+const pushInterval = 30 * time.Second
 
-// pingTimeout caps how long a single ping may take. Keeps a stuck ping from
-// blocking the loop past the next tick.
-const pingTimeout = 10 * time.Second
+// pushTimeout caps how long a single push (collect + HTTP) may take. Keeps a
+// stuck push from blocking the loop past the next tick.
+const pushTimeout = 10 * time.Second
 
-// Agent runs the active modules on their respective intervals.
+// Agent runs the active modules on a unified push loop.
 type Agent struct {
-	modules []modules.Module
-	pinger  *client.Client
-	log     *slog.Logger
+	modules    []modules.Module
+	pushClient *client.Client
+	log        *slog.Logger
 }
 
 // New filters available modules by calling Detect on each, and returns an Agent
-// holding only the ones that reported themselves as runnable. If pinger is
-// non-nil, Run will also launch a periodic ping loop against the dashboard.
-func New(log *slog.Logger, pinger *client.Client, available []modules.Module) *Agent {
+// holding only the ones that reported themselves as runnable. If pushClient is
+// non-nil, Run will launch a periodic push loop against the dashboard.
+func New(log *slog.Logger, pushClient *client.Client, available []modules.Module) *Agent {
 	var active []modules.Module
 
 	for _, m := range available {
@@ -46,10 +48,10 @@ func New(log *slog.Logger, pinger *client.Client, available []modules.Module) *A
 		active = append(active, m)
 	}
 
-	return &Agent{modules: active, pinger: pinger, log: log}
+	return &Agent{modules: active, pushClient: pushClient, log: log}
 }
 
-// Run starts one goroutine per active module and blocks until ctx is cancelled.
+// Run starts the push loop and blocks until ctx is cancelled.
 func (a *Agent) Run(ctx context.Context) {
 	a.log.Info("agent running", "modules", len(a.modules))
 
@@ -57,72 +59,59 @@ func (a *Agent) Run(ctx context.Context) {
 		a.log.Warn("no modules active")
 	}
 
-	for _, m := range a.modules {
-		go a.runModule(ctx, m)
-	}
-
-	if a.pinger != nil {
-		go a.pingLoop(ctx)
+	if a.pushClient != nil {
+		go a.pushLoop(ctx)
 	}
 
 	<-ctx.Done()
 	a.log.Info("agent stopped")
 }
 
-func (a *Agent) pingLoop(ctx context.Context) {
-	ticker := time.NewTicker(pingInterval)
+func (a *Agent) pushLoop(ctx context.Context) {
+	ticker := time.NewTicker(pushInterval)
 	defer ticker.Stop()
 
-	a.ping(ctx)
+	a.doPush(ctx)
 
 	for {
 		select {
 		case <-ctx.Done():
-			a.log.Info("ping loop stopped")
+			a.log.Info("push loop stopped")
 			return
 		case <-ticker.C:
-			a.ping(ctx)
+			a.doPush(ctx)
 		}
 	}
 }
 
-func (a *Agent) ping(ctx context.Context) {
-	pingCtx, cancel := context.WithTimeout(ctx, pingTimeout)
+func (a *Agent) doPush(ctx context.Context) {
+	pushCtx, cancel := context.WithTimeout(ctx, pushTimeout)
 	defer cancel()
 
-	resp, err := a.pinger.Ping(pingCtx)
-	if err != nil {
-		a.log.Warn("ping failed", "error", err)
-		return
-	}
-	a.log.Info("ping ok", "client_cn", resp.ClientCN, "from", resp.From)
-}
-
-func (a *Agent) runModule(ctx context.Context, m modules.Module) {
-	ticker := time.NewTicker(m.Interval())
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			a.log.Info("module stopped", "module", m.Name())
-			return
-		case <-ticker.C:
-			a.collect(ctx, m)
+	var moduleDatas []*bientotv1.ModuleData
+	for _, m := range a.modules {
+		data, err := m.Collect(pushCtx)
+		if err != nil {
+			a.log.Warn("module collect failed", "module", m.Name(), "error", err)
+			continue
 		}
+		moduleDatas = append(moduleDatas, client.ToProto(data))
 	}
-}
 
-func (a *Agent) collect(ctx context.Context, m modules.Module) {
-	data, err := m.Collect(ctx)
-	if err != nil {
-		a.log.Warn("collect failed", "module", m.Name(), "error", err)
+	if len(moduleDatas) == 0 {
+		a.log.Debug("no module data to push")
 		return
 	}
 
-	a.log.Info("collected",
-		"module", m.Name(),
-		"metrics", len(data.Metrics),
-		"metadata", data.Metadata,
+	resp, err := a.pushClient.Push(pushCtx, moduleDatas)
+	if err != nil {
+		a.log.Warn("push failed", "error", err)
+		return
+	}
+
+	a.log.Info("push ok",
+		"status", resp.Status,
+		"modules", resp.AcceptedModules,
+		"metrics", resp.AcceptedMetrics,
 	)
 }

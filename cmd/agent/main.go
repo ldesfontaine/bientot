@@ -11,6 +11,7 @@ import (
 	"github.com/ldesfontaine/bientot/internal/agent/client"
 	"github.com/ldesfontaine/bientot/internal/modules"
 	"github.com/ldesfontaine/bientot/internal/modules/heartbeat"
+	"github.com/ldesfontaine/bientot/internal/shared/keys"
 )
 
 const version = "0.1.0-dev"
@@ -37,8 +38,16 @@ func main() {
 	keyPath := getEnv("AGENT_KEY", "/etc/bientot/certs/client.key")
 	caPath := getEnv("AGENT_CA_BUNDLE", "/etc/bientot/certs/ca-bundle.crt")
 	serverName := getEnv("DASHBOARD_SERVER_NAME", "dashboard")
+	signingKeyPath := getEnv("AGENT_SIGNING_KEY", "/etc/bientot/keys/signing.key")
+	machineID := getEnv("BIENTOT_MACHINE_ID", "vps")
 
-	pinger, err := client.New(dashboardURL, certPath, keyPath, caPath, serverName)
+	signKey, err := keys.LoadPrivateKey(signingKeyPath)
+	if err != nil {
+		logger.Error("failed to load signing key", "error", err)
+		os.Exit(1)
+	}
+
+	pushClient, err := client.New(dashboardURL, certPath, keyPath, caPath, serverName, signKey, machineID)
 	if err != nil {
 		logger.Error("failed to init dashboard client", "error", err)
 		os.Exit(1)
@@ -48,7 +57,7 @@ func main() {
 		heartbeat.New(),
 	}
 
-	a := agent.New(logger, pinger, available)
+	a := agent.New(logger, pushClient, available)
 	a.Run(ctx)
 
 	logger.Info("agent exited")
