@@ -1,8 +1,8 @@
 ````markdown
 # Bientôt v2 — Journal de refonte
 
-> **Document de référence vivant.** Mis à jour à chaque palier validé.
-> Dernière mise à jour : **2026-04-18** — initialisation de la roadmap.
+> **Document de référence vivant.** Mis à jour à chaque feature/palier validé.
+> Dernière mise à jour : **2026-04-18** — palier 0 redécoupé en features.
 
 ---
 
@@ -45,7 +45,7 @@ Objectifs :
 ### Stack technique
 | Choix | Justification |
 |---|---|
-| **Go 1.23** | Binaire statique, stdlib riche (crypto/tls, crypto/ed25519, net/http) |
+| **Go 1.24** | Binaire statique, stdlib riche (crypto/tls, crypto/ed25519, net/http) |
 | **Monorepo** | Un seul contract protobuf, pas de dérive de version agent/serveur |
 | **Protobuf + Connect-go** | Contract strict, versionnable, debuggable au curl |
 | **step-ca** | CA automatisée, rotation cert auto, SCEP/ACME natif |
@@ -124,17 +124,41 @@ Légende : ⬜ TODO — 🟡 EN COURS — ✅ VALIDÉ
 ### Objectif
 Créer le repo vide, poser les fondations Go + Docker, obtenir deux binaires qui démarrent, loggent leur ligne de start, répondent proprement à `SIGTERM`.
 
-### Fichiers à créer (ordre)
-1. ⬜ `.gitignore`
-2. ⬜ `go.mod` (via `go mod init github.com/ldesfontaine/bientot`)
-3. ⬜ `README.md` (minimal, "WIP refonte")
-4. ⬜ `cmd/agent/main.go` (logger slog + signal handling + context)
-5. ⬜ `cmd/dashboard/main.go` (idem)
-6. ⬜ `Dockerfile` (multi-stage, multi-target agent|dashboard, CGO=0)
-7. ⬜ `Makefile` (cibles : build, run-agent, run-dashboard, docker-build, docker-up, docker-down, test, clean)
-8. ⬜ `deploy/compose.dev.yml` (2 services, réseau `bientot-internal`)
+### Features (approche par unité logique)
 
-### Critère de validation
+Chaque feature = un résultat observable + un commit atomique.
+
+#### Feature 0.1 — Bootstrap du module Go 🟡
+**Fichiers** : `.gitignore`, `go.mod`, `README.md`
+**Résultat** : le repo a une identité Go, il ne commitera plus de saloperies, GitHub affiche un README.
+**Commit** : `chore(refonte): bootstrap go module and readme`
+
+- [x] `.gitignore`
+- [x] `go.mod` (via `go mod init github.com/ldesfontaine/bientot`)
+- [ ] `README.md` (minimal, "WIP refonte")
+
+#### Feature 0.2 — Les deux binaires qui tournent en local ⬜
+**Fichiers** : `cmd/agent/main.go`, `cmd/dashboard/main.go`, `Makefile`
+**Résultat** :
+```bash
+make build
+./bin/bientot-agent       # log "agent starting", Ctrl+C → "agent stopped"
+./bin/bientot-dashboard   # idem
+```
+**Commit** : `feat(refonte): add agent and dashboard binaries with signal handling`
+
+#### Feature 0.3 — Les deux binaires qui tournent en Docker ⬜
+**Fichiers** : `Dockerfile`, `deploy/compose.dev.yml`
+**Résultat** :
+```bash
+make docker-up
+docker compose -f deploy/compose.dev.yml logs
+# les deux containers loggent leur ligne de start
+make docker-down
+```
+**Commit** : `feat(refonte): add docker packaging for agent and dashboard`
+
+### Critère de validation global du palier 0
 ```bash
 make build                        # produit bin/bientot-agent et bin/bientot-dashboard
 make run-agent                    # log "agent starting", Ctrl+C → log "agent stopped"
@@ -147,17 +171,25 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 
 ## 📖 Journal d'avancement
 
-- **2026-04-18** — Démarrage. Branche `refonte` créée. Roadmap initialisée. Décisions d'architecture figées.
+- **2026-04-18 (matin)** — Démarrage. Branche `refonte` créée. Roadmap initialisée. Décisions d'architecture figées.
+- **2026-04-18 (après-midi)** — Workflow clarifié : travail **feature-par-feature** (pas fichier-par-fichier). Palier 0 redécoupé en features 0.1, 0.2, 0.3.
+- **2026-04-18 (soir)** — Feature 0.1 en cours : `.gitignore` ✅ et `go.mod` ✅ commités. Reste `README.md`.
 
-*(Chaque palier validé ajoute une entrée ici avec la date et un résumé d'une ligne.)*
+*(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
 ## 📝 Conventions
+
+### Workflow de développement
+- **Feature-par-feature, pas fichier-par-fichier** : on groupe les fichiers par unité logique qui apporte un résultat observable (build qui marche, binaire qui tourne, etc.).
+- **Chaque feature = un commit atomique** avec message en Conventional Commits.
+- **Tout est codé à la main** : zéro copier-coller de code généré. Claude explique le "pourquoi" et le "quoi", l'humain code.
+- **Validation par Claude avant commit** : on colle le code dans le chat, review, ajustements, puis commit.
 
 ### Commits
 [Conventional Commits](https://www.conventionalcommits.org/) avec scope :
 - `feat(agent): add heartbeat module`
 - `fix(dashboard): handle nil pointer in push handler`
-- `docs(refonte): validate palier 0`
+- `docs(refonte): update roadmap after palier 0`
 - `chore(ci): pin actions to SHA`
 
 ### Code Go
@@ -187,6 +219,8 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **Raw event** : événement brut remonté par un module (ligne de log Traefik, décision CrowdSec…) utilisé par la CTI
 - **Corrélation** : pipeline côté dashboard qui transforme les pushes bruts en signaux exploitables (alertes, enrichissement, matching CVE)
 - **CA interne** : step-ca déployé dans l'infra, émet les certs de tous les nœuds
+- **Feature** : unité logique de dev qui produit un résultat observable. Plusieurs fichiers, un commit.
+- **Palier** : regroupement de features qui forme une étape majeure démontrable.
 
 ## 🔗 Ressources
 
