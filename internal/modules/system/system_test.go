@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/ldesfontaine/bientot/internal/modules"
 )
 
 func TestModule_Name(t *testing.T) {
@@ -68,25 +70,108 @@ func TestModule_Detect_ServerDown(t *testing.T) {
 	}
 }
 
-func TestModule_Collect_Minimal(t *testing.T) {
-	m := New("http://test")
+const fakeNodeExporterOutput = `# HELP node_memory_MemTotal_bytes Memory information field MemTotal_bytes.
+# TYPE node_memory_MemTotal_bytes gauge
+node_memory_MemTotal_bytes 1.677721600e+10
+# HELP node_memory_MemAvailable_bytes Memory information field MemAvailable_bytes.
+# TYPE node_memory_MemAvailable_bytes gauge
+node_memory_MemAvailable_bytes 8.388608e+09
+# HELP node_memory_MemFree_bytes Memory information field MemFree_bytes.
+# TYPE node_memory_MemFree_bytes gauge
+node_memory_MemFree_bytes 4.194304e+09
+# HELP node_memory_SwapTotal_bytes Memory information field SwapTotal_bytes.
+# TYPE node_memory_SwapTotal_bytes gauge
+node_memory_SwapTotal_bytes 2.147483648e+09
+# HELP node_memory_SwapFree_bytes Memory information field SwapFree_bytes.
+# TYPE node_memory_SwapFree_bytes gauge
+node_memory_SwapFree_bytes 1.073741824e+09
+# HELP node_load1 1m load average.
+# TYPE node_load1 gauge
+node_load1 0.42
+# HELP node_cpu_seconds_total Seconds the CPUs spent in each mode.
+# TYPE node_cpu_seconds_total counter
+node_cpu_seconds_total{cpu="0",mode="idle"} 123456.78
+node_cpu_seconds_total{cpu="0",mode="user"} 3456.12
+node_cpu_seconds_total{cpu="0",mode="system"} 890.34
+node_cpu_seconds_total{cpu="0",mode="iowait"} 45.67
+node_cpu_seconds_total{cpu="1",mode="idle"} 120000.00
+node_cpu_seconds_total{cpu="1",mode="user"} 3100.50
+node_cpu_seconds_total{cpu="1",mode="system"} 780.20
+node_cpu_seconds_total{cpu="1",mode="iowait"} 40.00
+# HELP node_filesystem_size_bytes Filesystem size in bytes.
+# TYPE node_filesystem_size_bytes gauge
+node_filesystem_size_bytes{device="/dev/sda1",fstype="ext4",mountpoint="/"} 5.4e+11
+node_filesystem_size_bytes{device="/dev/sda2",fstype="ext4",mountpoint="/boot"} 1.0e+09
+# HELP node_filesystem_avail_bytes Filesystem space available to non-root users in bytes.
+# TYPE node_filesystem_avail_bytes gauge
+node_filesystem_avail_bytes{device="/dev/sda1",fstype="ext4",mountpoint="/"} 3.0e+11
+node_filesystem_avail_bytes{device="/dev/sda2",fstype="ext4",mountpoint="/boot"} 5.0e+08
+# HELP node_boot_time_seconds Node boot time, in unixtime.
+# TYPE node_boot_time_seconds gauge
+node_boot_time_seconds 1.70e+09
+`
+
+func TestModule_Collect_Real(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/metrics" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
+		_, _ = w.Write([]byte(fakeNodeExporterOutput))
+	}))
+	defer srv.Close()
+
+	m := New(srv.URL)
 	data, err := m.Collect(context.Background())
 	if err != nil {
-		t.Fatalf("Collect() error = %v", err)
+		t.Fatalf("Collect: %v", err)
 	}
 
 	if data.Module != "system" {
 		t.Errorf("Module = %q, want system", data.Module)
 	}
-	if len(data.Metrics) != 1 || data.Metrics[0].Name != "system_up" || data.Metrics[0].Value != 1 {
-		t.Errorf("expected single metric system_up=1, got %v", data.Metrics)
+
+	if len(data.Metrics) != 14 {
+		t.Errorf("got %d metrics, want 14. Got: %+v", len(data.Metrics), metricNames(data.Metrics))
 	}
+
+	checks := map[string]float64{
+		"memory_total_bytes": 1.677721600e+10,
+		"load_average_1m":    0.42,
+		"cpu_cores":          2,
+	}
+
+	for name, want := range checks {
+		found := false
+		for _, metric := range data.Metrics {
+			if metric.Name == name {
+				found = true
+				if metric.Value != want {
+					t.Errorf("metric %q = %v, want %v", name, metric.Value, want)
+				}
+				break
+			}
+		}
+		if !found {
+			t.Errorf("metric %q missing", name)
+		}
+	}
+
 	if data.Metadata["hostname"] == "" {
-		t.Error("hostname metadata is empty")
+		t.Error("hostname metadata empty")
 	}
-	if data.Metadata["scrape_target"] != "http://test" {
-		t.Errorf("scrape_target = %q, want http://test", data.Metadata["scrape_target"])
+	if data.Metadata["scrape_target"] != srv.URL {
+		t.Errorf("scrape_target = %q, want %q", data.Metadata["scrape_target"], srv.URL)
 	}
+}
+
+func metricNames(metrics []modules.Metric) []string {
+	names := make([]string, len(metrics))
+	for i, m := range metrics {
+		names[i] = m.Name
+	}
+	return names
 }
 
 func TestFactory_Valid(t *testing.T) {

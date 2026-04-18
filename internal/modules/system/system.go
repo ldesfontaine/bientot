@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/ldesfontaine/bientot/internal/modules"
+	"github.com/ldesfontaine/bientot/internal/shared/promparse"
 )
 
 // Module scrapes a node_exporter endpoint for host metrics.
@@ -57,13 +58,36 @@ func (m *Module) Detect(ctx context.Context) error {
 	return nil
 }
 
-// Collect implements modules.Module. For palier 4.1 it returns a minimal
-// data point proving the module is alive; real parsing lands in 4.2.
-func (m *Module) Collect(_ context.Context) (*modules.Data, error) {
+// Collect scrapes node_exporter /metrics, parses the Prometheus text format,
+// and extracts the 14 Bientot system metrics.
+func (m *Module) Collect(ctx context.Context) (*modules.Data, error) {
 	hostname, _ := os.Hostname()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, m.url+"/metrics", nil)
+	if err != nil {
+		return nil, fmt.Errorf("build request: %w", err)
+	}
+
+	resp, err := m.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("scrape %s: %w", m.url, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("scrape %s: unexpected status %d", m.url, resp.StatusCode)
+	}
+
+	samples, err := promparse.Parse(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("parse metrics from %s: %w", m.url, err)
+	}
+
+	metrics := Extract(samples, time.Now())
+
 	return &modules.Data{
 		Module:    m.Name(),
-		Metrics:   []modules.Metric{{Name: "system_up", Value: 1}},
+		Metrics:   metrics,
 		Metadata:  map[string]string{"hostname": hostname, "scrape_target": m.url},
 		Timestamp: time.Now(),
 	}, nil
