@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/ldesfontaine/bientot/internal/agent"
+	"github.com/ldesfontaine/bientot/internal/agent/client"
 	"github.com/ldesfontaine/bientot/internal/modules"
 	"github.com/ldesfontaine/bientot/internal/modules/heartbeat"
 )
@@ -31,12 +32,31 @@ func main() {
 		cancel()
 	}()
 
+	dashboardURL := getEnv("DASHBOARD_URL", "https://echo-server:8443")
+	certPath := getEnv("AGENT_CERT", "/etc/bientot/certs/client.crt")
+	keyPath := getEnv("AGENT_KEY", "/etc/bientot/certs/client.key")
+	caPath := getEnv("AGENT_CA_BUNDLE", "/etc/bientot/certs/ca-bundle.crt")
+	serverName := getEnv("DASHBOARD_SERVER_NAME", "dashboard")
+
+	pinger, err := client.New(dashboardURL, certPath, keyPath, caPath, serverName)
+	if err != nil {
+		logger.Error("failed to init dashboard client", "error", err)
+		os.Exit(1)
+	}
+
 	available := []modules.Module{
 		heartbeat.New(),
 	}
 
-	a := agent.New(logger, available)
+	a := agent.New(logger, pinger, available)
 	a.Run(ctx)
 
 	logger.Info("agent exited")
+}
+
+func getEnv(key, def string) string {
+	if v, ok := os.LookupEnv(key); ok && v != "" {
+		return v
+	}
+	return def
 }
