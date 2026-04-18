@@ -1,0 +1,47 @@
+# ─── Binaires Go compilés ───
+bin/
+/bientot-agent
+/bientot-dashboard
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# ─── Tests Go ───
+*.test
+*.out
+
+# ─── Certificats et secrets (CRITIQUE) ───
+deploy/certs/
+*.pem
+*.crt
+*.key
+*.p12
+*.pfx
+.env
+*.env
+!.env.example
+
+# ─── Bases de données locales ───
+*.db
+*.db-wal
+*.db-shm
+data/
+
+# ─── Éditeurs ───
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+CLAUDE.md
+.claude/
+
+# ─── Logs ───
+*.log
+logs/
+
+# ─── Docker build cache local ───
+.buildx-cache/
