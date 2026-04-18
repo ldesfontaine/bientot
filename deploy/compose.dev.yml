@@ -1,0 +1,26 @@
+services:
+  dashboard:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: dashboard
+    container_name: bientot-dashboard-dev
+    restart: unless-stopped
+    networks:
+      - bientot-internal
+
+  agent-vps:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: agent
+    container_name: bientot-agent-vps-dev
+    depends_on:
+      - dashboard
+    restart: unless-stopped
+    networks:
+      - bientot-internal
+
+networks:
+  bientot-internal:
+    driver: bridge

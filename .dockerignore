@@ -1,0 +1,14 @@
+.git/
+.github/
+.gitignore
+.vscode/
+.idea/
+
+bin/
+deploy/
+docs/
+
+*.md
+
+.env
+.env.*
