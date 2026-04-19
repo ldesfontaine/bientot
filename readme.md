@@ -2,6 +2,9 @@
 
 *Monitoring agent + dashboard modulaire en Go, sécurisé par mTLS et signature Ed25519.*
 
+[![CI](https://github.com/ldesfontaine/bientot/actions/workflows/ci.yml/badge.svg)](https://github.com/ldesfontaine/bientot/actions/workflows/ci.yml)
+[![Release](https://github.com/ldesfontaine/bientot/actions/workflows/release.yml/badge.svg)](https://github.com/ldesfontaine/bientot/actions/workflows/release.yml)
+
 > 🚧 **Branche `refonte` — refonte complète en cours.** Voir [REFONTE.md](./REFONTE.md) pour la roadmap.
 
 ## Status

@@ -2,7 +2,7 @@
 # Bientôt v2 — Journal de refonte
 
 > **Document de référence vivant.** Mis à jour à chaque feature/palier validé.
-> Dernière mise à jour : **2026-04-19** — feature 4.1 validée, architecture modules refactorée vers registry + config YAML.
+> Dernière mise à jour : **2026-04-19** — feature 6.4 validée, workflow CI en place (test + lint + proto sur push/PR).
 
 ---
 
@@ -210,6 +210,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
     - Changelog auto-généré depuis les Conventional Commits
 
     Déploiement désormais reproductible : `docker pull ghcr.io/ldesfontaine/bientot-agent:0.1.0` tire le binaire correct pour l'archi de la machine cible.
+- **2026-04-19** — Feature 6.4 ✅ : workflow CI avec 3 jobs parallèles (test race, golangci-lint 11 linters, buf lint + buf breaking sur PR). SHAs pinnés pour sécu supply chain. Concurrency group pour auto-cancel des runs obsolètes. Premier run a remonté 3 findings (2 gosec G115 + 1 errorlint), tous résolus — G115 supprimés localement avec rationale (bornage par `maxPayloadSize = 1 MB`), errorlint fixé via `errors.Is(err, http.ErrServerClosed)` cohérent avec `server.go:92`.
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
