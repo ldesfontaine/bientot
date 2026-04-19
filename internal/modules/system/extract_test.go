@@ -27,6 +27,8 @@ func TestExtract_AllMetrics(t *testing.T) {
 		{Name: "node_memory_SwapTotal_bytes", Value: 1_000_000_000},
 		{Name: "node_memory_SwapFree_bytes", Value: 800_000_000},
 		{Name: "node_load1", Value: 0.75},
+		{Name: "node_load5", Value: 1.25},
+		{Name: "node_load15", Value: 1.80},
 		{Name: "node_cpu_seconds_total", Labels: map[string]string{"cpu": "0", "mode": "user"}, Value: 100},
 		{Name: "node_cpu_seconds_total", Labels: map[string]string{"cpu": "0", "mode": "system"}, Value: 50},
 		{Name: "node_cpu_seconds_total", Labels: map[string]string{"cpu": "0", "mode": "idle"}, Value: 9000},
@@ -44,13 +46,15 @@ func TestExtract_AllMetrics(t *testing.T) {
 
 	got := Extract(samples, testNow)
 
-	if len(got) != 14 {
-		t.Errorf("got %d metrics, want 14. Got: %+v", len(got), got)
+	if len(got) != 16 {
+		t.Errorf("got %d metrics, want 16. Got: %+v", len(got), got)
 	}
 
 	checks := map[string]float64{
 		"memory_total_bytes":       8_000_000_000,
 		"load_average_1m":          0.75,
+		"load_average_5m":          1.25,
+		"load_average_15m":         1.80,
 		"cpu_user_seconds_total":   300,
 		"cpu_system_seconds_total": 125,
 		"cpu_idle_seconds_total":   17500,

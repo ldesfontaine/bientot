@@ -74,6 +74,12 @@ node_memory_SwapFree_bytes 1.073741824e+09
 # HELP node_load1 1m load average.
 # TYPE node_load1 gauge
 node_load1 0.42
+# HELP node_load5 5m load average.
+# TYPE node_load5 gauge
+node_load5 0.61
+# HELP node_load15 15m load average.
+# TYPE node_load15 gauge
+node_load15 0.77
 # HELP node_cpu_seconds_total Seconds the CPUs spent in each mode.
 # TYPE node_cpu_seconds_total counter
 node_cpu_seconds_total{cpu="0",mode="idle"} 123456.78
@@ -118,13 +124,15 @@ func TestModule_Collect_Real(t *testing.T) {
 		t.Errorf("Module = %q, want system", data.Module)
 	}
 
-	if len(data.Metrics) != 14 {
-		t.Errorf("got %d metrics, want 14. Got: %+v", len(data.Metrics), metricNames(data.Metrics))
+	if len(data.Metrics) != 16 {
+		t.Errorf("got %d metrics, want 16. Got: %+v", len(data.Metrics), metricNames(data.Metrics))
 	}
 
 	checks := map[string]float64{
 		"memory_total_bytes": 1.677721600e+10,
 		"load_average_1m":    0.42,
+		"load_average_5m":    0.61,
+		"load_average_15m":   0.77,
 		"cpu_cores":          2,
 	}
 

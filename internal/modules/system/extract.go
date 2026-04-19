@@ -25,6 +25,8 @@ func Extract(samples []promparse.Sample, now time.Time) []modules.Metric {
 		"node_memory_SwapTotal_bytes":    "swap_total_bytes",
 		"node_memory_SwapFree_bytes":     "swap_free_bytes",
 		"node_load1":                     "load_average_1m",
+		"node_load5":                     "load_average_5m",
+		"node_load15":                    "load_average_15m",
 	}
 	for src, dst := range simpleMap {
 		if vs, ok := idx[src]; ok && len(vs) > 0 {
