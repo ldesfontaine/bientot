@@ -31,42 +31,28 @@ func TestModule_Detect_EmptyURL(t *testing.T) {
 	}
 }
 
-func TestModule_Detect_Success(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/metrics" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		w.WriteHeader(http.StatusNotFound)
-	}))
-	defer srv.Close()
-
-	m := New(srv.URL)
-	if err := m.Detect(context.Background()); err != nil {
-		t.Errorf("Detect() error = %v, want nil", err)
-	}
-}
-
-func TestModule_Detect_Non200(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer srv.Close()
-
-	m := New(srv.URL)
-	if err := m.Detect(context.Background()); err == nil {
-		t.Fatal("expected error on 500, got nil")
-	}
-}
-
-func TestModule_Detect_ServerDown(t *testing.T) {
+func TestModule_Detect_ValidURL(t *testing.T) {
+	// Detect must not probe the network: an unroutable URL still passes if
+	// it is syntactically well-formed. Runtime reachability is Collect()'s job.
 	m := New("http://127.0.0.1:65500")
+	if err := m.Detect(context.Background()); err != nil {
+		t.Errorf("Detect() on syntactically valid URL error = %v, want nil", err)
+	}
+}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
-	defer cancel()
-
-	if err := m.Detect(ctx); err == nil {
-		t.Fatal("expected error with down server, got nil")
+func TestModule_Detect_InvalidURL(t *testing.T) {
+	cases := map[string]string{
+		"no scheme":    "node-exporter:9100",
+		"wrong scheme": "ftp://node-exporter:9100",
+		"missing host": "http://",
+	}
+	for name, u := range cases {
+		t.Run(name, func(t *testing.T) {
+			m := New(u)
+			if err := m.Detect(context.Background()); err == nil {
+				t.Fatalf("expected error for %q, got nil", u)
+			}
+		})
 	}
 }
 

@@ -3,8 +3,10 @@ package system
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
@@ -33,28 +35,24 @@ func New(url string) *Module {
 // Name implements modules.Module.
 func (m *Module) Name() string { return "system" }
 
-// Detect implements modules.Module. Returns nil if node_exporter responds
-// 200 on its /metrics endpoint.
-func (m *Module) Detect(ctx context.Context) error {
+// Detect implements modules.Module. It validates that node_exporter_url is
+// configured and well-formed — it does NOT probe the network. Runtime
+// reachability is handled in Collect() and retried on every tick, so a
+// node_exporter that starts after the agent must not keep the module disabled.
+func (m *Module) Detect(_ context.Context) error {
 	if m.url == "" {
-		return fmt.Errorf("NODE_EXPORTER_URL not set")
+		return errors.New("node_exporter_url not configured")
 	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, m.url+"/metrics", nil)
+	u, err := url.Parse(m.url)
 	if err != nil {
-		return fmt.Errorf("build request: %w", err)
+		return fmt.Errorf("invalid node_exporter_url: %w", err)
 	}
-
-	resp, err := m.client.Do(req)
-	if err != nil {
-		return fmt.Errorf("node_exporter unreachable at %s: %w", m.url, err)
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("node_exporter_url must use http or https, got %q", u.Scheme)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("node_exporter returned %d", resp.StatusCode)
+	if u.Host == "" {
+		return errors.New("node_exporter_url missing host")
 	}
-
 	return nil
 }
 
