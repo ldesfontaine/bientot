@@ -1,4 +1,4 @@
-package echoserver
+package dashboardsrv
 
 import (
 	"bytes"
@@ -36,7 +36,7 @@ const (
 	testMachineID = "vps"
 )
 
-// testSetup starts an echoserver.Server on a random port and returns its URL,
+// testSetup starts a dashboardsrv.Server on a random port and returns its URL,
 // the agent's signing key, and an mTLS-configured HTTP client.
 // Skips the test if the cert/key fixtures are not present.
 func testSetup(t *testing.T) (baseURL string, signKey ed25519.PrivateKey, httpClient *http.Client, cleanup func()) {

@@ -2,7 +2,7 @@
 machine_id: vps
 
 dashboard:
-  url: https://echo-server:8443
+  url: https://dashboard:8443
   server_name: dashboard
   cert: /etc/bientot/certs/client.crt
   key: /etc/bientot/certs/client.key

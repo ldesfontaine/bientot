@@ -1,4 +1,4 @@
-package echoserver
+package dashboardsrv
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	bientotv1 "github.com/ldesfontaine/bientot/api/v1/gen/v1"
-	"github.com/ldesfontaine/bientot/internal/echoserver/nonce"
+	"github.com/ldesfontaine/bientot/internal/dashboard/nonce"
 	"github.com/ldesfontaine/bientot/internal/shared/crypto"
 	"github.com/ldesfontaine/bientot/internal/shared/keys"
 	"github.com/ldesfontaine/bientot/internal/shared/mtls"
@@ -88,7 +88,7 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 	}()
 
-	s.log.Info("echo-server listening", "addr", s.addr)
+	s.log.Info("dashboard listening", "addr", s.addr)
 	if err := srv.ListenAndServeTLS("", ""); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("listen: %w", err)
 	}
@@ -112,7 +112,7 @@ func (s *Server) handlePing(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]string{
-		"from":      "echo",
+		"from":      "dashboard",
 		"client_cn": clientCN,
 	})
 }

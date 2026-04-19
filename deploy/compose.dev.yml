@@ -14,25 +14,12 @@ services:
     networks:
       - bientot-ca
 
-  # dashboard: disabled during palier 2. echo-server takes its place on the
-  # bientot-internal network until the real dashboard comes online at palier 7.
-  # dashboard:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #     target: dashboard
-  #   container_name: bientot-dashboard-dev
-  #   restart: unless-stopped
-  #   networks:
-  #     - bientot-ca
-  #     - bientot-internal
-
-  echo-server:
+  dashboard:
     build:
       context: .
       dockerfile: Dockerfile
-      target: echo-server
-    container_name: bientot-echo-server-dev
+      target: dashboard
+    container_name: bientot-dashboard-dev
     restart: unless-stopped
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     ports:
@@ -70,7 +57,7 @@ services:
     container_name: bientot-agent-vps-dev
     restart: unless-stopped
     depends_on:
-      - echo-server
+      - dashboard
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     environment:
       BIENTOT_CONFIG: /etc/bientot/agent.yaml

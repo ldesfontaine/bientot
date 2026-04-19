@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+
+	dashboardsrv "github.com/ldesfontaine/bientot/internal/dashboard"
 )
 
 const version = "0.1.0-dev"
@@ -14,7 +16,13 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	slog.Info("dashboard starting", "version", version)
+	logger.Info("dashboard starting", "version", version)
+
+	addr := getEnv("DASHBOARD_ADDR", ":8443")
+	cert := getEnv("DASHBOARD_CERT", "/etc/bientot/certs/server.crt")
+	key := getEnv("DASHBOARD_KEY", "/etc/bientot/certs/server.key")
+	ca := getEnv("DASHBOARD_CA_BUNDLE", "/etc/bientot/certs/ca-bundle.crt")
+	agentKeys := getEnv("DASHBOARD_AGENT_KEYS", "/etc/bientot/agent-keys")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -23,10 +31,22 @@ func main() {
 		ch := make(chan os.Signal, 1)
 		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 		<-ch
-		slog.Info("shutdown signal received")
+		logger.Info("shutdown signal received")
 		cancel()
 	}()
 
-	<-ctx.Done()
-	slog.Info("dashboard stopped")
+	s := dashboardsrv.New(logger, addr, cert, key, ca, agentKeys)
+	if err := s.Run(ctx); err != nil {
+		logger.Error("dashboard failed", "err", err)
+		os.Exit(1)
+	}
+
+	logger.Info("dashboard exited")
+}
+
+func getEnv(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
 }

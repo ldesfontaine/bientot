@@ -56,7 +56,7 @@ $COMPOSE exec -T step-ca \
         /tmp/server.crt /tmp/server.key \
         --provisioner $PROVISIONER \
         --provisioner-password-file /dev/stdin \
-        --san dashboard --san localhost --san echo-server \
+        --san dashboard --san localhost \
         --not-after $SERVER_CERT_TTL \
         --force"
 
