@@ -6,6 +6,7 @@ import (
 	"crypto/ed25519"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"io"
 	"log/slog"
 	"net"
@@ -65,7 +66,7 @@ func testSetup(t *testing.T) (baseURL string, signKey ed25519.PrivateKey, httpCl
 	serverDone := make(chan struct{})
 	go func() {
 		defer close(serverDone)
-		if err := srv.Run(serverCtx); err != nil && err != http.ErrServerClosed {
+		if err := srv.Run(serverCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			t.Logf("server.Run error: %v", err)
 		}
 	}()

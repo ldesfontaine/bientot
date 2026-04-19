@@ -197,9 +197,11 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	)
 
 	resp := &bientotv1.PushResponse{
-		Status:          "ok",
-		AcceptedModules: int32(len(req.Modules)),
-		AcceptedMetrics: int32(totalMetrics),
+		Status: "ok",
+		// gosec G115: int→int32 conversions are bounded by maxPayloadSize (1 MB),
+		// which caps the decoded proto well below math.MaxInt32.
+		AcceptedModules: int32(len(req.Modules)), //nolint:gosec
+		AcceptedMetrics: int32(totalMetrics),     //nolint:gosec
 	}
 	respBytes, err := proto.Marshal(resp)
 	if err != nil {
