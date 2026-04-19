@@ -204,6 +204,12 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-18 (nuit)** — Feature 3.6 ✅ : 7 tests de non-régression sécurité sur `/v1/push` (happy path + 6 rejets). Chaque invariant du handler couvert par un test Go automatisable en CI.
 - **2026-04-18 (nuit)** — 🎉 **Palier 3 VALIDÉ**. Protocole push signé Ed25519 bout-en-bout, contract protobuf versionné, 0 dette de sécurité identifiée (ordre signature/nonce corrigé en cours de palier).
 - **2026-04-19** — Refactor architecture : migration vers registry + config YAML. 4 commits atomiques (config loader, Factory pattern, registry, migration main). Ajout/toggle/désactivation de modules désormais possible via `agent.yaml` sans rebuild. Feature 4.1 définitivement validée (le travail existait avant, pas commité ; réincorporé proprement dans cet historique).
+- **2026-04-19** — 🎉 **Premier tag release publié : v0.1.0**. Workflow GitHub Actions déclenché, GoReleaser a publié :
+    - Release GitHub avec 4 archives multi-arch + checksums
+    - Images Docker multi-arch sur GHCR (`ghcr.io/ldesfontaine/bientot-agent:0.1.0` et `bientot-dashboard:0.1.0`)
+    - Changelog auto-généré depuis les Conventional Commits
+
+    Déploiement désormais reproductible : `docker pull ghcr.io/ldesfontaine/bientot-agent:0.1.0` tire le binaire correct pour l'archi de la machine cible.
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
