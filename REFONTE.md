@@ -220,6 +220,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **Palier 6** — Les tests mTLS utilisent les certs `deploy/certs/` via paths relatifs (`../../../`). Refactor en fixtures embarquées (`go:embed`) au palier 6.
 - **Palier 6** — `AGENTS=("vps")` en dur dans `bootstrap-ca.sh` : extraire dans un fichier de config (`deploy/agents.yaml`) ou ajouter un `scripts/add-agent.sh <name>` qui génère juste les certs/clés d'un nouvel agent sans régénérer les existants.
 - **Palier 6** — Logs stdlib "TLS handshake error EOF" pendant les tests viennent de la sonde `net.Dial` d'attente du port. Fix possible via `http.Server.ErrorLog = io.Discard` ou sonde `tls.Dial`. Bruit cosmétique, pas bloquant.
+- **Post-6.2 / futur** — GoReleaser v2 affiche un deprecation warning pour `dockers` et `docker_manifests` (remplacés à terme par `dockers_v2`). Migration à faire quand GoReleaser 3.x publiera un guide officiel, pas avant. Syntaxe actuelle pleinement supportée.
 
 ## 📝 Conventions
 
