@@ -1,0 +1,5 @@
+FROM alpine:3.20
+RUN adduser -D -u 10001 bientot
+COPY bientot-dashboard /usr/local/bin/
+USER bientot
+ENTRYPOINT ["/usr/local/bin/bientot-dashboard"]
