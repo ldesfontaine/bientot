@@ -1,6 +1,6 @@
 COMPOSE := docker compose -f deploy/compose.dev.yml --project-directory .
 
-.PHONY: help build run-agent run-dashboard test clean docker-build docker-up docker-down docker-logs bootstrap-ca test-dashboard proto proto-lint proto-breaking
+.PHONY: help build run-agent run-dashboard test clean docker-build docker-up docker-down docker-logs bootstrap-ca test-dashboard proto proto-lint proto-breaking release-check release-snapshot release-snapshot-full
 
 .DEFAULT_GOAL := help
 
@@ -54,3 +54,12 @@ proto-lint: ## Lint proto files
 
 proto-breaking: ## Check proto for breaking changes vs main
 	buf breaking --against '.git#branch=main'
+
+release-check: ## Validate .goreleaser.yaml syntax
+	goreleaser check
+
+release-snapshot: ## Local snapshot build (binaries + archives, no Docker)
+	goreleaser release --snapshot --clean --skip=docker
+
+release-snapshot-full: ## Local snapshot with Docker (needs QEMU: docker run --privileged --rm tonistiigi/binfmt --install all)
+	goreleaser release --snapshot --clean

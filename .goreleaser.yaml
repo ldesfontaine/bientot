@@ -1,0 +1,185 @@
+# .goreleaser.yaml
+# Run locally: goreleaser release --snapshot --clean
+# Run in CI:   goreleaser release --clean (triggered by a git tag push)
+# Docs:        https://goreleaser.com
+
+version: 2
+
+project_name: bientot
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod verify
+
+builds:
+  - id: agent
+    binary: bientot-agent
+    main: ./cmd/agent
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+  - id: dashboard
+    binary: bientot-dashboard
+    main: ./cmd/dashboard
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.version={{ .Version }}
+      - -X main.commit={{ .Commit }}
+      - -X main.date={{ .Date }}
+
+archives:
+  - id: binaries
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    files:
+      - LICENSE
+      - readme.md
+
+checksum:
+  name_template: "checksums.txt"
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+dockers:
+  - id: agent-amd64
+    ids: [agent]
+    image_templates:
+      - "ghcr.io/ldesfontaine/bientot-agent:{{ .Version }}-amd64"
+    goos: linux
+    goarch: amd64
+    dockerfile: Dockerfile.agent
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.title=bientot-agent"
+      - "--label=org.opencontainers.image.source=https://github.com/ldesfontaine/bientot"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.licenses=MIT"
+
+  - id: agent-arm64
+    ids: [agent]
+    image_templates:
+      - "ghcr.io/ldesfontaine/bientot-agent:{{ .Version }}-arm64"
+    goos: linux
+    goarch: arm64
+    dockerfile: Dockerfile.agent
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.title=bientot-agent"
+      - "--label=org.opencontainers.image.source=https://github.com/ldesfontaine/bientot"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.licenses=MIT"
+
+  - id: dashboard-amd64
+    ids: [dashboard]
+    image_templates:
+      - "ghcr.io/ldesfontaine/bientot-dashboard:{{ .Version }}-amd64"
+    goos: linux
+    goarch: amd64
+    dockerfile: Dockerfile.dashboard
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.title=bientot-dashboard"
+      - "--label=org.opencontainers.image.source=https://github.com/ldesfontaine/bientot"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.licenses=MIT"
+
+  - id: dashboard-arm64
+    ids: [dashboard]
+    image_templates:
+      - "ghcr.io/ldesfontaine/bientot-dashboard:{{ .Version }}-arm64"
+    goos: linux
+    goarch: arm64
+    dockerfile: Dockerfile.dashboard
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.title=bientot-dashboard"
+      - "--label=org.opencontainers.image.source=https://github.com/ldesfontaine/bientot"
+      - "--label=org.opencontainers.image.version={{ .Version }}"
+      - "--label=org.opencontainers.image.revision={{ .FullCommit }}"
+      - "--label=org.opencontainers.image.licenses=MIT"
+
+docker_manifests:
+  - name_template: "ghcr.io/ldesfontaine/bientot-agent:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/ldesfontaine/bientot-agent:{{ .Version }}-amd64"
+      - "ghcr.io/ldesfontaine/bientot-agent:{{ .Version }}-arm64"
+
+  - name_template: "ghcr.io/ldesfontaine/bientot-agent:latest"
+    image_templates:
+      - "ghcr.io/ldesfontaine/bientot-agent:{{ .Version }}-amd64"
+      - "ghcr.io/ldesfontaine/bientot-agent:{{ .Version }}-arm64"
+
+  - name_template: "ghcr.io/ldesfontaine/bientot-dashboard:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/ldesfontaine/bientot-dashboard:{{ .Version }}-amd64"
+      - "ghcr.io/ldesfontaine/bientot-dashboard:{{ .Version }}-arm64"
+
+  - name_template: "ghcr.io/ldesfontaine/bientot-dashboard:latest"
+    image_templates:
+      - "ghcr.io/ldesfontaine/bientot-dashboard:{{ .Version }}-amd64"
+      - "ghcr.io/ldesfontaine/bientot-dashboard:{{ .Version }}-arm64"
+
+release:
+  github:
+    owner: ldesfontaine
+    name: bientot
+  draft: false
+  prerelease: auto
+  mode: replace
+  name_template: "{{ .ProjectName }} {{ .Tag }}"
+  footer: |
+    **Full Changelog**: https://github.com/ldesfontaine/bientot/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+    ## Docker Images
+    - Agent: `ghcr.io/ldesfontaine/bientot-agent:{{ .Version }}`
+    - Dashboard: `ghcr.io/ldesfontaine/bientot-dashboard:{{ .Version }}`
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^style:"
+      - "^refactor:"
+      - "Merge pull request"
+      - "Merge branch"
+  groups:
+    - title: Features
+      regexp: '^feat'
+      order: 0
+    - title: Bug Fixes
+      regexp: '^fix'
+      order: 1
+    - title: Others
+      order: 999

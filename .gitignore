@@ -45,3 +45,6 @@ logs/
 
 # ─── Docker build cache local ───
 .buildx-cache/
+
+# ─── Artefacts GoReleaser ───
+dist/
