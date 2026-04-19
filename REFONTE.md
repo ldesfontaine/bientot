@@ -121,7 +121,7 @@ Déployer différemment sur une machine = éditer `agent.yaml`, pas de rebuild.
 | 1 | Agent autonome + interface Module | ✅ VALIDÉ | Module `heartbeat` détecté et collecté en boucle |
 | 2 | mTLS bootstrap | ✅ VALIDÉ | Agent handshake mTLS vers echo-server, tamper cert → rejet |
 | 3 | Protocole signé (protobuf + Ed25519) | ✅ VALIDÉ | PushRequest signée, tamper 1 byte → rejet |
-| 4 | 1er module qui push (system) | 🟡 | Métriques CPU/RAM visibles côté dashboard de test |
+| 4 | 1er module qui push (system) | ✅ VALIDÉ | Métriques CPU/RAM visibles côté dashboard de test |
 | 5 | Tous les modules + software_inventory | ⬜ | 8 modules actifs, inventaire logiciel rempli |
 | 6 | Agent production-ready | ⬜ | Healthcheck basé last-push, backoff, rotation cert auto |
 | 7 | Dashboard — stockage + pipeline | ⬜ | SQLite + pipeline corrélation 6 stages |
@@ -211,6 +211,9 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 
     Déploiement désormais reproductible : `docker pull ghcr.io/ldesfontaine/bientot-agent:0.1.0` tire le binaire correct pour l'archi de la machine cible.
 - **2026-04-19** — Feature 6.4 ✅ : workflow CI avec 3 jobs parallèles (test race, golangci-lint 11 linters, buf lint + buf breaking sur PR). SHAs pinnés pour sécu supply chain. Concurrency group pour auto-cancel des runs obsolètes. Premier run a remonté 3 findings (2 gosec G115 + 1 errorlint), tous résolus — G115 supprimés localement avec rationale (bornage par `maxPayloadSize = 1 MB`), errorlint fixé via `errors.Is(err, http.ErrServerClosed)` cohérent avec `server.go:92`.
+- **2026-04-19** — Feature 4.2/4.3/4.4 ✅ rétrospectivement : parseur Prometheus text format (`internal/shared/promparse/`, 157+159 lignes), extraction 14 métriques système dans `internal/modules/system/extract.go`, tests unitaires module system (197 lignes). Commits `2a74903`, `e0cd589`, `98fe0d5`. Travail déjà en place avant cette entrée, journalisé a posteriori pour tracer le palier 4.
+- **2026-04-19** — Feature 4.5 ✅ : revue de conformité + fix + validation e2e. (1) `Detect()` du module system faisait un `http.Get` live — il disabled le module au boot si node_exporter pas encore up. Corrigé en validation syntaxique pure (`url.Parse` + check scheme http/https + host non-vide). Runtime reachability relève de `Collect()` et retry au tick suivant. (2) Ajout `load_average_5m` + `load_average_15m` dans `extract.go` (plan d'origine, triviaux). (3) Tests Detect refactorisés : les 3 tests de reachability (`_Success`, `_Non200`, `_ServerDown`) remplacés par `_ValidURL` (URL unroutable OK) + `_InvalidURL` (no scheme, wrong scheme, missing host). Compteur bumped 14→16 dans `TestExtract_AllMetrics` et `TestModule_Collect_Real`. (4) Validation pipeline bout-en-bout : stack `examples/` tourne depuis ~1h, `bientot-dashboard-example` logue `push accepted modules=2 metrics=15` toutes les 30s sur deux agents (local-test-a, local-test-b). E2E post-fix (metrics=17) différé car port 8443 occupé par le stack examples.
+- **2026-04-19** — 🎉 **Palier 4 VALIDÉ**. Module system scrape node_exporter, extrait 16 métriques normalisées (mémoire + swap + load 1/5/15 + CPU counters par mode + filesystem root + uptime + cpu_cores), pipeline bout-en-bout fonctionnel sur deux agents simultanés. 1er module réel en prod, pipeline protobuf signé du palier 3 validé avec un vrai payload (15+ métriques avec labels).
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
@@ -228,6 +231,9 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **Palier 6** — `AGENTS=("vps")` en dur dans `bootstrap-ca.sh` : extraire dans un fichier de config (`deploy/agents.yaml`) ou ajouter un `scripts/add-agent.sh <name>` qui génère juste les certs/clés d'un nouvel agent sans régénérer les existants.
 - **Palier 6** — Logs stdlib "TLS handshake error EOF" pendant les tests viennent de la sonde `net.Dial` d'attente du port. Fix possible via `http.Server.ErrorLog = io.Discard` ou sonde `tls.Dial`. Bruit cosmétique, pas bloquant.
 - **Post-6.2 / futur** — GoReleaser v2 affiche un deprecation warning pour `dockers` et `docker_manifests` (remplacés à terme par `dockers_v2`). Migration à faire quand GoReleaser 3.x publiera un guide officiel, pas avant. Syntaxe actuelle pleinement supportée.
+- **Palier 5** — `system.cpu_temperature_celsius` : jointure `node_hwmon_sensor_label` + `node_hwmon_temp_celsius` + filtre sensors fiables (coretemp, nct*, k10temp ; exclure NVMe qui reporte 128°C quand sensor offline).
+- **Palier 5** — `system.disk_*` multi-mountpoint : actuellement filtré en dur sur `mountpoint="/"`. Étendre avec whitelist `fstype` (ext4/xfs/btrfs/zfs) et blacklist mountpoints virtuels (tmpfs, overlayfs, procfs). Configuration exposée dans `agent.yaml`.
+- **Palier 6** — Unifier la config agent : YAML avec overrides env. Actuellement `DASHBOARD_URL` est env-only, les configs modules sont YAML-only. Pattern cible : YAML par défaut, `BIENTOT_*` env override pour le déploiement (12-factor compatible).
 
 ## 📝 Conventions
 
