@@ -1,0 +1,43 @@
+# .golangci.yml
+# Docs: https://golangci-lint.run/usage/configuration/
+
+run:
+  timeout: 5m
+
+linters:
+  disable-all: true
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - misspell
+    - gofmt
+    - goimports
+    - gosec
+    - errorlint
+    - revive
+
+linters-settings:
+  gosec:
+    excludes:
+      # G104 is redundant with errcheck.
+      - G104
+
+  revive:
+    rules:
+      - name: exported
+        disabled: false
+        arguments:
+          - "disableStutteringCheck"
+
+issues:
+  exclude-use-default: true
+
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+        - revive
