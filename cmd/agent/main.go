@@ -15,13 +15,21 @@ import (
 	"github.com/ldesfontaine/bientot/internal/shared/keys"
 )
 
-const version = "0.2.0-dev"
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	logger.Info("agent starting", "version", version)
+	logger.Info("agent starting",
+		"version", version,
+		"commit", commit,
+		"built", date,
+	)
 
 	configPath := getEnv("BIENTOT_CONFIG", "/etc/bientot/agent.yaml")
 	cfg, err := config.Load(configPath)

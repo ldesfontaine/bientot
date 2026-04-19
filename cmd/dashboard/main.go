@@ -10,13 +10,21 @@ import (
 	dashboardsrv "github.com/ldesfontaine/bientot/internal/dashboard"
 )
 
-const version = "0.1.0-dev"
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
-	logger.Info("dashboard starting", "version", version)
+	logger.Info("dashboard starting",
+		"version", version,
+		"commit", commit,
+		"built", date,
+	)
 
 	addr := getEnv("DASHBOARD_ADDR", ":8443")
 	cert := getEnv("DASHBOARD_CERT", "/etc/bientot/certs/server.crt")
