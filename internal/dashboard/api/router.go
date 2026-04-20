@@ -13,6 +13,7 @@ func (s *Server) buildRouter() http.Handler {
 	mux.HandleFunc("GET /api/health", s.handleHealth)
 	mux.HandleFunc("GET /api/agents", s.handleListAgents)
 	mux.HandleFunc("GET /api/agents/{id}/metrics", s.handleGetLatestMetrics)
+	mux.HandleFunc("GET /api/agents/{id}/metric-points", s.handleGetMetricPoints)
 
 	return s.withLogging(mux)
 }
