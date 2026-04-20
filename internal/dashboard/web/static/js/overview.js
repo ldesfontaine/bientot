@@ -31,6 +31,26 @@
     return v === null ? '—' : v.toFixed(2);
   }
 
+  // fmtXAxis renders an X-axis tick (seconds since epoch) as local time.
+  // Adapts format based on currentRange:
+  //   ≤ 24h: "HH:MM"
+  //   >  24h: "DD/MM HH:MM"
+  function fmtXAxis(secondsEpoch) {
+    const d = new Date(secondsEpoch * 1000);
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+
+    const isLong = currentRange === '168h' || currentRange === '7d';
+
+    if (isLong) {
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      return `${dd}/${mo} ${hh}:${mm}`;
+    }
+
+    return `${hh}:${mm}`;
+  }
+
   // ─── Fetch helpers ─────────────────────────────────────
 
   async function fetchPoints(metricName, range) {
@@ -76,10 +96,13 @@
         { label: '15m', stroke: 'oklch(60% 0.05 240)', width: 1.5 },
       ],
       axes: [
-        { stroke: '#6b727d' },
         {
           stroke: '#6b727d',
-          values: (u, splits) => splits.map(v => fmtLoad(v)),
+          values: (_, splits) => splits.map(v => fmtXAxis(v)),
+        },
+        {
+          stroke: '#6b727d',
+          values: (_, splits) => splits.map(v => fmtLoad(v)),
         },
       ],
       scales: { x: { time: true } },
@@ -97,10 +120,13 @@
         { label: 'Memory available', stroke: 'oklch(72% 0.15 150)', width: 1.5 },
       ],
       axes: [
-        { stroke: '#6b727d' },
         {
           stroke: '#6b727d',
-          values: (u, splits) => splits.map(v => fmtBytesShort(v)),
+          values: (_, splits) => splits.map(v => fmtXAxis(v)),
+        },
+        {
+          stroke: '#6b727d',
+          values: (_, splits) => splits.map(v => fmtBytesShort(v)),
         },
       ],
       scales: { x: { time: true } },
