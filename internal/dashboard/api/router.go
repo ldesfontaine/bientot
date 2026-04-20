@@ -11,6 +11,7 @@ func (s *Server) buildRouter() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/health", s.handleHealth)
+	mux.HandleFunc("GET /api/agents", s.handleListAgents)
 
 	return s.withLogging(mux)
 }
