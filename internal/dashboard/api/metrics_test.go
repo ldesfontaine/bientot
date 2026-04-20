@@ -32,9 +32,9 @@ func savePushMulti(t *testing.T, db *storage.Storage, machineID, nonce string, m
 // ─── 404 — Agent inexistant ──────────────────────────────
 
 func TestGetLatestMetrics_AgentNotFound(t *testing.T) {
-	s, _ := newTestServerWithDB(t, 2*time.Minute)
+	r, _ := newTestRouterWithDB(t, 2*time.Minute)
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/nonexistent/metrics")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/nonexistent/metrics")
 
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404", rec.Code)
@@ -52,7 +52,7 @@ func TestGetLatestMetrics_AgentNotFound(t *testing.T) {
 // ─── 200 — Agent existe mais sans métriques ──────────────
 
 func TestGetLatestMetrics_AgentExistsNoMetrics(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	ts := time.Now().UnixNano()
 	req := &bientotv1.PushRequest{
@@ -65,7 +65,7 @@ func TestGetLatestMetrics_AgentExistsNoMetrics(t *testing.T) {
 		t.Fatalf("SavePush: %v", err)
 	}
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metrics")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metrics")
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want 200", rec.Code)
@@ -78,7 +78,7 @@ func TestGetLatestMetrics_AgentExistsNoMetrics(t *testing.T) {
 // ─── 200 — Agent avec métriques ──────────────────────────
 
 func TestGetLatestMetrics_ReturnsAllMetrics(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	savePushMulti(t, db, "vps", "n1", []*bientotv1.Metric{
 		{Name: "cpu", Value: 42},
@@ -86,7 +86,7 @@ func TestGetLatestMetrics_ReturnsAllMetrics(t *testing.T) {
 		{Name: "up", Value: 1},
 	})
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metrics")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metrics")
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d", rec.Code)
@@ -103,7 +103,7 @@ func TestGetLatestMetrics_ReturnsAllMetrics(t *testing.T) {
 }
 
 func TestGetLatestMetrics_SortedAlphabetically(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	savePushMulti(t, db, "vps", "n1", []*bientotv1.Metric{
 		{Name: "zeta", Value: 1},
@@ -111,7 +111,7 @@ func TestGetLatestMetrics_SortedAlphabetically(t *testing.T) {
 		{Name: "middle", Value: 1},
 	})
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metrics")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metrics")
 
 	var metrics []metricDTO
 	if err := json.Unmarshal(rec.Body.Bytes(), &metrics); err != nil {
@@ -127,12 +127,12 @@ func TestGetLatestMetrics_SortedAlphabetically(t *testing.T) {
 }
 
 func TestGetLatestMetrics_ReturnsLatestValue(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	savePushMulti(t, db, "vps", "n1", []*bientotv1.Metric{{Name: "cpu", Value: 10}})
 	savePushMulti(t, db, "vps", "n2", []*bientotv1.Metric{{Name: "cpu", Value: 99}})
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metrics")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metrics")
 
 	var metrics []metricDTO
 	if err := json.Unmarshal(rec.Body.Bytes(), &metrics); err != nil {
@@ -148,13 +148,13 @@ func TestGetLatestMetrics_ReturnsLatestValue(t *testing.T) {
 }
 
 func TestGetLatestMetrics_LabelsNeverNull(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	savePushMulti(t, db, "vps", "n1", []*bientotv1.Metric{
 		{Name: "up", Value: 1},
 	})
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metrics")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metrics")
 
 	// Parse as raw JSON to verify the wire-level text is `{}` not `null`.
 	var raw []map[string]json.RawMessage
@@ -172,11 +172,11 @@ func TestGetLatestMetrics_LabelsNeverNull(t *testing.T) {
 }
 
 func TestGetLatestMetrics_TimestampInMs(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	savePushMulti(t, db, "vps", "n1", []*bientotv1.Metric{{Name: "up", Value: 1}})
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metrics")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metrics")
 
 	var metrics []metricDTO
 	if err := json.Unmarshal(rec.Body.Bytes(), &metrics); err != nil {
@@ -245,7 +245,7 @@ func TestToMetricDTO_TimestampConversion(t *testing.T) {
 // ─── Deterministic ordering across iterations ────────────
 
 func TestGetLatestMetrics_DeterministicOrdering(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	savePushMulti(t, db, "vps", "n1", []*bientotv1.Metric{
 		{Name: "b_metric", Value: 1},
@@ -256,7 +256,7 @@ func TestGetLatestMetrics_DeterministicOrdering(t *testing.T) {
 	var reference []string
 
 	for i := 0; i < 10; i++ {
-		rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metrics")
+		rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metrics")
 		var metrics []metricDTO
 		if err := json.Unmarshal(rec.Body.Bytes(), &metrics); err != nil {
 			t.Fatalf("decode: %v", err)

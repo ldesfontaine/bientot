@@ -35,10 +35,10 @@ func savePushAtTimestamp(t *testing.T, db *storage.Storage, machineID, nonce, me
 // ─── Validation des paramètres ───────────────────────────
 
 func TestGetMetricPoints_MissingName(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 	savePushAtTimestamp(t, db, "vps", "n1", "cpu", 1, time.Now())
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metric-points")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metric-points")
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want 400", rec.Code)
@@ -46,9 +46,9 @@ func TestGetMetricPoints_MissingName(t *testing.T) {
 }
 
 func TestGetMetricPoints_AgentNotFound(t *testing.T) {
-	s, _ := newTestServerWithDB(t, 2*time.Minute)
+	r, _ := newTestRouterWithDB(t, 2*time.Minute)
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/nope/metric-points?name=cpu")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/nope/metric-points?name=cpu")
 
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404", rec.Code)
@@ -56,10 +56,10 @@ func TestGetMetricPoints_AgentNotFound(t *testing.T) {
 }
 
 func TestGetMetricPoints_BadRange(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 	savePushAtTimestamp(t, db, "vps", "n1", "cpu", 1, time.Now())
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metric-points?name=cpu&range=invalid")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metric-points?name=cpu&range=invalid")
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want 400", rec.Code)
@@ -67,10 +67,10 @@ func TestGetMetricPoints_BadRange(t *testing.T) {
 }
 
 func TestGetMetricPoints_PartialAbsolute(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 	savePushAtTimestamp(t, db, "vps", "n1", "cpu", 1, time.Now())
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metric-points?name=cpu&start=1000")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metric-points?name=cpu&start=1000")
 
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want 400", rec.Code)
@@ -80,11 +80,11 @@ func TestGetMetricPoints_PartialAbsolute(t *testing.T) {
 // ─── Happy path ──────────────────────────────────────────
 
 func TestGetMetricPoints_AgentExistsNoPoints(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	savePushAtTimestamp(t, db, "vps", "n1", "memory", 100, time.Now())
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metric-points?name=cpu&range=1h")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metric-points?name=cpu&range=1h")
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want 200", rec.Code)
@@ -104,7 +104,7 @@ func TestGetMetricPoints_AgentExistsNoPoints(t *testing.T) {
 }
 
 func TestGetMetricPoints_ReturnsAllPointsInRange(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	now := time.Now()
 	for i := 0; i < 5; i++ {
@@ -112,7 +112,7 @@ func TestGetMetricPoints_ReturnsAllPointsInRange(t *testing.T) {
 		savePushAtTimestamp(t, db, "vps", fmt.Sprintf("n%d", i), "cpu", float64(i*10), ts)
 	}
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metric-points?name=cpu&range=1h")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metric-points?name=cpu&range=1h")
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d", rec.Code)
@@ -129,14 +129,14 @@ func TestGetMetricPoints_ReturnsAllPointsInRange(t *testing.T) {
 }
 
 func TestGetMetricPoints_PointsSortedAscending(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	now := time.Now()
 	savePushAtTimestamp(t, db, "vps", "n3", "cpu", 30, now.Add(-3*time.Minute))
 	savePushAtTimestamp(t, db, "vps", "n1", "cpu", 10, now.Add(-1*time.Minute))
 	savePushAtTimestamp(t, db, "vps", "n2", "cpu", 20, now.Add(-2*time.Minute))
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metric-points?name=cpu&range=1h")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metric-points?name=cpu&range=1h")
 
 	var resp metricPointsResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
@@ -156,13 +156,13 @@ func TestGetMetricPoints_PointsSortedAscending(t *testing.T) {
 }
 
 func TestGetMetricPoints_RangeFiltering(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	now := time.Now()
 	savePushAtTimestamp(t, db, "vps", "recent", "cpu", 1, now.Add(-30*time.Minute))
 	savePushAtTimestamp(t, db, "vps", "old", "cpu", 99, now.Add(-2*time.Hour))
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metric-points?name=cpu&range=1h")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metric-points?name=cpu&range=1h")
 
 	var resp metricPointsResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
@@ -178,10 +178,10 @@ func TestGetMetricPoints_RangeFiltering(t *testing.T) {
 }
 
 func TestGetMetricPoints_ResponseStructure(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 	savePushAtTimestamp(t, db, "vps", "n1", "cpu", 42, time.Now())
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metric-points?name=cpu&range=1h")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metric-points?name=cpu&range=1h")
 
 	var resp metricPointsResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
@@ -203,10 +203,10 @@ func TestGetMetricPoints_ResponseStructure(t *testing.T) {
 }
 
 func TestGetMetricPoints_DefaultRangeIs24h(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 	savePushAtTimestamp(t, db, "vps", "n1", "cpu", 1, time.Now())
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents/vps/metric-points?name=cpu")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents/vps/metric-points?name=cpu")
 
 	var resp metricPointsResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
@@ -221,7 +221,7 @@ func TestGetMetricPoints_DefaultRangeIs24h(t *testing.T) {
 }
 
 func TestGetMetricPoints_AbsoluteMode(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	pushTime := time.Now().Add(-2 * time.Hour)
 	savePushAtTimestamp(t, db, "vps", "n1", "cpu", 42, pushTime)
@@ -230,7 +230,7 @@ func TestGetMetricPoints_AbsoluteMode(t *testing.T) {
 	endMs := pushTime.Add(1 * time.Minute).UnixMilli()
 	url := fmt.Sprintf("/api/agents/vps/metric-points?name=cpu&start=%d&end=%d", startMs, endMs)
 
-	rec := doRequest(t, s, http.MethodGet, url)
+	rec := doRequest(t, r, http.MethodGet, url)
 
 	var resp metricPointsResponse
 	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {

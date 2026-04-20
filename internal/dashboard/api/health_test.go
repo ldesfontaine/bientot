@@ -10,31 +10,31 @@ import (
 	"time"
 )
 
-// newTestServer returns a Server with a nil storage (handlers that don't touch
+// newTestRouter returns a Router with a nil storage (handlers that don't touch
 // the DB still work) and a silent logger, for unit testing handlers.
-func newTestServer(t *testing.T) *Server {
+func newTestRouter(t *testing.T) *Router {
 	t.Helper()
-	return &Server{
+	return &Router{
 		db:               nil,
 		log:              slog.New(slog.NewJSONHandler(io.Discard, nil)),
 		offlineThreshold: 2 * time.Minute,
 	}
 }
 
-// doRequest performs an in-process request against the server's router
+// doRequest performs an in-process request against the router's handler
 // and returns the recorded response.
-func doRequest(t *testing.T, s *Server, method, path string) *httptest.ResponseRecorder {
+func doRequest(t *testing.T, r *Router, method, path string) *httptest.ResponseRecorder {
 	t.Helper()
 	req := httptest.NewRequest(method, path, nil)
 	rec := httptest.NewRecorder()
-	s.buildRouter().ServeHTTP(rec, req)
+	r.BuildHandler().ServeHTTP(rec, req)
 	return rec
 }
 
 func TestHealth_ReturnsOK(t *testing.T) {
-	s := newTestServer(t)
+	r := newTestRouter(t)
 
-	rec := doRequest(t, s, http.MethodGet, "/api/health")
+	rec := doRequest(t, r, http.MethodGet, "/api/health")
 
 	if rec.Code != http.StatusOK {
 		t.Errorf("status = %d, want 200", rec.Code)
@@ -55,9 +55,9 @@ func TestHealth_ReturnsOK(t *testing.T) {
 }
 
 func TestHealth_WrongMethod(t *testing.T) {
-	s := newTestServer(t)
+	r := newTestRouter(t)
 
-	rec := doRequest(t, s, http.MethodPost, "/api/health")
+	rec := doRequest(t, r, http.MethodPost, "/api/health")
 
 	if rec.Code != http.StatusMethodNotAllowed {
 		t.Errorf("POST /api/health: status = %d, want 405", rec.Code)
@@ -65,9 +65,9 @@ func TestHealth_WrongMethod(t *testing.T) {
 }
 
 func TestHealth_UnknownRoute(t *testing.T) {
-	s := newTestServer(t)
+	r := newTestRouter(t)
 
-	rec := doRequest(t, s, http.MethodGet, "/api/does-not-exist")
+	rec := doRequest(t, r, http.MethodGet, "/api/does-not-exist")
 
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("status = %d, want 404", rec.Code)

@@ -23,21 +23,21 @@ const (
 
 // handleListAgents returns all known agents with their computed online/offline
 // status based on OFFLINE_THRESHOLD_SECONDS. Returns [] (not null) if empty.
-func (s *Server) handleListAgents(w http.ResponseWriter, r *http.Request) {
-	agents, err := s.db.ListAgents(r.Context())
+func (r *Router) handleListAgents(w http.ResponseWriter, req *http.Request) {
+	agents, err := r.db.ListAgents(req.Context())
 	if err != nil {
-		s.log.Error("list agents failed", "error", err)
-		writeError(w, s.log, http.StatusInternalServerError, "failed to list agents")
+		r.log.Error("list agents failed", "error", err)
+		writeError(w, r.log, http.StatusInternalServerError, "failed to list agents")
 		return
 	}
 
 	now := time.Now()
 	dtos := make([]agentDTO, 0, len(agents))
 	for _, a := range agents {
-		dtos = append(dtos, toDTO(a, now, s.offlineThreshold))
+		dtos = append(dtos, toDTO(a, now, r.offlineThreshold))
 	}
 
-	writeJSON(w, s.log, http.StatusOK, dtos)
+	writeJSON(w, r.log, http.StatusOK, dtos)
 }
 
 // toDTO converts a storage.Agent into the JSON-friendly agentDTO.

@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -14,6 +17,7 @@ import (
 	dashboardsrv "github.com/ldesfontaine/bientot/internal/dashboard"
 	"github.com/ldesfontaine/bientot/internal/dashboard/api"
 	"github.com/ldesfontaine/bientot/internal/dashboard/storage"
+	"github.com/ldesfontaine/bientot/internal/dashboard/web"
 )
 
 var (
@@ -65,10 +69,23 @@ func main() {
 	}()
 
 	mtlsServer := dashboardsrv.New(logger, addr, cert, key, ca, agentKeys, db)
-	apiServer := api.New(logger, db, api.Config{
-		Addr:             webAddr,
+
+	apiRouter := api.NewRouter(logger, db, api.Config{
 		OfflineThreshold: time.Duration(offlineThresholdSec) * time.Second,
 	})
+	webRouter := web.NewRouter(logger, db, web.Config{})
+
+	// Single mux serves both API (/api/*) and web (/*).
+	// /api/ must be registered before / to take precedence.
+	mainMux := http.NewServeMux()
+	mainMux.Handle("/api/", apiRouter.BuildHandler())
+	mainMux.Handle("/", webRouter.BuildHandler())
+
+	httpSrv := &http.Server{
+		Addr:              webAddr,
+		Handler:           mainMux,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
 
 	group, groupCtx := errgroup.WithContext(ctx)
 
@@ -77,7 +94,21 @@ func main() {
 	})
 
 	group.Go(func() error {
-		return apiServer.Run(groupCtx)
+		logger.Info("http server listening", "addr", webAddr)
+		if err := httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("http server: %w", err)
+		}
+		return nil
+	})
+
+	group.Go(func() error {
+		<-groupCtx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := httpSrv.Shutdown(shutdownCtx); err != nil {
+			return fmt.Errorf("http shutdown: %w", err)
+		}
+		return nil
 	})
 
 	if err := group.Wait(); err != nil {

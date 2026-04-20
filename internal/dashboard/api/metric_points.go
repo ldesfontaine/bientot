@@ -39,48 +39,48 @@ type pointDTO struct {
 // 200 with empty points array if agent exists but has no data in range.
 //
 // Route: GET /api/agents/{id}/metric-points
-func (s *Server) handleGetMetricPoints(w http.ResponseWriter, r *http.Request) {
-	machineID := r.PathValue("id")
+func (r *Router) handleGetMetricPoints(w http.ResponseWriter, req *http.Request) {
+	machineID := req.PathValue("id")
 	if machineID == "" {
-		writeError(w, s.log, http.StatusBadRequest, "missing agent id")
+		writeError(w, r.log, http.StatusBadRequest, "missing agent id")
 		return
 	}
 
-	q := r.URL.Query()
+	q := req.URL.Query()
 
 	name := q.Get("name")
 	if name == "" {
-		writeError(w, s.log, http.StatusBadRequest, "missing required parameter: name")
+		writeError(w, r.log, http.StatusBadRequest, "missing required parameter: name")
 		return
 	}
 
 	start, end, err := parseTimeRange(q, time.Now())
 	if err != nil {
-		writeError(w, s.log, http.StatusBadRequest, err.Error())
+		writeError(w, r.log, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	exists, err := s.db.AgentExists(r.Context(), machineID)
+	exists, err := r.db.AgentExists(req.Context(), machineID)
 	if err != nil {
-		s.log.Error("check agent existence failed", "machine_id", machineID, "error", err)
-		writeError(w, s.log, http.StatusInternalServerError, "internal error")
+		r.log.Error("check agent existence failed", "machine_id", machineID, "error", err)
+		writeError(w, r.log, http.StatusInternalServerError, "internal error")
 		return
 	}
 	if !exists {
-		writeError(w, s.log, http.StatusNotFound, "agent not found")
+		writeError(w, r.log, http.StatusNotFound, "agent not found")
 		return
 	}
 
-	points, err := s.db.GetMetricPoints(r.Context(), machineID, name, start, end)
+	points, err := r.db.GetMetricPoints(req.Context(), machineID, name, start, end)
 	if err != nil {
-		s.log.Error("get metric points failed",
+		r.log.Error("get metric points failed",
 			"machine_id", machineID, "name", name, "error", err)
-		writeError(w, s.log, http.StatusInternalServerError, "failed to fetch metric points")
+		writeError(w, r.log, http.StatusInternalServerError, "failed to fetch metric points")
 		return
 	}
 
 	if len(points) > maxPointsPerResponse {
-		writeError(w, s.log, http.StatusBadRequest,
+		writeError(w, r.log, http.StatusBadRequest,
 			"range too wide: would return more than "+strconv.Itoa(maxPointsPerResponse)+" points")
 		return
 	}
@@ -101,7 +101,7 @@ func (s *Server) handleGetMetricPoints(w http.ResponseWriter, r *http.Request) {
 		Points:    dtos,
 	}
 
-	writeJSON(w, s.log, http.StatusOK, resp)
+	writeJSON(w, r.log, http.StatusOK, resp)
 }
 
 // parseTimeRange resolves the start/end window from query params.

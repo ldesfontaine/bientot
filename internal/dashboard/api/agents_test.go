@@ -14,10 +14,10 @@ import (
 	"github.com/ldesfontaine/bientot/internal/dashboard/storage"
 )
 
-// newTestServerWithDB returns a Server backed by a real (temp) SQLite DB.
-// Unlike newTestServer (health_test.go), this one is for handlers that
+// newTestRouterWithDB returns a Router backed by a real (temp) SQLite DB.
+// Unlike newTestRouter (health_test.go), this one is for handlers that
 // need to read/write actual data.
-func newTestServerWithDB(t *testing.T, threshold time.Duration) (*Server, *storage.Storage) {
+func newTestRouterWithDB(t *testing.T, threshold time.Duration) (*Router, *storage.Storage) {
 	t.Helper()
 	db, err := storage.Open(filepath.Join(t.TempDir(), "test.db"))
 	if err != nil {
@@ -25,12 +25,12 @@ func newTestServerWithDB(t *testing.T, threshold time.Duration) (*Server, *stora
 	}
 	t.Cleanup(func() { db.Close() })
 
-	srv := &Server{
+	rt := &Router{
 		db:               db,
 		log:              slog.New(slog.NewJSONHandler(io.Discard, nil)),
 		offlineThreshold: threshold,
 	}
-	return srv, db
+	return rt, db
 }
 
 // savePushAtTime saves a minimal push for machineID at the given timestamp.
@@ -57,9 +57,9 @@ func savePushAtTime(t *testing.T, db *storage.Storage, machineID, nonce string, 
 // ─── handleListAgents ────────────────────────────────────
 
 func TestListAgents_Empty(t *testing.T) {
-	s, _ := newTestServerWithDB(t, 2*time.Minute)
+	r, _ := newTestRouterWithDB(t, 2*time.Minute)
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents")
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
@@ -72,11 +72,11 @@ func TestListAgents_Empty(t *testing.T) {
 }
 
 func TestListAgents_OneOnline(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	savePushAtTime(t, db, "vps", "n1", time.Now())
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents")
 
 	if rec.Code != http.StatusOK {
 		t.Fatalf("status = %d, want 200", rec.Code)
@@ -104,14 +104,14 @@ func TestListAgents_OneOnline(t *testing.T) {
 }
 
 func TestListAgents_SortedAlphabetically(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	now := time.Now()
 	savePushAtTime(t, db, "vps", "v1", now)
 	savePushAtTime(t, db, "pi", "p1", now)
 	savePushAtTime(t, db, "laptop", "l1", now)
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents")
 
 	var agents []agentDTO
 	if err := json.Unmarshal(rec.Body.Bytes(), &agents); err != nil {
@@ -130,10 +130,10 @@ func TestListAgents_SortedAlphabetically(t *testing.T) {
 }
 
 func TestListAgents_ContentTypeIsJSON(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 	savePushAtTime(t, db, "vps", "n1", time.Now())
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents")
 
 	ct := rec.Header().Get("Content-Type")
 	if ct != "application/json; charset=utf-8" {
@@ -210,14 +210,14 @@ func TestToDTO_TimestampsInMilliseconds(t *testing.T) {
 // ─── status computation with stale agent (integration) ───
 
 func TestListAgents_OfflineAgent(t *testing.T) {
-	s, db := newTestServerWithDB(t, 2*time.Minute)
+	r, db := newTestRouterWithDB(t, 2*time.Minute)
 
 	savePushAtTime(t, db, "vps", "n1", time.Now())
 
 	// Force threshold impossibly strict to make the fresh agent count as offline.
-	s.offlineThreshold = -1 * time.Second
+	r.offlineThreshold = -1 * time.Second
 
-	rec := doRequest(t, s, http.MethodGet, "/api/agents")
+	rec := doRequest(t, r, http.MethodGet, "/api/agents")
 
 	var agents []agentDTO
 	if err := json.Unmarshal(rec.Body.Bytes(), &agents); err != nil {
@@ -228,6 +228,6 @@ func TestListAgents_OfflineAgent(t *testing.T) {
 		t.Fatalf("count = %d", len(agents))
 	}
 	if agents[0].Status != statusOffline {
-		t.Errorf("status = %q, want offline (threshold: %v)", agents[0].Status, s.offlineThreshold)
+		t.Errorf("status = %q, want offline (threshold: %v)", agents[0].Status, r.offlineThreshold)
 	}
 }

@@ -21,28 +21,28 @@ type metricDTO struct {
 // Metrics are sorted by name for a deterministic response.
 //
 // Route: GET /api/agents/{id}/metrics
-func (s *Server) handleGetLatestMetrics(w http.ResponseWriter, r *http.Request) {
-	machineID := r.PathValue("id")
+func (r *Router) handleGetLatestMetrics(w http.ResponseWriter, req *http.Request) {
+	machineID := req.PathValue("id")
 	if machineID == "" {
-		writeError(w, s.log, http.StatusBadRequest, "missing agent id")
+		writeError(w, r.log, http.StatusBadRequest, "missing agent id")
 		return
 	}
 
-	exists, err := s.db.AgentExists(r.Context(), machineID)
+	exists, err := r.db.AgentExists(req.Context(), machineID)
 	if err != nil {
-		s.log.Error("check agent existence failed", "machine_id", machineID, "error", err)
-		writeError(w, s.log, http.StatusInternalServerError, "internal error")
+		r.log.Error("check agent existence failed", "machine_id", machineID, "error", err)
+		writeError(w, r.log, http.StatusInternalServerError, "internal error")
 		return
 	}
 	if !exists {
-		writeError(w, s.log, http.StatusNotFound, "agent not found")
+		writeError(w, r.log, http.StatusNotFound, "agent not found")
 		return
 	}
 
-	metrics, err := s.db.GetLatestMetrics(r.Context(), machineID)
+	metrics, err := r.db.GetLatestMetrics(req.Context(), machineID)
 	if err != nil {
-		s.log.Error("get latest metrics failed", "machine_id", machineID, "error", err)
-		writeError(w, s.log, http.StatusInternalServerError, "failed to fetch metrics")
+		r.log.Error("get latest metrics failed", "machine_id", machineID, "error", err)
+		writeError(w, r.log, http.StatusInternalServerError, "failed to fetch metrics")
 		return
 	}
 
@@ -55,7 +55,7 @@ func (s *Server) handleGetLatestMetrics(w http.ResponseWriter, r *http.Request) 
 		return dtos[i].Name < dtos[j].Name
 	})
 
-	writeJSON(w, s.log, http.StatusOK, dtos)
+	writeJSON(w, r.log, http.StatusOK, dtos)
 }
 
 // toMetricDTO converts a storage.Metric into its JSON-friendly DTO.

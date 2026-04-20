@@ -1,15 +1,14 @@
-// Package api serves the dashboard's read-only JSON API on a separate
-// HTTP listener (no TLS) intended to be accessed from a trusted network
-// (e.g. NetBird, Tailscale, WireGuard).
+// Package api serves the dashboard's read-only JSON API.
 //
-// This is distinct from the mTLS agent-ingestion server in the parent
-// package: API consumers are humans/browsers, not agents.
+// The package is stateless at the HTTP-server level: it exposes
+// a Router that builds an http.Handler, and the caller is responsible
+// for running the *http.Server (typically cmd/dashboard/main.go).
+//
+// API consumers are humans/browsers, not agents — agent ingestion lives
+// in the parent package over mTLS.
 package api
 
 import (
-	"context"
-	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -17,61 +16,65 @@ import (
 	"github.com/ldesfontaine/bientot/internal/dashboard/storage"
 )
 
-// Server is the HTTP server exposing the dashboard's read API.
-// It wraps an *http.Server and keeps a reference to the shared storage handle.
-type Server struct {
-	addr             string
+// Router wraps the dependencies needed to serve API endpoints.
+// It does not own an HTTP server: the caller mounts BuildHandler() into
+// its own *http.Server.
+type Router struct {
 	db               *storage.Storage
 	log              *slog.Logger
-	srv              *http.Server
 	offlineThreshold time.Duration
 }
 
-// Config bundles the parameters needed to build an api.Server.
+// Config bundles the parameters needed to build the API router.
 type Config struct {
-	Addr             string
 	OfflineThreshold time.Duration
 }
 
-// New returns a Server that will listen on cfg.Addr when Run is called.
-// The db handle must be opened by the caller and remains owned by the caller.
-func New(log *slog.Logger, db *storage.Storage, cfg Config) *Server {
-	return &Server{
-		addr:             cfg.Addr,
+// NewRouter returns a Router holding the shared dependencies.
+func NewRouter(log *slog.Logger, db *storage.Storage, cfg Config) *Router {
+	return &Router{
 		db:               db,
 		log:              log,
 		offlineThreshold: cfg.OfflineThreshold,
 	}
 }
 
-// Run starts listening and blocks until ctx is cancelled. Returns the first
-// non-ErrServerClosed error encountered.
-func (s *Server) Run(ctx context.Context) error {
-	mux := s.buildRouter()
+// BuildHandler constructs and returns the http.Handler for all API routes.
+// The result is wrapped with request-logging middleware.
+func (r *Router) BuildHandler() http.Handler {
+	mux := http.NewServeMux()
 
-	s.srv = &http.Server{
-		Addr:              s.addr,
-		Handler:           mux,
-		ReadHeaderTimeout: 5 * time.Second,
-	}
+	mux.HandleFunc("GET /api/health", r.handleHealth)
+	mux.HandleFunc("GET /api/agents", r.handleListAgents)
+	mux.HandleFunc("GET /api/agents/{id}/metrics", r.handleGetLatestMetrics)
+	mux.HandleFunc("GET /api/agents/{id}/metric-points", r.handleGetMetricPoints)
 
-	shutdownDone := make(chan struct{})
-	go func() {
-		<-ctx.Done()
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := s.srv.Shutdown(shutdownCtx); err != nil {
-			s.log.Error("api shutdown error", "error", err)
-		}
-		close(shutdownDone)
-	}()
+	return r.withLogging(mux)
+}
 
-	s.log.Info("api server listening", "addr", s.addr)
-	if err := s.srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		return fmt.Errorf("api listen: %w", err)
-	}
+// withLogging logs every request at INFO level: method, path, status, duration.
+func (r *Router) withLogging(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		start := time.Now()
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, req)
+		r.log.Info("api request",
+			"method", req.Method,
+			"path", req.URL.Path,
+			"status", rec.status,
+			"duration_ms", time.Since(start).Milliseconds(),
+		)
+	})
+}
 
-	<-shutdownDone
-	s.log.Info("api server stopped")
-	return nil
+// statusRecorder wraps http.ResponseWriter to capture the status code
+// written via WriteHeader (the stdlib doesn't expose it).
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (rec *statusRecorder) WriteHeader(code int) {
+	rec.status = code
+	rec.ResponseWriter.WriteHeader(code)
 }
