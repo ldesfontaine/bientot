@@ -29,6 +29,8 @@ const (
 	protocolVersion = 1
 )
 
+// Server is the mTLS-protected HTTP server that ingests agent pushes
+// (POST /v1/push) and exposes a sanity-check ping endpoint.
 type Server struct {
 	addr      string
 	cert      string
@@ -41,6 +43,8 @@ type Server struct {
 	log       *slog.Logger
 }
 
+// New constructs a Server with the given paths to certs/keys and a Storage
+// handle. The Storage is owned by the caller; the Server only reads/writes.
 func New(log *slog.Logger, addr, certPath, keyPath, caPath, agentKeysDir string, db *storage.Storage) *Server {
 	return &Server{
 		addr:      addr,
@@ -53,6 +57,8 @@ func New(log *slog.Logger, addr, certPath, keyPath, caPath, agentKeysDir string,
 	}
 }
 
+// Run starts the listener and blocks until ctx is cancelled.
+// Returns the first non-ErrServerClosed error encountered.
 func (s *Server) Run(ctx context.Context) error {
 	tlsConfig, err := mtls.ServerConfig(s.cert, s.key, s.caCerts)
 	if err != nil {
@@ -82,7 +88,11 @@ func (s *Server) Run(ctx context.Context) error {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	go func() {
+	// gosec G118: shutdownCtx is intentionally derived from Background, not
+	// from the parent ctx — that ctx is the one we just observed as Done,
+	// so deriving from it would give us an already-cancelled context and
+	// skip the graceful shutdown window entirely.
+	go func() { //nolint:gosec
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
