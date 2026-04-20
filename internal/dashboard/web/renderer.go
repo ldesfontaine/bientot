@@ -68,15 +68,21 @@ func (r *renderer) get(name string) (*template.Template, error) {
 	return tmpl, nil
 }
 
-// load parses layout.html + the requested page template.
-// Caches the result when not in dev mode.
+// load parses layout.html + the requested page template + all partials
+// (so {{template "icon-..."}} works from any page). Caches when not in dev.
 func (r *renderer) load(name string) (*template.Template, error) {
 	pageFile := "templates/" + name + ".html"
 	layoutFile := "templates/layout.html"
 
-	tmpl := template.New(name).Funcs(funcMap())
+	partialFiles, err := fs.Glob(templatesFS, "templates/partials/*.html")
+	if err != nil {
+		return nil, fmt.Errorf("glob partials: %w", err)
+	}
 
-	tmpl, err := tmpl.ParseFS(templatesFS, layoutFile, pageFile)
+	files := append([]string{layoutFile, pageFile}, partialFiles...)
+
+	tmpl := template.New(name).Funcs(funcMap())
+	tmpl, err = tmpl.ParseFS(templatesFS, files...)
 	if err != nil {
 		return nil, fmt.Errorf("parse templates for %s: %w", name, err)
 	}
