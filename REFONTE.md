@@ -2,7 +2,7 @@
 # Bientôt v2 — Journal de refonte
 
 > **Document de référence vivant.** Mis à jour à chaque feature/palier validé.
-> Dernière mise à jour : **2026-04-19** — feature 6.4 validée, workflow CI en place (test + lint + proto sur push/PR).
+> Dernière mise à jour : **2026-04-20** — feature 5.0.1 validée, fondation SQLite posée côté dashboard (package `internal/dashboard/storage/`, schéma 4 tables embed).
 
 ---
 
@@ -214,6 +214,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-19** — Feature 4.2/4.3/4.4 ✅ rétrospectivement : parseur Prometheus text format (`internal/shared/promparse/`, 157+159 lignes), extraction 14 métriques système dans `internal/modules/system/extract.go`, tests unitaires module system (197 lignes). Commits `2a74903`, `e0cd589`, `98fe0d5`. Travail déjà en place avant cette entrée, journalisé a posteriori pour tracer le palier 4.
 - **2026-04-19** — Feature 4.5 ✅ : revue de conformité + fix + validation e2e. (1) `Detect()` du module system faisait un `http.Get` live — il disabled le module au boot si node_exporter pas encore up. Corrigé en validation syntaxique pure (`url.Parse` + check scheme http/https + host non-vide). Runtime reachability relève de `Collect()` et retry au tick suivant. (2) Ajout `load_average_5m` + `load_average_15m` dans `extract.go` (plan d'origine, triviaux). (3) Tests Detect refactorisés : les 3 tests de reachability (`_Success`, `_Non200`, `_ServerDown`) remplacés par `_ValidURL` (URL unroutable OK) + `_InvalidURL` (no scheme, wrong scheme, missing host). Compteur bumped 14→16 dans `TestExtract_AllMetrics` et `TestModule_Collect_Real`. (4) Validation pipeline bout-en-bout : stack `examples/` tourne depuis ~1h, `bientot-dashboard-example` logue `push accepted modules=2 metrics=15` toutes les 30s sur deux agents (local-test-a, local-test-b). E2E post-fix (metrics=17) différé car port 8443 occupé par le stack examples.
 - **2026-04-19** — 🎉 **Palier 4 VALIDÉ**. Module system scrape node_exporter, extrait 16 métriques normalisées (mémoire + swap + load 1/5/15 + CPU counters par mode + filesystem root + uptime + cpu_cores), pipeline bout-en-bout fonctionnel sur deux agents simultanés. 1er module réel en prod, pipeline protobuf signé du palier 3 validé avec un vrai payload (15+ métriques avec labels).
+- **2026-04-20** — Feature 5.0.1 ✅ : fondation SQLite. Package `internal/dashboard/storage/` avec `Open`/`Close`/`Ping`, schéma embarqué via `go:embed` (4 tables : `pushes`, `metrics`, `module_state`, `agents`). WAL mode + `foreign_keys=ON` + `MaxOpenConns=1` (single-writer SQLite). Driver pure Go via `modernc.org/sqlite` (pas de CGO). 8 tests unitaires (open/close, idempotence, schema applied, pragmas, invalid path). Bump Go 1.24 → 1.25 requis par `modernc.org/sqlite@v1.49.1`, propagé au `Dockerfile` (CI suit via `go-version-file: go.mod`). Commits `a6faa53` (bump) + `cc27d5b` (storage).
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
@@ -234,6 +235,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **Palier 5** — `system.cpu_temperature_celsius` : jointure `node_hwmon_sensor_label` + `node_hwmon_temp_celsius` + filtre sensors fiables (coretemp, nct*, k10temp ; exclure NVMe qui reporte 128°C quand sensor offline).
 - **Palier 5** — `system.disk_*` multi-mountpoint : actuellement filtré en dur sur `mountpoint="/"`. Étendre avec whitelist `fstype` (ext4/xfs/btrfs/zfs) et blacklist mountpoints virtuels (tmpfs, overlayfs, procfs). Configuration exposée dans `agent.yaml`.
 - **Palier 6** — Unifier la config agent : YAML avec overrides env. Actuellement `DASHBOARD_URL` est env-only, les configs modules sont YAML-only. Pattern cible : YAML par défaut, `BIENTOT_*` env override pour le déploiement (12-factor compatible).
+- **Palier 6/7** — Stack `examples/` et `deploy/compose.dev.yml` utilisent toutes deux le port `8443` et sont mutuellement exclusives. Paramétrer le port via env var ou documenter explicitement le pattern de bascule.
 
 ## 📝 Conventions
 
