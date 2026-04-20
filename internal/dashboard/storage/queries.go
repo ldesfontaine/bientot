@@ -126,6 +126,61 @@ func (s *Storage) GetLatestMetrics(ctx context.Context, machineID string) (map[s
 	return result, nil
 }
 
+// ModuleInfo summarizes one module's metric activity for an agent.
+// Used by the dashboard to populate the "active modules" grid.
+type ModuleInfo struct {
+	Module       string
+	MetricCount  int       // distinct metric names recorded for this module
+	LastUpdateAt time.Time // most recent push that carried any metric
+}
+
+// ListModulesForAgent returns the list of distinct modules with at least
+// one metric recorded for the given agent. Ordered alphabetically.
+// Returns an empty slice (not nil) if the agent has no metrics.
+func (s *Storage) ListModulesForAgent(ctx context.Context, machineID string) ([]ModuleInfo, error) {
+	if s.db == nil {
+		return nil, fmt.Errorf("storage is closed")
+	}
+
+	rows, err := s.db.QueryContext(ctx,
+		`SELECT
+		   module,
+		   COUNT(DISTINCT name) AS metric_count,
+		   MAX(timestamp_ns)    AS last_update_ns
+		 FROM metrics
+		 WHERE machine_id = ?
+		 GROUP BY module
+		 ORDER BY module ASC`,
+		machineID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("query modules for agent: %w", err)
+	}
+	defer rows.Close()
+
+	modules := []ModuleInfo{}
+	for rows.Next() {
+		var (
+			name       string
+			count      int
+			lastUpdate int64
+		)
+		if err := rows.Scan(&name, &count, &lastUpdate); err != nil {
+			return nil, fmt.Errorf("scan module info: %w", err)
+		}
+		modules = append(modules, ModuleInfo{
+			Module:       name,
+			MetricCount:  count,
+			LastUpdateAt: time.Unix(0, lastUpdate),
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate modules: %w", err)
+	}
+
+	return modules, nil
+}
+
 // AgentExists returns true if an agent with the given machine_id has been
 // seen at least once. Fast: hits the primary key on agents.
 func (s *Storage) AgentExists(ctx context.Context, machineID string) (bool, error) {

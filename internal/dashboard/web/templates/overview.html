@@ -45,11 +45,33 @@
     </div>
   </div>
 
-  <p class="mt-8 subtle" style="font-size: var(--fs-sm);">
-    Module grid coming in feature 5.3.4.
-  </p>
+  <div class="modules-section">
+    <h2 class="section-title">Modules</h2>
+    <div class="card-row cols-4 module-grid">
+      {{range .ModuleCards}}
+        {{template "module-card" .}}
+      {{end}}
+    </div>
+  </div>
 
 </div>
+{{end}}
+
+{{define "module-card"}}
+<a href="#" class="card module-card module-{{.Status}}" aria-disabled="true" title="Module page coming later">
+  <div class="module-card-header">
+    <span class="nav-icon">
+      {{if eq .Icon "icon-activity"}}{{template "icon-activity"}}
+      {{else if eq .Icon "icon-server"}}{{template "icon-server"}}
+      {{else if eq .Icon "icon-container"}}{{template "icon-container"}}
+      {{else if eq .Icon "icon-shield-check"}}{{template "icon-shield-check"}}
+      {{end}}
+    </span>
+    <span class="module-name">{{.Name}}</span>
+    <span class="status-dot {{if eq .Status "active"}}ok{{else}}offline{{end}} module-status"></span>
+  </div>
+  <div class="module-meta">{{.Meta}}</div>
+</a>
 {{end}}
 
 {{define "kpi-card"}}

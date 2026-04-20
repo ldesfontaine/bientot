@@ -323,6 +323,130 @@ func TestGetMetricPoints_FilteredByMetricName(t *testing.T) {
 	}
 }
 
+// ─── ListModulesForAgent ─────────────────────────────────
+
+func TestListModulesForAgent_Empty(t *testing.T) {
+	s := newTestStorage(t)
+
+	modules, err := s.ListModulesForAgent(context.Background(), "vps")
+	if err != nil {
+		t.Fatalf("ListModulesForAgent: %v", err)
+	}
+	if modules == nil {
+		t.Error("expected empty slice, got nil")
+	}
+	if len(modules) != 0 {
+		t.Errorf("expected 0 modules, got %d", len(modules))
+	}
+}
+
+func TestListModulesForAgent_MultipleModules(t *testing.T) {
+	s := newTestStorage(t)
+	ctx := context.Background()
+	now := time.Now().UnixNano()
+
+	req := &bientotv1.PushRequest{
+		V:           1,
+		MachineId:   "vps",
+		TimestampNs: now,
+		Nonce:       "n1",
+		Modules: []*bientotv1.ModuleData{
+			{
+				Module:      "heartbeat",
+				TimestampNs: now,
+				Metrics:     []*bientotv1.Metric{{Name: "up", Value: 1}},
+			},
+			{
+				Module:      "system",
+				TimestampNs: now,
+				Metrics: []*bientotv1.Metric{
+					{Name: "cpu", Value: 42},
+					{Name: "memory", Value: 1024},
+					{Name: "disk", Value: 512},
+				},
+			},
+		},
+	}
+	if err := s.SavePush(ctx, req); err != nil {
+		t.Fatalf("SavePush: %v", err)
+	}
+
+	modules, err := s.ListModulesForAgent(ctx, "vps")
+	if err != nil {
+		t.Fatalf("ListModulesForAgent: %v", err)
+	}
+
+	if len(modules) != 2 {
+		t.Fatalf("expected 2 modules, got %d", len(modules))
+	}
+
+	if modules[0].Module != "heartbeat" {
+		t.Errorf("modules[0] = %q, want heartbeat", modules[0].Module)
+	}
+	if modules[0].MetricCount != 1 {
+		t.Errorf("heartbeat metric count = %d, want 1", modules[0].MetricCount)
+	}
+
+	if modules[1].Module != "system" {
+		t.Errorf("modules[1] = %q, want system", modules[1].Module)
+	}
+	if modules[1].MetricCount != 3 {
+		t.Errorf("system metric count = %d, want 3", modules[1].MetricCount)
+	}
+}
+
+func TestListModulesForAgent_CountsDistinctNames(t *testing.T) {
+	s := newTestStorage(t)
+	ctx := context.Background()
+	now := time.Now().UnixNano()
+
+	for i, nonce := range []string{"n1", "n2"} {
+		req := &bientotv1.PushRequest{
+			V:           1,
+			MachineId:   "vps",
+			TimestampNs: now + int64(i)*int64(time.Second),
+			Nonce:       nonce,
+			Modules: []*bientotv1.ModuleData{
+				{
+					Module:      "system",
+					TimestampNs: now + int64(i)*int64(time.Second),
+					Metrics:     []*bientotv1.Metric{{Name: "cpu", Value: 42}},
+				},
+			},
+		}
+		if err := s.SavePush(ctx, req); err != nil {
+			t.Fatalf("SavePush: %v", err)
+		}
+	}
+
+	modules, _ := s.ListModulesForAgent(ctx, "vps")
+	if len(modules) != 1 {
+		t.Fatalf("expected 1 module, got %d", len(modules))
+	}
+	if modules[0].MetricCount != 1 {
+		t.Errorf("distinct metric count = %d, want 1", modules[0].MetricCount)
+	}
+}
+
+func TestListModulesForAgent_IsolatedByAgent(t *testing.T) {
+	s := newTestStorage(t)
+	ctx := context.Background()
+	now := time.Now().UnixNano()
+
+	savedPush(t, s, "vps", "v1", []*bientotv1.Metric{{Name: "cpu", Value: 1}}, now)
+	savedPush(t, s, "pi", "p1", []*bientotv1.Metric{{Name: "cpu", Value: 2}}, now)
+
+	vpsModules, _ := s.ListModulesForAgent(ctx, "vps")
+	if len(vpsModules) != 1 {
+		t.Errorf("vps modules = %d, want 1", len(vpsModules))
+	}
+
+	piModules, _ := s.ListModulesForAgent(ctx, "pi")
+	if len(piModules) != 1 {
+		t.Errorf("pi modules = %d, want 1", len(piModules))
+	}
+}
+
 // ─── AgentExists ─────────────────────────────────────────
 
 func TestAgentExists_NotFound(t *testing.T) {

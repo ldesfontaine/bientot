@@ -665,3 +665,100 @@ button {
   stroke: var(--border-subtle) !important;
   stroke-dasharray: none !important;
 }
+
+
+/* ---- Modules section ------------------------------------------ */
+
+.modules-section {
+  margin-top: var(--s-8);
+}
+
+.modules-section .section-title {
+  margin-bottom: var(--s-4);
+}
+
+.card-row.cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1200px) {
+  .card-row.cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .card-row.cols-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ---- Module card ---------------------------------------------- */
+
+.module-card {
+  display: block;
+  padding: var(--s-4);
+  background: var(--bg-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  transition: border-color 120ms, background 120ms;
+  cursor: pointer;
+}
+
+.module-card:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-2);
+}
+
+.module-card.module-coming {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.module-card.module-coming:hover {
+  border-color: var(--border-subtle);
+  background: var(--bg-1);
+}
+
+.module-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-bottom: var(--s-3);
+}
+
+.module-card .nav-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-1);
+}
+
+.module-card.module-coming .nav-icon {
+  color: var(--text-3);
+}
+
+.module-card .nav-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.module-name {
+  font-weight: 500;
+  font-size: var(--fs-md);
+  color: var(--text-0);
+}
+
+.module-card.module-coming .module-name {
+  color: var(--text-2);
+}
+
+.module-status {
+  margin-left: auto;
+}
+
+.module-meta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}

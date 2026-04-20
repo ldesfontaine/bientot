@@ -7,10 +7,11 @@ import (
 
 // overviewPageData bundles everything templates/overview.html needs.
 type overviewPageData struct {
-	Title     string
-	MachineID string
-	Sidebar   *sidebarData
-	KPIs      overviewKPIs
+	Title       string
+	MachineID   string
+	Sidebar     *sidebarData
+	KPIs        overviewKPIs
+	ModuleCards []moduleCard
 }
 
 // handleOverview renders the per-machine overview page.
@@ -54,11 +55,20 @@ func (r *Router) handleOverview(w http.ResponseWriter, req *http.Request) {
 	lastPushAt := findLastPush(sidebar, machineID)
 	kpis := buildKPIs(metrics, now, lastPushAt)
 
+	activeModules, err := r.db.ListModulesForAgent(ctx, machineID)
+	if err != nil {
+		r.log.Error("list modules failed", "machine_id", machineID, "error", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	moduleCards := buildModuleCards(activeModules, now)
+
 	data := overviewPageData{
-		Title:     "Overview — " + machineID,
-		MachineID: machineID,
-		Sidebar:   sidebar,
-		KPIs:      kpis,
+		Title:       "Overview — " + machineID,
+		MachineID:   machineID,
+		Sidebar:     sidebar,
+		KPIs:        kpis,
+		ModuleCards: moduleCards,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
