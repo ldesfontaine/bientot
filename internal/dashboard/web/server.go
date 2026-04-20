@@ -9,20 +9,25 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/ldesfontaine/bientot/internal/dashboard/storage"
 )
 
 // Router wraps the dependencies needed to serve web pages.
 type Router struct {
-	db       *storage.Storage
-	log      *slog.Logger
-	renderer *renderer
+	db               *storage.Storage
+	log              *slog.Logger
+	renderer         *renderer
+	offlineThreshold time.Duration
+	version          string
 }
 
 // Config bundles the parameters needed to build the web router.
 type Config struct {
-	DevMode bool
+	DevMode          bool
+	OfflineThreshold time.Duration
+	Version          string
 }
 
 // NewRouter returns a Router holding the shared dependencies.
@@ -33,9 +38,11 @@ func NewRouter(log *slog.Logger, db *storage.Storage, cfg Config) (*Router, erro
 		return nil, fmt.Errorf("init renderer: %w", err)
 	}
 	return &Router{
-		db:       db,
-		log:      log,
-		renderer: rend,
+		db:               db,
+		log:              log,
+		renderer:         rend,
+		offlineThreshold: cfg.OfflineThreshold,
+		version:          cfg.Version,
 	}, nil
 }
 
@@ -50,6 +57,7 @@ func (r *Router) BuildHandler() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /{$}", r.handleHome)
+	mux.HandleFunc("GET /agents/{id}", r.handleOverview)
 
 	staticSub, err := fs.Sub(staticFS, "static")
 	if err != nil {

@@ -75,7 +75,11 @@ func main() {
 	})
 
 	devMode := getEnvBool("DASHBOARD_DEV_MODE", false)
-	webRouter, err := web.NewRouter(logger, db, web.Config{DevMode: devMode})
+	webRouter, err := web.NewRouter(logger, db, web.Config{
+		DevMode:          devMode,
+		OfflineThreshold: time.Duration(offlineThresholdSec) * time.Second,
+		Version:          version,
+	})
 	if err != nil {
 		logger.Error("failed to init web router", "error", err)
 		os.Exit(1)

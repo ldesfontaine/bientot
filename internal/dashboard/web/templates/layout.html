@@ -17,42 +17,38 @@
           <div class="brand-mark">B</div>
           <span class="brand-name">Bientôt</span>
         </div>
-        <span class="brand-version">0.5.0-dev</span>
+        <span class="brand-version">{{.Sidebar.Version}}</span>
       </div>
 
       <div class="sidebar-section">
         <div class="label" style="margin-bottom: var(--s-2);">Machine</div>
-        <div class="machine-switcher">
-          <span class="status-dot ok"></span>
-          <span class="mono">vps</span>
-          <span class="chevron">▾</span>
-        </div>
+        {{template "machine-switcher" .Sidebar}}
       </div>
 
       <div class="sidebar-section stretch">
         <div class="label" style="margin-bottom: var(--s-2);">Machine</div>
-        <a href="/" class="nav-item active">
+        <a href="/agents/{{.Sidebar.CurrentMachineID}}" class="nav-item active">
           <span class="nav-icon">{{template "icon-house"}}</span>
           <span>Overview</span>
         </a>
 
         <div class="label" style="margin-top: var(--s-4); margin-bottom: var(--s-2);">Modules</div>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item disabled" aria-disabled="true" title="Coming in 5.4">
           <span class="nav-icon">{{template "icon-server"}}</span>
           <span>System</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item disabled" aria-disabled="true" title="Coming in 5.4">
           <span class="nav-icon">{{template "icon-container"}}</span>
           <span>Docker</span>
         </a>
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item disabled" aria-disabled="true" title="Coming in 5.4">
           <span class="nav-icon">{{template "icon-shield-check"}}</span>
           <span>Certs</span>
         </a>
       </div>
 
       <div class="sidebar-section">
-        <a href="#" class="nav-item">
+        <a href="#" class="nav-item disabled" aria-disabled="true" title="Coming later">
           <span class="nav-icon">{{template "icon-settings"}}</span>
           <span>Config</span>
         </a>
@@ -68,4 +64,35 @@
   </div>
 </body>
 </html>
+{{end}}
+
+{{define "machine-switcher"}}
+  {{if gt (len .Machines) 1}}
+    <details class="machine-switcher-dropdown">
+      <summary class="machine-switcher">
+        {{template "machine-entry" (currentMachine .)}}
+        <span class="chevron">▾</span>
+      </summary>
+      <ul class="machine-list">
+        {{range .Machines}}
+          {{if ne .ID $.CurrentMachineID}}
+            <li>
+              <a href="/agents/{{.ID}}" class="machine-entry-link">
+                {{template "machine-entry" .}}
+              </a>
+            </li>
+          {{end}}
+        {{end}}
+      </ul>
+    </details>
+  {{else}}
+    <div class="machine-switcher machine-switcher-static">
+      {{template "machine-entry" (currentMachine .)}}
+    </div>
+  {{end}}
+{{end}}
+
+{{define "machine-entry"}}
+<span class="status-dot {{if eq .Status "online"}}ok{{else}}offline{{end}}"></span>
+<span class="mono">{{.ID}}</span>
 {{end}}

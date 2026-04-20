@@ -54,6 +54,17 @@ func (r *renderer) Render(w io.Writer, name string, data any) error {
 	return tmpl.ExecuteTemplate(w, "layout", data)
 }
 
+// RenderStandalone writes a page that doesn't use the "layout" template.
+// Used for empty/error states where the full app shell is not desired.
+// The named page must define a "standalone" block executed directly.
+func (r *renderer) RenderStandalone(w io.Writer, name string, data any) error {
+	tmpl, err := r.get(name)
+	if err != nil {
+		return err
+	}
+	return tmpl.ExecuteTemplate(w, "standalone", data)
+}
+
 // get returns the cached template or re-parses in dev mode.
 func (r *renderer) get(name string) (*template.Template, error) {
 	if r.devMode {

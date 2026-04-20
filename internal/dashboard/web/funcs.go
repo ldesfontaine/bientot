@@ -9,8 +9,27 @@ import (
 // funcMap returns the set of helper functions available in all templates.
 func funcMap() template.FuncMap {
 	return template.FuncMap{
-		"fmtDuration": fmtDuration,
+		"fmtDuration":    fmtDuration,
+		"currentMachine": currentMachine,
 	}
+}
+
+// currentMachine returns the sidebarMachine matching sidebar.CurrentMachineID.
+// Falls back to the first machine if not found, then to a zero value.
+// Defensive — handlers should always pass a valid CurrentMachineID.
+func currentMachine(sidebar *sidebarData) sidebarMachine {
+	if sidebar == nil {
+		return sidebarMachine{}
+	}
+	for _, m := range sidebar.Machines {
+		if m.ID == sidebar.CurrentMachineID {
+			return m
+		}
+	}
+	if len(sidebar.Machines) > 0 {
+		return sidebar.Machines[0]
+	}
+	return sidebarMachine{}
 }
 
 // fmtDuration formats a time.Duration as "2d 14h 22m", "3h 08m", "45s".

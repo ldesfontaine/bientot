@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestRenderer_ProdMode_ParsesAtStartup(t *testing.T) {
@@ -21,29 +20,52 @@ func TestRenderer_DevMode_ParsesLazily(t *testing.T) {
 	}
 }
 
-func TestRenderer_RendersHome(t *testing.T) {
+func TestRenderer_RendersOverview(t *testing.T) {
 	r, err := newRenderer(false)
 	if err != nil {
 		t.Fatalf("newRenderer: %v", err)
 	}
 
 	var buf bytes.Buffer
-	data := homePageData{
-		Title:      "Test",
-		Subtitle:   "Sub",
-		UptimeFake: 3 * time.Hour,
-		RenderedAt: "12:00:00",
+	data := overviewPageData{
+		Title: "Overview — vps",
+		Sidebar: &sidebarData{
+			CurrentMachineID: "vps",
+			Machines:         []sidebarMachine{{ID: "vps", Status: "online"}},
+			Version:          "test",
+		},
 	}
-	if err := r.Render(&buf, "home", data); err != nil {
+	if err := r.Render(&buf, "overview", data); err != nil {
 		t.Fatalf("Render: %v", err)
 	}
 
 	body := buf.String()
-	if !strings.Contains(body, "Test") {
+	if !strings.Contains(body, "Overview — vps") {
 		t.Error("body should contain Title")
 	}
-	if !strings.Contains(body, "3h 00m") {
-		t.Error("body should contain formatted UptimeFake")
+	if !strings.Contains(body, "vps") {
+		t.Error("body should contain machine ID in sidebar")
+	}
+}
+
+func TestRenderer_RendersStandalone(t *testing.T) {
+	r, err := newRenderer(false)
+	if err != nil {
+		t.Fatalf("newRenderer: %v", err)
+	}
+
+	var buf bytes.Buffer
+	data := struct{ Title string }{Title: "No agents"}
+	if err := r.RenderStandalone(&buf, "no_agents", data); err != nil {
+		t.Fatalf("RenderStandalone: %v", err)
+	}
+
+	body := buf.String()
+	if !strings.Contains(body, "No agents yet") {
+		t.Error("body should contain empty-state title")
+	}
+	if strings.Contains(body, "app-shell") {
+		t.Error("standalone should not include the layout's app-shell")
 	}
 }
 

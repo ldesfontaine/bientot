@@ -2,31 +2,40 @@ package web
 
 import (
 	"net/http"
-	"time"
 )
 
-// homePageData is the struct passed to the home template.
-type homePageData struct {
-	Title      string
-	Subtitle   string
-	UptimeFake time.Duration
-	RenderedAt string
-}
-
-// handleHome renders the placeholder home page.
-// Will be rewritten in 5.3 to redirect to /agents/{firstMachine}.
-func (r *Router) handleHome(w http.ResponseWriter, _ *http.Request) {
-	data := homePageData{
-		Title:      "Home",
-		Subtitle:   "Placeholder page — layout scaffolding only",
-		UptimeFake: 2*24*time.Hour + 14*time.Hour + 22*time.Minute,
-		RenderedAt: time.Now().UTC().Format("15:04:05"),
+// handleHome routes to the appropriate landing page:
+//   - If no agents exist, render the empty-state page
+//   - Otherwise redirect to the first agent's overview (alphabetical)
+//
+// Route: GET /
+func (r *Router) handleHome(w http.ResponseWriter, req *http.Request) {
+	firstID, err := r.firstMachineID(req.Context())
+	if err != nil {
+		r.log.Error("load first machine failed", "error", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
 	}
 
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if err := r.renderer.Render(w, "home", data); err != nil {
-		r.log.Error("render home failed", "error", err)
-		http.Error(w, "template error", http.StatusInternalServerError)
+	if firstID == "" {
+		r.renderNoAgents(w, req)
 		return
+	}
+
+	http.Redirect(w, req, "/agents/"+firstID, http.StatusSeeOther)
+}
+
+// renderNoAgents renders the empty-state page shown when the dashboard
+// has never seen a push.
+func (r *Router) renderNoAgents(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	data := struct {
+		Title string
+	}{Title: "No agents"}
+
+	if err := r.renderer.RenderStandalone(w, "no_agents", data); err != nil {
+		r.log.Error("render no_agents failed", "error", err)
+		http.Error(w, "template error", http.StatusInternalServerError)
 	}
 }

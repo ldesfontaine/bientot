@@ -1,0 +1,34 @@
+{{define "standalone"}}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} — Bientôt</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <div class="empty-state">
+    <div class="empty-state-card">
+      <div class="brand-mark" style="width: 48px; height: 48px; font-size: 24px; margin: 0 auto var(--s-4);">B</div>
+      <h1 class="page-title" style="text-align: center;">No agents yet</h1>
+      <p class="muted" style="text-align: center; margin-bottom: var(--s-6);">
+        Bientôt hasn't seen any agent push data yet. Deploy an agent and it will appear here automatically.
+      </p>
+
+      <div class="label" style="margin-bottom: var(--s-2);">Quick start</div>
+      <pre class="code-block">
+# On your target machine
+docker run -d \
+  --name bientot-agent \
+  -v /path/to/certs:/certs \
+  -v /path/to/config.yaml:/etc/bientot/config.yaml \
+  ghcr.io/ldesfontaine/bientot-agent:latest
+</pre>
+      <p class="subtle" style="margin-top: var(--s-4); font-size: var(--fs-sm);">
+        Push interval is 30s by default. Check this page after your first push cycle.
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+{{end}}
