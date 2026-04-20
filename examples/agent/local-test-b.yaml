@@ -1,0 +1,20 @@
+machine_id: local-test-b
+
+dashboard:
+  url: https://host.docker.internal:8443
+  server_name: dashboard
+  cert: /etc/bientot/certs/client.crt
+  key: /etc/bientot/certs/client.key
+  ca_bundle: /etc/bientot/certs/ca-bundle.crt
+
+signing_key: /etc/bientot/keys/signing.key
+push_interval: 30s
+
+modules:
+  - type: heartbeat
+    enabled: true
+
+  - type: system
+    enabled: true
+    config:
+      node_exporter_url: http://node-exporter:9100

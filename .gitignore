@@ -14,6 +14,8 @@ bin/
 
 # ─── Certificats et secrets (CRITIQUE) ───
 deploy/certs/
+examples/test-certs/*
+!examples/test-certs/.gitkeep
 *.pem
 *.crt
 *.key
@@ -22,6 +24,9 @@ deploy/certs/
 .env
 *.env
 !.env.example
+
+# ─── Journaux de déploiement (raw notes, transcrits dans docs/) ───
+deployment-notes.md
 
 # ─── Bases de données locales ───
 *.db

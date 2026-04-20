@@ -1,0 +1,55 @@
+# examples/agent/compose.yml
+# Template d'un agent. Lancé avec MACHINE_ID=<name> et un project-name
+# distinct pour simuler plusieurs agents en parallèle.
+#
+# Exemple pour 2 agents simulés :
+#   MACHINE_ID=local-test-a docker compose -f examples/agent/compose.yml \
+#     --project-directory examples/agent -p agent-a up
+#   MACHINE_ID=local-test-b docker compose -f examples/agent/compose.yml \
+#     --project-directory examples/agent -p agent-b up
+#
+# Sur une vraie machine en prod, un seul agent tourne — tu copies juste
+# ce compose.yml, ton agent.yaml et tes certs, puis `docker compose up`.
+
+services:
+  agent:
+    image: ghcr.io/ldesfontaine/bientot-agent:0.1.0
+    container_name: bientot-agent-${MACHINE_ID:?MACHINE_ID is required}
+    restart: unless-stopped
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      BIENTOT_CONFIG: /etc/bientot/agent.yaml
+    volumes:
+      - ../test-certs/${MACHINE_ID}/client.crt:/etc/bientot/certs/client.crt:ro
+      - ../test-certs/${MACHINE_ID}/client.key:/etc/bientot/certs/client.key:ro
+      - ../test-certs/${MACHINE_ID}/ca-bundle.crt:/etc/bientot/certs/ca-bundle.crt:ro
+      - ../test-certs/${MACHINE_ID}/signing.key:/etc/bientot/keys/signing.key:ro
+      - ./${MACHINE_ID}.yaml:/etc/bientot/agent.yaml:ro
+    depends_on:
+      - node-exporter
+    networks:
+      - bientot-agent
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: bientot-node-exporter-${MACHINE_ID:?MACHINE_ID is required}
+    restart: unless-stopped
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--web.listen-address=:9100'
+    networks:
+      - bientot-agent
+
+networks:
+  bientot-agent:
+    driver: bridge

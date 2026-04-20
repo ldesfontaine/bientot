@@ -1,0 +1,58 @@
+# examples/server/compose.yml
+# Simule la "machine dashboard" en local. Contient la CA interne (step-ca)
+# et le dashboard qui reçoit les pushes signés des agents.
+#
+# Images :
+#   - smallstep/step-ca pour la CA (même version que compose.dev.yml)
+#   - ghcr.io/ldesfontaine/bientot-dashboard:0.1.0 (release publiée)
+#
+# Ordre de démarrage (cf. examples/README.md) :
+#   1. up -d step-ca
+#   2. ../../examples/generate-test-certs.sh
+#   3. up -d dashboard
+
+services:
+  step-ca:
+    image: smallstep/step-ca:0.27.5
+    container_name: bientot-step-ca-example
+    restart: unless-stopped
+    environment:
+      DOCKER_STEPCA_INIT_NAME: Bientot Example CA
+      DOCKER_STEPCA_INIT_DNS_NAMES: step-ca,localhost
+      DOCKER_STEPCA_INIT_PROVISIONER_NAME: bientot
+      DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT: "true"
+      DOCKER_STEPCA_INIT_PASSWORD: ${STEP_CA_PASSWORD:?STEP_CA_PASSWORD is required, see .env.example}
+    volumes:
+      - step-data-example:/home/step
+    networks:
+      - bientot-example
+
+  dashboard:
+    image: ghcr.io/ldesfontaine/bientot-dashboard:0.1.0
+    container_name: bientot-dashboard-example
+    restart: unless-stopped
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    ports:
+      - "8443:8443"
+    environment:
+      # Explicités même s'ils matchent les defaults du binaire, pour
+      # auto-documentation et robustesse à un changement futur des defaults.
+      DASHBOARD_ADDR: ":8443"
+      DASHBOARD_CERT: /etc/bientot/certs/server.crt
+      DASHBOARD_KEY: /etc/bientot/certs/server.key
+      DASHBOARD_CA_BUNDLE: /etc/bientot/certs/ca-bundle.crt
+      DASHBOARD_AGENT_KEYS: /etc/bientot/agent-keys
+    volumes:
+      - ../test-certs/dashboard/server.crt:/etc/bientot/certs/server.crt:ro
+      - ../test-certs/dashboard/server.key:/etc/bientot/certs/server.key:ro
+      - ../test-certs/dashboard/ca-bundle.crt:/etc/bientot/certs/ca-bundle.crt:ro
+      - ../test-certs/dashboard/agent-keys:/etc/bientot/agent-keys:ro
+    networks:
+      - bientot-example
+
+networks:
+  bientot-example:
+    driver: bridge
+
+volumes:
+  step-data-example:
