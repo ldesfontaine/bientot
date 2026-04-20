@@ -15,6 +15,7 @@ import (
 
 	bientotv1 "github.com/ldesfontaine/bientot/api/v1/gen/v1"
 	"github.com/ldesfontaine/bientot/internal/dashboard/nonce"
+	"github.com/ldesfontaine/bientot/internal/dashboard/storage"
 	"github.com/ldesfontaine/bientot/internal/shared/crypto"
 	"github.com/ldesfontaine/bientot/internal/shared/keys"
 	"github.com/ldesfontaine/bientot/internal/shared/mtls"
@@ -36,16 +37,18 @@ type Server struct {
 	agentKeys string
 	pubKeys   map[string]ed25519.PublicKey
 	nonces    *nonce.Cache
+	db        *storage.Storage
 	log       *slog.Logger
 }
 
-func New(log *slog.Logger, addr, certPath, keyPath, caPath, agentKeysDir string) *Server {
+func New(log *slog.Logger, addr, certPath, keyPath, caPath, agentKeysDir string, db *storage.Storage) *Server {
 	return &Server{
 		addr:      addr,
 		cert:      certPath,
 		key:       keyPath,
 		caCerts:   caPath,
 		agentKeys: agentKeysDir,
+		db:        db,
 		log:       log,
 	}
 }
@@ -181,6 +184,12 @@ func (s *Server) handlePush(w http.ResponseWriter, r *http.Request) {
 	if !s.nonces.CheckAndAdd(req.Nonce, time.Now()) {
 		s.log.Warn("replay detected", "nonce", req.Nonce, "machine_id", req.MachineId)
 		http.Error(w, "replay detected", http.StatusConflict)
+		return
+	}
+
+	if err := s.db.SavePush(r.Context(), &req); err != nil {
+		s.log.Error("save push failed", "machine_id", req.MachineId, "error", err)
+		http.Error(w, "storage error", http.StatusInternalServerError)
 		return
 	}
 

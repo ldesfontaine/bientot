@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	dashboardsrv "github.com/ldesfontaine/bientot/internal/dashboard"
+	"github.com/ldesfontaine/bientot/internal/dashboard/storage"
 )
 
 var (
@@ -31,6 +32,19 @@ func main() {
 	key := getEnv("DASHBOARD_KEY", "/etc/bientot/certs/server.key")
 	ca := getEnv("DASHBOARD_CA_BUNDLE", "/etc/bientot/certs/ca-bundle.crt")
 	agentKeys := getEnv("DASHBOARD_AGENT_KEYS", "/etc/bientot/agent-keys")
+	dbPath := getEnv("BIENTOT_DB_PATH", "/data/dashboard.db")
+
+	db, err := storage.Open(dbPath)
+	if err != nil {
+		logger.Error("failed to open storage", "path", dbPath, "error", err)
+		os.Exit(1)
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.Error("error closing storage", "error", err)
+		}
+	}()
+	logger.Info("storage opened", "path", dbPath)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -43,7 +57,7 @@ func main() {
 		cancel()
 	}()
 
-	s := dashboardsrv.New(logger, addr, cert, key, ca, agentKeys)
+	s := dashboardsrv.New(logger, addr, cert, key, ca, agentKeys, db)
 	if err := s.Run(ctx); err != nil {
 		logger.Error("dashboard failed", "err", err)
 		os.Exit(1)

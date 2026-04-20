@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	bientotv1 "github.com/ldesfontaine/bientot/api/v1/gen/v1"
+	"github.com/ldesfontaine/bientot/internal/dashboard/storage"
 	"github.com/ldesfontaine/bientot/internal/shared/crypto"
 	"github.com/ldesfontaine/bientot/internal/shared/keys"
 )
@@ -59,8 +61,14 @@ func testSetup(t *testing.T) (baseURL string, signKey ed25519.PrivateKey, httpCl
 	addr := listener.Addr().String()
 	listener.Close()
 
+	db, err := storage.Open(filepath.Join(t.TempDir(), "test.db"))
+	if err != nil {
+		t.Fatalf("open storage: %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	srv := New(logger, addr, testServerCertPath, testServerKeyPath, testServerCAPath, testAgentKeysDir)
+	srv := New(logger, addr, testServerCertPath, testServerKeyPath, testServerCAPath, testAgentKeysDir, db)
 
 	serverCtx, serverCancel := context.WithCancel(context.Background())
 	serverDone := make(chan struct{})

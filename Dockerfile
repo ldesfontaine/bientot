@@ -24,6 +24,7 @@ ENTRYPOINT ["/usr/local/bin/bientot-agent"]
 
 FROM alpine:3.20 AS dashboard
 RUN adduser -D -u 10001 bientot
+RUN mkdir -p /data && chown 1000:1000 /data
 COPY --from=builder /out/bientot-dashboard /usr/local/bin/
 USER bientot
 ENTRYPOINT ["/usr/local/bin/bientot-dashboard"]
