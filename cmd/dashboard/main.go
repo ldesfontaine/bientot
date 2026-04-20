@@ -5,9 +5,14 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
+	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	dashboardsrv "github.com/ldesfontaine/bientot/internal/dashboard"
+	"github.com/ldesfontaine/bientot/internal/dashboard/api"
 	"github.com/ldesfontaine/bientot/internal/dashboard/storage"
 )
 
@@ -33,6 +38,8 @@ func main() {
 	ca := getEnv("DASHBOARD_CA_BUNDLE", "/etc/bientot/certs/ca-bundle.crt")
 	agentKeys := getEnv("DASHBOARD_AGENT_KEYS", "/etc/bientot/agent-keys")
 	dbPath := getEnv("BIENTOT_DB_PATH", "/data/dashboard.db")
+	webAddr := getEnv("DASHBOARD_WEB_ADDR", "0.0.0.0:8080")
+	offlineThresholdSec := getEnvInt("OFFLINE_THRESHOLD_SECONDS", 120)
 
 	db, err := storage.Open(dbPath)
 	if err != nil {
@@ -57,9 +64,24 @@ func main() {
 		cancel()
 	}()
 
-	s := dashboardsrv.New(logger, addr, cert, key, ca, agentKeys, db)
-	if err := s.Run(ctx); err != nil {
-		logger.Error("dashboard failed", "err", err)
+	mtlsServer := dashboardsrv.New(logger, addr, cert, key, ca, agentKeys, db)
+	apiServer := api.New(logger, db, api.Config{
+		Addr:             webAddr,
+		OfflineThreshold: time.Duration(offlineThresholdSec) * time.Second,
+	})
+
+	group, groupCtx := errgroup.WithContext(ctx)
+
+	group.Go(func() error {
+		return mtlsServer.Run(groupCtx)
+	})
+
+	group.Go(func() error {
+		return apiServer.Run(groupCtx)
+	})
+
+	if err := group.Wait(); err != nil {
+		logger.Error("server exited with error", "error", err)
 		os.Exit(1)
 	}
 
@@ -71,4 +93,16 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func getEnvInt(key string, def int) int {
+	v := os.Getenv(key)
+	if v == "" {
+		return def
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil {
+		return def
+	}
+	return n
 }

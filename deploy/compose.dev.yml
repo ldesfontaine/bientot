@@ -24,8 +24,11 @@ services:
     user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     ports:
       - "8443:8443"
+      - "8080:8080"
     environment:
       BIENTOT_DB_PATH: /data/dashboard.db
+      DASHBOARD_WEB_ADDR: 0.0.0.0:8080
+      OFFLINE_THRESHOLD_SECONDS: "120"
     volumes:
       - ./deploy/certs/dashboard/server.crt:/etc/bientot/certs/server.crt:ro
       - ./deploy/certs/dashboard/server.key:/etc/bientot/certs/server.key:ro
