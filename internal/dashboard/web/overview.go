@@ -5,16 +5,15 @@ import (
 	"time"
 )
 
-// overviewPageData bundles the data rendered by templates/overview.html.
-// For 5.3.1, only sidebar data is real — KPIs come in 5.3.2.
+// overviewPageData bundles everything templates/overview.html needs.
 type overviewPageData struct {
-	Title   string
-	Sidebar *sidebarData
+	Title     string
+	MachineID string
+	Sidebar   *sidebarData
+	KPIs      overviewKPIs
 }
 
 // handleOverview renders the per-machine overview page.
-// Returns 404 if the machine ID is unknown.
-//
 // Route: GET /agents/{id}
 func (r *Router) handleOverview(w http.ResponseWriter, req *http.Request) {
 	machineID := req.PathValue("id")
@@ -23,7 +22,9 @@ func (r *Router) handleOverview(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	exists, err := r.db.AgentExists(req.Context(), machineID)
+	ctx := req.Context()
+
+	exists, err := r.db.AgentExists(ctx, machineID)
 	if err != nil {
 		r.log.Error("check agent existence failed", "machine_id", machineID, "error", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
@@ -34,16 +35,30 @@ func (r *Router) handleOverview(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	sidebar, err := r.buildSidebar(req.Context(), machineID, time.Now())
+	now := time.Now()
+
+	sidebar, err := r.buildSidebar(ctx, machineID, now)
 	if err != nil {
 		r.log.Error("build sidebar failed", "error", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
 
+	metrics, err := r.db.GetLatestMetrics(ctx, machineID)
+	if err != nil {
+		r.log.Error("load metrics failed", "machine_id", machineID, "error", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	lastPushAt := findLastPush(sidebar, machineID)
+	kpis := buildKPIs(metrics, now, lastPushAt)
+
 	data := overviewPageData{
-		Title:   "Overview — " + machineID,
-		Sidebar: sidebar,
+		Title:     "Overview — " + machineID,
+		MachineID: machineID,
+		Sidebar:   sidebar,
+		KPIs:      kpis,
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -51,4 +66,15 @@ func (r *Router) handleOverview(w http.ResponseWriter, req *http.Request) {
 		r.log.Error("render overview failed", "machine_id", machineID, "error", err)
 		http.Error(w, "template error", http.StatusInternalServerError)
 	}
+}
+
+// findLastPush reads LastPushAt directly from the already-loaded sidebar
+// data, avoiding a second DB query.
+func findLastPush(sidebar *sidebarData, machineID string) time.Time {
+	for _, m := range sidebar.Machines {
+		if m.ID == machineID {
+			return m.LastPushAt
+		}
+	}
+	return time.Time{}
 }

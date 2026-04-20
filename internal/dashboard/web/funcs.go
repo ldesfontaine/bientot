@@ -9,9 +9,62 @@ import (
 // funcMap returns the set of helper functions available in all templates.
 func funcMap() template.FuncMap {
 	return template.FuncMap{
-		"fmtDuration":    fmtDuration,
-		"currentMachine": currentMachine,
+		"fmtDuration":         fmtDuration,
+		"fmtBytes":            fmtBytes,
+		"fmtPercent":          fmtPercent,
+		"fmtRelativeDuration": fmtRelativeDuration,
+		"currentMachine":      currentMachine,
 	}
+}
+
+// fmtBytes formats a byte count with SI decimal units, calibrated for dashboard
+// display: < 1 MB → "NNN KB", < 1 GB → "NNN.N MB", < 1 TB → "NNN.N GB",
+// else "NN.NN TB". Decimal units (1 GB = 10^9 bytes), matching `df --si`.
+// Negative input returns "—".
+func fmtBytes(b int64) string {
+	if b < 0 {
+		return "—"
+	}
+	const (
+		kb = 1_000
+		mb = 1_000_000
+		gb = 1_000_000_000
+		tb = 1_000_000_000_000
+	)
+	switch {
+	case b < mb:
+		return fmt.Sprintf("%.0f KB", float64(b)/kb)
+	case b < gb:
+		return fmt.Sprintf("%.1f MB", float64(b)/mb)
+	case b < tb:
+		return fmt.Sprintf("%.1f GB", float64(b)/gb)
+	default:
+		return fmt.Sprintf("%.2f TB", float64(b)/tb)
+	}
+}
+
+// fmtPercent formats a float as "NN%" with 0 decimals. Negative returns "—".
+func fmtPercent(pct float64) string {
+	if pct < 0 {
+		return "—"
+	}
+	return fmt.Sprintf("%.0f%%", pct)
+}
+
+// fmtRelativeDuration formats a positive duration as "Xs ago" / "Xm ago" /
+// "Xh Xm ago". Negative duration returns "—" (timestamp in the future is
+// a bug we don't mask).
+func fmtRelativeDuration(d time.Duration) string {
+	if d < 0 {
+		return "—"
+	}
+	if d < time.Minute {
+		return fmt.Sprintf("%ds ago", int(d.Seconds()))
+	}
+	if d < time.Hour {
+		return fmt.Sprintf("%dm ago", int(d.Minutes()))
+	}
+	return fmtDuration(d) + " ago"
 }
 
 // currentMachine returns the sidebarMachine matching sidebar.CurrentMachineID.

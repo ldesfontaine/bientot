@@ -6,9 +6,13 @@ import (
 )
 
 // sidebarMachine is the representation of one machine in the sidebar.
+// LastPushAt and FirstSeenAt are exposed so page handlers can reuse the
+// same data (e.g. overview's Last push KPI) without re-querying storage.
 type sidebarMachine struct {
-	ID     string
-	Status string // "online" | "offline"
+	ID          string
+	Status      string // "online" | "offline"
+	LastPushAt  time.Time
+	FirstSeenAt time.Time
 }
 
 // sidebarData is the common set of data every authenticated page needs
@@ -38,8 +42,10 @@ func (r *Router) buildSidebar(ctx context.Context, currentID string, now time.Ti
 			status = "offline"
 		}
 		machines = append(machines, sidebarMachine{
-			ID:     a.MachineID,
-			Status: status,
+			ID:          a.MachineID,
+			Status:      status,
+			LastPushAt:  a.LastPushAt,
+			FirstSeenAt: a.FirstSeenAt,
 		})
 	}
 

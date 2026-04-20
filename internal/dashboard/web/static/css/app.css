@@ -487,3 +487,77 @@ button {
   white-space: pre-wrap;
   overflow-x: auto;
 }
+
+
+/* ---- Topbar (breadcrumb only for now) ------------------------- */
+
+.topbar {
+  margin-bottom: var(--s-4);
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-sm);
+}
+
+.breadcrumb-item {
+  color: var(--text-1);
+}
+
+.breadcrumb-current {
+  color: var(--text-0);
+}
+
+.breadcrumb-separator {
+  color: var(--text-3);
+}
+
+
+/* ---- Page title (machine id in big mono) ---------------------- */
+
+.page-title.mono {
+  font-size: var(--fs-3xl);
+  letter-spacing: -0.03em;
+}
+
+
+/* ---- KPI card variants ---------------------------------------- */
+
+.kpi-card.kpi-missing .kpi-value {
+  color: var(--text-3);
+}
+
+.kpi-card.kpi-warn {
+  border-color: var(--warn-border);
+  background: var(--warn-bg);
+}
+
+.kpi-card.kpi-warn .kpi-value {
+  color: var(--warn);
+}
+
+.kpi-card.kpi-crit {
+  border-color: var(--crit-border);
+  background: var(--crit-bg);
+}
+
+.kpi-card.kpi-crit .kpi-value {
+  color: var(--crit);
+}
+
+
+/* ---- Responsive grid breakdown -------------------------------- */
+
+@media (max-width: 1200px) {
+  .card-row.cols-6 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 700px) {
+  .card-row.cols-6 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
