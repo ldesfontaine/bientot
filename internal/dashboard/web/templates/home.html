@@ -1,26 +1,35 @@
 {{define "content"}}
-<div class="p-8">
-  <h1 class="text-2xl font-semibold mb-2">{{.Title}}</h1>
-  <p class="muted mb-6">{{.Subtitle}}</p>
+<div>
+  <h1 class="page-title">{{.Title}}</h1>
+  <p class="page-subtitle">{{.Subtitle}}</p>
 
-  <div class="grid grid-cols-3 gap-4">
-    <div class="p-4 bg-[#101317] border border-[#1c2028] rounded">
-      <div class="label-uppercase mb-2">Status</div>
-      <div class="text-xl font-medium">Online</div>
+  <div class="card-row cols-3">
+    <div class="card kpi-card">
+      <div class="kpi-label">
+        <span class="label">Status</span>
+      </div>
+      <div class="kpi-value" style="color: var(--ok);">Online</div>
+      <div class="kpi-meta">updated just now</div>
     </div>
 
-    <div class="p-4 bg-[#101317] border border-[#1c2028] rounded">
-      <div class="label-uppercase mb-2">Uptime (placeholder)</div>
-      <div class="text-xl font-medium">{{fmtDuration .UptimeFake}}</div>
+    <div class="card kpi-card">
+      <div class="kpi-label">
+        <span class="label">Uptime (placeholder)</span>
+      </div>
+      <div class="kpi-value">{{fmtDuration .UptimeFake}}</div>
+      <div class="kpi-meta">hardcoded until 5.3</div>
     </div>
 
-    <div class="p-4 bg-[#101317] border border-[#1c2028] rounded">
-      <div class="label-uppercase mb-2">Rendered at</div>
-      <div class="text-xl font-medium">{{.RenderedAt}}</div>
+    <div class="card kpi-card">
+      <div class="kpi-label">
+        <span class="label">Rendered at</span>
+      </div>
+      <div class="kpi-value mono">{{.RenderedAt}}</div>
+      <div class="kpi-meta">server time (UTC)</div>
     </div>
   </div>
 
-  <p class="mt-8 muted text-sm">
+  <p class="mt-8 subtle" style="font-size: var(--fs-sm);">
     This is a placeholder page. Real data will be wired up in feature 5.3.
   </p>
 </div>

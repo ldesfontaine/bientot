@@ -100,3 +100,64 @@ func TestStatic_UnknownFile_404(t *testing.T) {
 		t.Errorf("status = %d, want 404", rec.Code)
 	}
 }
+
+func TestStatic_CSSServed(t *testing.T) {
+	r := newTestRouter(t)
+
+	rec := doRequest(t, r, http.MethodGet, "/static/css/app.css")
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("status = %d, want 200", rec.Code)
+	}
+
+	ct := rec.Header().Get("Content-Type")
+	if !strings.Contains(ct, "text/css") {
+		t.Errorf("Content-Type = %q, want text/css", ct)
+	}
+
+	body := rec.Body.String()
+	if !strings.Contains(body, "--bg-0") {
+		t.Error("CSS should contain token --bg-0")
+	}
+	if !strings.Contains(body, "Geist") {
+		t.Error("CSS should reference Geist font")
+	}
+}
+
+func TestStatic_FontsServed(t *testing.T) {
+	r := newTestRouter(t)
+
+	fonts := []string{
+		"/static/fonts/Geist-Variable.woff2",
+		"/static/fonts/GeistMono-Variable.woff2",
+	}
+	for _, f := range fonts {
+		rec := doRequest(t, r, http.MethodGet, f)
+		if rec.Code != http.StatusOK {
+			t.Errorf("%s: status = %d, want 200", f, rec.Code)
+		}
+		if rec.Body.Len() < 10_000 {
+			t.Errorf("%s: body too small (%d bytes), expected valid WOFF2", f, rec.Body.Len())
+		}
+	}
+}
+
+func TestHome_UsesTokens(t *testing.T) {
+	r := newTestRouter(t)
+
+	rec := doRequest(t, r, http.MethodGet, "/")
+	body := rec.Body.String()
+
+	if strings.Contains(body, "tailwindcss") || strings.Contains(body, "jsdelivr") {
+		t.Error("HTML should not reference Tailwind/jsdelivr anymore")
+	}
+	if !strings.Contains(body, `href="/static/css/app.css"`) {
+		t.Error("HTML should link /static/css/app.css")
+	}
+	classes := []string{"app-shell", "sidebar", "brand", "nav-item", "card"}
+	for _, c := range classes {
+		if !strings.Contains(body, c) {
+			t.Errorf("HTML should use class %q", c)
+		}
+	}
+}

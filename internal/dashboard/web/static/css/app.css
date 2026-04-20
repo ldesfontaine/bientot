@@ -1,0 +1,384 @@
+/* ================================================================
+   Bientôt — app.css
+   Single stylesheet: design tokens + base + components.
+   All tokens sourced from design/design-tokens.md.
+   ================================================================ */
+
+
+/* ---- Fonts ---------------------------------------------------- */
+
+@font-face {
+  font-family: 'Geist';
+  src: url('/static/fonts/Geist-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/static/fonts/GeistMono-Variable.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+
+/* ---- Tokens --------------------------------------------------- */
+
+:root {
+  /* Backgrounds */
+  --bg-0: #0b0d10;
+  --bg-1: #101317;
+  --bg-2: #161a20;
+  --bg-3: #1d2229;
+
+  /* Borders */
+  --border-subtle: #1c2028;
+  --border: #232832;
+  --border-strong: #2e3440;
+
+  /* Text */
+  --text-0: #e6e8eb;
+  --text-1: #a8adb6;
+  --text-2: #6b727d;
+  --text-3: #4a5059;
+
+  /* Accent — teal */
+  --accent:         oklch(72% 0.09 195);
+  --accent-dim:     oklch(60% 0.08 195);
+  --accent-bg:      oklch(72% 0.09 195 / 0.12);
+  --accent-border:  oklch(72% 0.09 195 / 0.28);
+
+  /* Semantic — ok */
+  --ok:         oklch(72% 0.15 150);
+  --ok-bg:      oklch(72% 0.15 150 / 0.12);
+  --ok-border:  oklch(72% 0.15 150 / 0.3);
+
+  /* Semantic — warn */
+  --warn:         oklch(80% 0.14 80);
+  --warn-bg:      oklch(80% 0.14 80 / 0.12);
+  --warn-border:  oklch(80% 0.14 80 / 0.3);
+
+  /* Semantic — crit */
+  --crit:         oklch(66% 0.19 25);
+  --crit-bg:      oklch(66% 0.19 25 / 0.14);
+  --crit-border:  oklch(66% 0.19 25 / 0.32);
+
+  /* Offline / muted */
+  --muted-dot: #4a5059;
+
+  /* Typography */
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --fs-xs:   11px;
+  --fs-sm:   12px;
+  --fs-base: 13px;
+  --fs-md:   14px;
+  --fs-lg:   16px;
+  --fs-xl:   20px;
+  --fs-2xl:  24px;
+  --fs-3xl:  32px;
+
+  --lh-tight:  1.2;
+  --lh-normal: 1.45;
+
+  /* Spacing */
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  20px;
+  --s-6:  24px;
+  --s-8:  32px;
+  --s-10: 40px;
+  --s-12: 48px;
+
+  /* Radius */
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 8px;
+  --r-xl: 10px;
+
+  /* Layout */
+  --sidebar-w: 232px;
+  --topbar-h: 48px;
+}
+
+
+/* ---- Base reset ----------------------------------------------- */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-base);
+  line-height: var(--lh-normal);
+  color: var(--text-0);
+  background: var(--bg-0);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01", "ss03";
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+
+/* ---- Typography utilities ------------------------------------- */
+
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "zero", "ss01";
+}
+
+.label {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.muted { color: var(--text-1); }
+.subtle { color: var(--text-2); }
+
+
+/* ---- Layout --------------------------------------------------- */
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg-1);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.main {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--s-8);
+}
+
+
+/* ---- Sidebar sections ----------------------------------------- */
+
+.sidebar-section {
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sidebar-section:last-child {
+  border-bottom: none;
+}
+
+.sidebar-section.stretch {
+  flex: 1;
+  border-bottom: none;
+}
+
+
+/* ---- Brand ---------------------------------------------------- */
+
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-4);
+}
+
+.brand-left {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.brand-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-md);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bg-0);
+  font-weight: 700;
+  font-size: var(--fs-md);
+}
+
+.brand-name {
+  font-weight: 600;
+  font-size: var(--fs-md);
+}
+
+.brand-version {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-2);
+}
+
+
+/* ---- Status dot ----------------------------------------------- */
+
+.status-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.ok      { background: var(--ok); }
+.status-dot.warn    { background: var(--warn); }
+.status-dot.crit    { background: var(--crit); }
+.status-dot.offline { background: var(--muted-dot); }
+
+
+/* ---- Machine switcher (sidebar) ------------------------------- */
+
+.machine-switcher {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.machine-switcher:hover {
+  border-color: var(--border-strong);
+}
+
+.machine-switcher .chevron {
+  margin-left: auto;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+
+
+/* ---- Sidebar nav items ---------------------------------------- */
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-md);
+  color: var(--text-1);
+  font-size: var(--fs-base);
+  margin-bottom: 2px;
+}
+
+.nav-item:hover {
+  background: var(--bg-2);
+  color: var(--text-0);
+}
+
+.nav-item.active {
+  background: var(--bg-3);
+  color: var(--text-0);
+  font-weight: 500;
+}
+
+.nav-item .nav-icon {
+  width: 16px;
+  color: var(--text-2);
+  flex-shrink: 0;
+}
+
+
+/* ---- Cards ---------------------------------------------------- */
+
+.card {
+  background: var(--bg-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  padding: var(--s-4);
+}
+
+.card-row {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.card-row.cols-3 { grid-template-columns: repeat(3, 1fr); }
+.card-row.cols-6 { grid-template-columns: repeat(6, 1fr); }
+
+@media (max-width: 900px) {
+  .card-row.cols-3,
+  .card-row.cols-6 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.kpi-card .kpi-label {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-bottom: var(--s-3);
+}
+
+.kpi-card .kpi-value {
+  font-family: var(--font-mono);
+  font-size: var(--fs-2xl);
+  font-weight: 500;
+  line-height: var(--lh-tight);
+  letter-spacing: -0.02em;
+}
+
+.kpi-card .kpi-meta {
+  margin-top: var(--s-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+}
+
+
+/* ---- Page header ---------------------------------------------- */
+
+.page-title {
+  font-size: var(--fs-xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: var(--s-2);
+}
+
+.page-subtitle {
+  color: var(--text-1);
+  font-size: var(--fs-base);
+  margin-bottom: var(--s-6);
+}
+
+
+/* ---- Utility -------------------------------------------------- */
+
+.mb-6 { margin-bottom: var(--s-6); }
+.mt-8 { margin-top: var(--s-8); }
