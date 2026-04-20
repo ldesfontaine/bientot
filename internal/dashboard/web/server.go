@@ -5,6 +5,7 @@ package web
 
 import (
 	"embed"
+	"fmt"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -14,20 +15,28 @@ import (
 
 // Router wraps the dependencies needed to serve web pages.
 type Router struct {
-	db  *storage.Storage
-	log *slog.Logger
+	db       *storage.Storage
+	log      *slog.Logger
+	renderer *renderer
 }
 
 // Config bundles the parameters needed to build the web router.
-// Empty for now — extended in future features as needed.
-type Config struct{}
+type Config struct {
+	DevMode bool
+}
 
 // NewRouter returns a Router holding the shared dependencies.
-func NewRouter(log *slog.Logger, db *storage.Storage, _ Config) *Router {
-	return &Router{
-		db:  db,
-		log: log,
+// Fails if templates can't be parsed (prod mode only — dev mode defers parsing).
+func NewRouter(log *slog.Logger, db *storage.Storage, cfg Config) (*Router, error) {
+	rend, err := newRenderer(cfg.DevMode)
+	if err != nil {
+		return nil, fmt.Errorf("init renderer: %w", err)
 	}
+	return &Router{
+		db:       db,
+		log:      log,
+		renderer: rend,
+	}, nil
 }
 
 //go:embed static
@@ -51,8 +60,7 @@ func (r *Router) BuildHandler() http.Handler {
 	return r.withLogging(mux)
 }
 
-// withLogging mirrors the api package's middleware. Could be extracted to a
-// shared internal/dashboard/httplog package later if duplication grows.
+// withLogging mirrors the api package's middleware.
 func (r *Router) withLogging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}

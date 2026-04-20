@@ -1,0 +1,85 @@
+{{define "layout"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{.Title}} — Bientôt</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@3/dist/tailwind.min.css">
+  <script src="/static/htmx.min.js" defer></script>
+
+  <style>
+    body {
+      background: #0b0d10;
+      color: #e6e8eb;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+    .sidebar {
+      background: #101317;
+      border-right: 1px solid #1c2028;
+    }
+    .muted { color: #a8adb6; }
+    .label-uppercase {
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 11px;
+      color: #6b727d;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .status-online { background: #22c55e; }
+    .status-offline { background: #4a5059; }
+  </style>
+</head>
+<body class="min-h-screen">
+  <div class="flex h-screen">
+    <aside class="sidebar w-60 flex flex-col">
+      <div class="px-4 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded bg-teal-600 flex items-center justify-center text-white font-bold">B</div>
+          <span class="font-semibold">Bientôt</span>
+        </div>
+        <span class="muted text-xs">0.5.0-dev</span>
+      </div>
+
+      <div class="px-4 py-3 border-t border-[#1c2028]">
+        <div class="label-uppercase mb-2">Machine</div>
+        <div class="flex items-center gap-2 px-3 py-2 bg-[#161a20] rounded">
+          <span class="status-dot status-online"></span>
+          <span>vps</span>
+          <span class="ml-auto muted">▼</span>
+        </div>
+      </div>
+
+      <div class="px-4 py-3 flex-1">
+        <div class="label-uppercase mb-2">Machine</div>
+        <a href="/" class="block px-3 py-2 rounded bg-[#1d2229] mb-1">Overview</a>
+
+        <div class="label-uppercase mt-4 mb-2">Modules</div>
+        <a href="#" class="block px-3 py-2 rounded hover:bg-[#161a20] mb-1">System</a>
+        <a href="#" class="block px-3 py-2 rounded hover:bg-[#161a20] mb-1">Docker</a>
+        <a href="#" class="block px-3 py-2 rounded hover:bg-[#161a20] mb-1">Certs</a>
+      </div>
+
+      <div class="px-4 py-3 border-t border-[#1c2028]">
+        <a href="#" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-[#161a20]">
+          <span class="muted">⚙</span>
+          <span>Config</span>
+        </a>
+      </div>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto">
+      {{block "content" .}}
+        <div class="p-8">No content defined.</div>
+      {{end}}
+    </main>
+  </div>
+</body>
+</html>
+{{end}}

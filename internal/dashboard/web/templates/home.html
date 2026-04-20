@@ -1,0 +1,27 @@
+{{define "content"}}
+<div class="p-8">
+  <h1 class="text-2xl font-semibold mb-2">{{.Title}}</h1>
+  <p class="muted mb-6">{{.Subtitle}}</p>
+
+  <div class="grid grid-cols-3 gap-4">
+    <div class="p-4 bg-[#101317] border border-[#1c2028] rounded">
+      <div class="label-uppercase mb-2">Status</div>
+      <div class="text-xl font-medium">Online</div>
+    </div>
+
+    <div class="p-4 bg-[#101317] border border-[#1c2028] rounded">
+      <div class="label-uppercase mb-2">Uptime (placeholder)</div>
+      <div class="text-xl font-medium">{{fmtDuration .UptimeFake}}</div>
+    </div>
+
+    <div class="p-4 bg-[#101317] border border-[#1c2028] rounded">
+      <div class="label-uppercase mb-2">Rendered at</div>
+      <div class="text-xl font-medium">{{.RenderedAt}}</div>
+    </div>
+  </div>
+
+  <p class="mt-8 muted text-sm">
+    This is a placeholder page. Real data will be wired up in feature 5.3.
+  </p>
+</div>
+{{end}}

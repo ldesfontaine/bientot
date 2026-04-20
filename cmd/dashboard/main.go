@@ -73,7 +73,14 @@ func main() {
 	apiRouter := api.NewRouter(logger, db, api.Config{
 		OfflineThreshold: time.Duration(offlineThresholdSec) * time.Second,
 	})
-	webRouter := web.NewRouter(logger, db, web.Config{})
+
+	devMode := getEnvBool("DASHBOARD_DEV_MODE", false)
+	webRouter, err := web.NewRouter(logger, db, web.Config{DevMode: devMode})
+	if err != nil {
+		logger.Error("failed to init web router", "error", err)
+		os.Exit(1)
+	}
+	logger.Info("web router initialized", "devMode", devMode)
 
 	// Single mux serves both API (/api/*) and web (/*).
 	// /api/ must be registered before / to take precedence.
@@ -136,4 +143,16 @@ func getEnvInt(key string, def int) int {
 		return def
 	}
 	return n
+}
+
+func getEnvBool(key string, def bool) bool {
+	v := os.Getenv(key)
+	if v == "" {
+		return def
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return def
+	}
+	return b
 }
