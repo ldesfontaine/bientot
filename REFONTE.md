@@ -2,7 +2,7 @@
 # Bientôt v2 — Journal de refonte
 
 > **Document de référence vivant.** Mis à jour à chaque feature/palier validé.
-> Dernière mise à jour : **2026-04-20** — feature 5.0.1 validée, fondation SQLite posée côté dashboard (package `internal/dashboard/storage/`, schéma 4 tables embed).
+> Dernière mise à jour : **2026-04-20** — sub-palier 5.0 complet (storage SQLite). Pipeline data bout-en-bout : agent → push signé → validation → persistance → requêtable.
 
 ---
 
@@ -217,6 +217,8 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **2026-04-20** — Feature 5.0.1 ✅ : fondation SQLite. Package `internal/dashboard/storage/` avec `Open`/`Close`/`Ping`, schéma embarqué via `go:embed` (4 tables : `pushes`, `metrics`, `module_state`, `agents`). WAL mode + `foreign_keys=ON` + `MaxOpenConns=1` (single-writer SQLite). Driver pure Go via `modernc.org/sqlite` (pas de CGO). 8 tests unitaires (open/close, idempotence, schema applied, pragmas, invalid path). Bump Go 1.24 → 1.25 requis par `modernc.org/sqlite@v1.49.1`, propagé au `Dockerfile` (CI suit via `go-version-file: go.mod`). Commits `a6faa53` (bump) + `cc27d5b` (storage).
 - **2026-04-20** — Feature 5.0.2 ✅ : `Storage.SavePush(ctx, req)` transactionnel. Insère push (raw protobuf canonique via `proto.MarshalOptions{Deterministic: true}`) + métriques en batch (prepared statement réutilisé) + upsert agent (`first_seen_at` figé, `last_push_at` mis à jour). Rollback complet sur erreur partielle. Labels stockés en JSON, `NULL` si vide. 12 tests : insertion, comptage, sémantique upsert, isolation entre agents, rollback sur duplicate nonce, edge cases (nil, modules vides), roundtrip raw_payload.
 - **2026-04-20** — Feature 5.0.3 ✅ : 3 méthodes de lecture sur `Storage`. (1) `ListAgents(ctx)` → tous les agents triés par `machine_id`. (2) `GetLatestMetrics(ctx, machineID)` → dernière valeur connue par nom de métrique (auto-jointure avec `MAX(timestamp_ns) GROUP BY name`, dédoublonnage `HAVING m.id = MAX(m.id)`). (3) `GetMetricPoints(ctx, machineID, name, start, end)` → série temporelle ordonnée croissante sur intervalle semi-ouvert `[start, end)`. Toutes retournent slice/map vide (pas nil) pour API JSON-friendly. Types publics : `Agent`, `Metric`, `MetricPoint`. 13 tests.
+- **2026-04-20** — Feature 5.0.4 ✅ : intégration handler `/v1/push` ↔ storage. `Server` gagne un `*storage.Storage` injecté ; `handlePush` appelle `SavePush` après toutes les validations (version, signature, machine_id, nonce) et avant la réponse 200 ; erreur SQL → 500 (l'agent retentera au prochain tick, le cache nonce reste protecteur). `cmd/dashboard` ouvre la DB via `BIENTOT_DB_PATH` (défaut `/data/dashboard.db`), close au shutdown. Volume Docker nommé `dashboard-data` mounté sur `/data`. Fix Dockerfile : `RUN mkdir -p /data && chown 1000:1000 /data` car le mountpoint d'un volume vide est créé en root (incompatible avec `user: 1000:1000` du compose dev). Tests handler refactorés : injection d'un `Storage` temporaire via `t.TempDir()` dans `testSetup`. Validation E2E : pushes persistent à travers `docker-down/up`, `first_seen_at` préservé, `last_push_at` mis à jour.
+- **2026-04-20** — 🎉 **Sub-palier 5.0 VALIDÉ**. Pipeline data bout-en-bout fonctionnel : agent → push signé → mTLS + signature + nonce + skew → `SavePush` transactionnel → SQLite (pushes + metrics + agents) → requêtable via `ListAgents` / `GetLatestMetrics` / `GetMetricPoints`. 4 features (5.0.1 → 5.0.4), ~150 lignes prod + ~700 lignes tests, 33 tests storage + tests handler verts.
 
 *(Chaque feature validée ajoute une entrée ici avec la date et un résumé d'une ligne.)*
 
@@ -238,6 +240,7 @@ Si ces 4 commandes passent sans erreur → ✅ palier 0 validé.
 - **Palier 5** — `system.disk_*` multi-mountpoint : actuellement filtré en dur sur `mountpoint="/"`. Étendre avec whitelist `fstype` (ext4/xfs/btrfs/zfs) et blacklist mountpoints virtuels (tmpfs, overlayfs, procfs). Configuration exposée dans `agent.yaml`.
 - **Palier 6** — Unifier la config agent : YAML avec overrides env. Actuellement `DASHBOARD_URL` est env-only, les configs modules sont YAML-only. Pattern cible : YAML par défaut, `BIENTOT_*` env override pour le déploiement (12-factor compatible).
 - **Palier 6/7** — Stack `examples/` et `deploy/compose.dev.yml` utilisent toutes deux le port `8443` et sont mutuellement exclusives. Paramétrer le port via env var ou documenter explicitement le pattern de bascule.
+- **Palier 6** — `Dockerfile` (target `dashboard`) figé sur `chown 1000:1000 /data` pour le mountpoint du volume `dashboard-data`. Cohérent avec `user: ${HOST_UID:-1000}` du compose dev mais pas portable si `HOST_UID != 1000`. Solutions à explorer en prod : init-container qui chown au démarrage, image dédiée à l'UID 10001 natif sans override, ou `chmod 1777` (sticky bit) pour autoriser tous les UIDs.
 
 ## 📝 Conventions
 
