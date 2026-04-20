@@ -323,6 +323,50 @@ func TestGetMetricPoints_FilteredByMetricName(t *testing.T) {
 	}
 }
 
+// ─── AgentExists ─────────────────────────────────────────
+
+func TestAgentExists_NotFound(t *testing.T) {
+	s := newTestStorage(t)
+
+	exists, err := s.AgentExists(context.Background(), "nonexistent")
+	if err != nil {
+		t.Fatalf("AgentExists: %v", err)
+	}
+	if exists {
+		t.Error("expected false for nonexistent agent, got true")
+	}
+}
+
+func TestAgentExists_Found(t *testing.T) {
+	s := newTestStorage(t)
+	now := time.Now().UnixNano()
+
+	savedPush(t, s, "vps", "n1", []*bientotv1.Metric{{Name: "up", Value: 1}}, now)
+
+	exists, err := s.AgentExists(context.Background(), "vps")
+	if err != nil {
+		t.Fatalf("AgentExists: %v", err)
+	}
+	if !exists {
+		t.Error("expected true for existing agent, got false")
+	}
+}
+
+func TestAgentExists_CaseSensitive(t *testing.T) {
+	s := newTestStorage(t)
+	now := time.Now().UnixNano()
+
+	savedPush(t, s, "vps", "n1", []*bientotv1.Metric{{Name: "up", Value: 1}}, now)
+
+	exists, err := s.AgentExists(context.Background(), "VPS")
+	if err != nil {
+		t.Fatalf("AgentExists: %v", err)
+	}
+	if exists {
+		t.Error("expected false for case-different ID, got true")
+	}
+}
+
 func TestGetMetricPoints_FilteredByAgent(t *testing.T) {
 	s := newTestStorage(t)
 	ctx := context.Background()

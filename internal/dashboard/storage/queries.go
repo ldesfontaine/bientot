@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -123,6 +124,28 @@ func (s *Storage) GetLatestMetrics(ctx context.Context, machineID string) (map[s
 	}
 
 	return result, nil
+}
+
+// AgentExists returns true if an agent with the given machine_id has been
+// seen at least once. Fast: hits the primary key on agents.
+func (s *Storage) AgentExists(ctx context.Context, machineID string) (bool, error) {
+	if s.db == nil {
+		return false, fmt.Errorf("storage is closed")
+	}
+
+	var one int
+	err := s.db.QueryRowContext(ctx,
+		`SELECT 1 FROM agents WHERE machine_id = ? LIMIT 1`,
+		machineID,
+	).Scan(&one)
+
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("check agent existence: %w", err)
+	}
+	return true, nil
 }
 
 // GetMetricPoints returns all recorded (timestamp, value) samples for one
