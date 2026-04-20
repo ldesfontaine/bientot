@@ -18,8 +18,35 @@
     {{end}}
   </div>
 
+  <div class="charts-section">
+    <div class="charts-header">
+      <h2 class="section-title">History</h2>
+      <div class="range-selector">
+        <button class="range-btn" data-range="1h">1h</button>
+        <button class="range-btn active" data-range="24h">24h</button>
+        <button class="range-btn" data-range="168h">7d</button>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <span class="label">Load average</span>
+      </div>
+      <div id="chart-load" class="chart-container"></div>
+      <div id="chart-load-status" class="chart-status"></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-card-header">
+        <span class="label">Memory available</span>
+      </div>
+      <div id="chart-memory" class="chart-container"></div>
+      <div id="chart-memory-status" class="chart-status"></div>
+    </div>
+  </div>
+
   <p class="mt-8 subtle" style="font-size: var(--fs-sm);">
-    Historical charts and module grid coming in features 5.3.3 / 5.3.4.
+    Module grid coming in feature 5.3.4.
   </p>
 
 </div>

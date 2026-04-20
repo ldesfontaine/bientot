@@ -561,3 +561,107 @@ button {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+
+/* ---- Charts section ------------------------------------------- */
+
+.charts-section {
+  margin-top: var(--s-8);
+}
+
+.charts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s-4);
+}
+
+.section-title {
+  font-size: var(--fs-xl);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+
+/* ---- Range selector ------------------------------------------- */
+
+.range-selector {
+  display: flex;
+  gap: var(--s-1);
+  background: var(--bg-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-md);
+  padding: 2px;
+}
+
+.range-btn {
+  padding: var(--s-1) var(--s-3);
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+  color: var(--text-1);
+  border-radius: var(--r-sm);
+  transition: background 120ms, color 120ms;
+}
+
+.range-btn:hover {
+  color: var(--text-0);
+}
+
+.range-btn.active {
+  background: var(--bg-3);
+  color: var(--text-0);
+}
+
+
+/* ---- Chart cards ---------------------------------------------- */
+
+.chart-card {
+  background: var(--bg-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  padding: var(--s-4);
+  margin-bottom: var(--s-4);
+}
+
+.chart-card-header {
+  margin-bottom: var(--s-3);
+}
+
+.chart-container {
+  width: 100%;
+  min-height: 220px;
+}
+
+.chart-status {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  color: var(--text-2);
+  margin-top: var(--s-2);
+  min-height: 18px;
+}
+
+.chart-status-error {
+  color: var(--crit);
+}
+
+
+/* ---- uPlot theme overrides ------------------------------------ */
+
+.u-legend {
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  font-family: var(--font-mono);
+}
+
+.u-legend .u-marker {
+  border-radius: 2px;
+}
+
+.u-axis {
+  color: var(--text-2);
+}
+
+.u-grid {
+  stroke: var(--border-subtle) !important;
+  stroke-dasharray: none !important;
+}
