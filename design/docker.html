@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="en" data-density="comfortable" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bientôt — Docker (vps)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root {
+  --bg-0:#0b0d10; --bg-1:#101317; --bg-2:#161a20; --bg-3:#1d2229;
+  --border-subtle:#1c2028; --border:#232832; --border-strong:#2e3440;
+  --text-0:#e6e8eb; --text-1:#a8adb6; --text-2:#6b727d; --text-3:#4a5059;
+  --accent:oklch(72% 0.09 195); --accent-dim:oklch(60% 0.08 195);
+  --accent-bg:oklch(72% 0.09 195 / 0.12); --accent-border:oklch(72% 0.09 195 / 0.28);
+  --ok:oklch(72% 0.15 150); --ok-bg:oklch(72% 0.15 150 / 0.12); --ok-border:oklch(72% 0.15 150 / 0.3);
+  --warn:oklch(80% 0.14 80); --warn-bg:oklch(80% 0.14 80 / 0.12); --warn-border:oklch(80% 0.14 80 / 0.3);
+  --crit:oklch(66% 0.19 25); --crit-bg:oklch(66% 0.19 25 / 0.14); --crit-border:oklch(66% 0.19 25 / 0.32);
+  --muted-dot:#4a5059;
+  --font-sans:"Geist",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --font-mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --fs-xs:11px; --fs-sm:12px; --fs-base:13px; --fs-md:14px; --fs-lg:16px;
+  --fs-xl:20px; --fs-2xl:24px; --fs-3xl:32px;
+  --lh-tight:1.2; --lh-normal:1.45;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px; --s-10:40px; --s-12:48px;
+  --r-sm:4px; --r-md:6px; --r-lg:8px; --r-xl:10px;
+  --shadow-drawer:-24px 0 48px -12px rgba(0,0,0,0.5);
+  --shadow-popover:0 8px 24px -8px rgba(0,0,0,0.6);
+  --row-h:40px; --card-pad:16px; --sidebar-w:232px;
+}
+* { box-sizing:border-box; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+html, body {
+  margin:0; padding:0; background:var(--bg-0); color:var(--text-0);
+  font-family:var(--font-sans); font-size:var(--fs-base); line-height:var(--lh-normal);
+  font-feature-settings:"cv11","ss01","ss03";
+}
+.mono { font-family:var(--font-mono); font-feature-settings:"zero","ss01"; }
+::-webkit-scrollbar { width:10px; height:10px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:999px; border:2px solid var(--bg-0); }
+::-webkit-scrollbar-thumb:hover { background:var(--border-strong); }
+:focus-visible { outline:1px solid var(--accent); outline-offset:2px; border-radius:2px; }
+button { font-family:inherit; }
+
+.app { display:grid; grid-template-columns:var(--sidebar-w) 1fr; min-height:100vh; }
+.sidebar { background:var(--bg-1); border-right:1px solid var(--border-subtle); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; }
+.sidebar__brand { display:flex; align-items:center; gap:var(--s-2); padding:18px var(--s-4) 14px; border-bottom:1px solid var(--border-subtle); }
+.sidebar__brand-mark { width:22px; height:22px; border-radius:5px; background:linear-gradient(180deg,var(--accent),var(--accent-dim)); display:grid; place-items:center; color:#0b0d10; font-family:var(--font-mono); font-weight:700; font-size:12px; letter-spacing:-0.02em; }
+.sidebar__brand-name { font-size:var(--fs-md); font-weight:600; letter-spacing:-0.01em; }
+.sidebar__brand-dot { margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--text-2); }
+.switcher { padding:var(--s-3) var(--s-3) var(--s-2); border-bottom:1px solid var(--border-subtle); position:relative; }
+.switcher__label { font-size:var(--fs-xs); color:var(--text-2); text-transform:uppercase; letter-spacing:0.06em; padding:0 var(--s-2); margin-bottom:6px; }
+.switcher__button { width:100%; display:flex; align-items:center; gap:var(--s-2); background:var(--bg-2); border:1px solid var(--border); border-radius:var(--r-md); padding:8px 10px; color:var(--text-0); font-family:var(--font-mono); font-size:var(--fs-base); cursor:pointer; text-align:left; }
+.switcher__button-name { flex:1; }
+.switcher__button-caret { color:var(--text-2); display:inline-flex; }
+.nav { padding:var(--s-3) var(--s-3); flex:1; overflow-y:auto; }
+.nav__group-label { font-size:var(--fs-xs); color:var(--text-2); text-transform:uppercase; letter-spacing:0.06em; padding:var(--s-3) var(--s-2) 6px; }
+.nav__item { display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:var(--r-sm); color:var(--text-1); cursor:pointer; font-size:var(--fs-base); user-select:none; }
+.nav__item:hover { background:var(--bg-2); color:var(--text-0); }
+.nav__item[aria-current="true"] { background:var(--bg-3); color:var(--text-0); padding-left:8px; }
+.nav__item[aria-current="true"]::before { content:""; width:2px; height:14px; background:var(--accent); border-radius:2px; margin-left:-10px; margin-right:8px; }
+.nav__item-icon { width:14px; height:14px; color:var(--text-2); flex-shrink:0; display:inline-flex; }
+.nav__item[aria-current="true"] .nav__item-icon { color:var(--accent); }
+.nav__item-badge { margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--text-2); padding:2px 5px; background:var(--bg-2); border-radius:3px; }
+.sidebar__footer { border-top:1px solid var(--border-subtle); padding:var(--s-3); }
+.main { display:flex; flex-direction:column; min-width:0; }
+.topbar { height:48px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; padding:0 var(--s-5); gap:var(--s-3); background:var(--bg-0); position:sticky; top:0; z-index:5; }
+.topbar__crumbs { display:flex; align-items:center; gap:6px; font-size:var(--fs-base); color:var(--text-1); }
+.topbar__crumb { color:var(--text-1); cursor:pointer; }
+.topbar__crumb--current { color:var(--text-0); font-weight:500; }
+.topbar__crumb-sep { color:var(--text-3); }
+.topbar__spacer { flex:1; }
+.topbar__meta { display:flex; align-items:center; gap:var(--s-4); font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--text-2); }
+.topbar__meta-pulse { display:inline-block; width:6px; height:6px; background:var(--accent); border-radius:50%; animation:pulse 2s ease-in-out infinite; margin-right:6px; }
+@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+.content { padding:var(--s-6) var(--s-8); max-width:1400px; width:100%; min-width:0; }
+.page-header { display:flex; align-items:baseline; gap:var(--s-4); margin-bottom:var(--s-6); }
+.page-header__title { font-size:var(--fs-xl); font-weight:600; margin:0; letter-spacing:-0.01em; }
+.page-header__subtitle { font-family:var(--font-mono); color:var(--text-2); font-size:var(--fs-sm); }
+.section { margin-bottom:var(--s-8); }
+.section__header { display:flex; align-items:baseline; gap:var(--s-3); margin-bottom:var(--s-3); flex-wrap:wrap; }
+.section__title { font-size:var(--fs-md); font-weight:600; color:var(--text-0); margin:0; letter-spacing:-0.005em; }
+.section__hint { font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--text-2); }
+
+/* KPI card */
+.kpi-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:var(--s-3); }
+.kpi { background:var(--bg-1); border:1px solid var(--border-subtle); border-radius:var(--r-lg); padding:var(--card-pad); display:flex; flex-direction:column; gap:6px; min-height:86px; position:relative; }
+.kpi__head { display:flex; align-items:center; gap:6px; color:var(--text-2); font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:0.06em; }
+.kpi__head svg { width:12px; height:12px; }
+.kpi__value { font-family:var(--font-mono); font-size:var(--fs-2xl); font-weight:500; letter-spacing:-0.02em; color:var(--text-0); line-height:1.1; }
+.kpi__value-unit { font-size:var(--fs-base); color:var(--text-2); font-weight:400; margin-left:2px; }
+.kpi__foot { display:flex; align-items:center; justify-content:space-between; gap:8px; font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-2); }
+.kpi--warn { border-color:var(--warn-border); background:linear-gradient(180deg,var(--warn-bg),transparent 60%),var(--bg-1); }
+.kpi--warn .kpi__head { color:var(--warn); }
+
+/* Tables */
+.table-wrap { background:var(--bg-1); border:1px solid var(--border-subtle); border-radius:var(--r-lg); overflow:hidden; }
+.table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+.table thead th { text-align:left; padding:10px var(--s-4); background:var(--bg-1); border-bottom:1px solid var(--border-subtle); color:var(--text-2); font-weight:500; font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:0.06em; position:sticky; top:0; }
+.table tbody td { padding:0 var(--s-4); height:var(--row-h); border-bottom:1px solid var(--border-subtle); color:var(--text-1); vertical-align:middle; }
+.table tbody tr:last-child td { border-bottom:0; }
+.table tbody tr { cursor:pointer; transition:background .1s; }
+.table tbody tr:hover { background:var(--bg-2); }
+.table tbody tr[aria-selected="true"] { background:var(--bg-3); }
+.table tbody tr[aria-selected="true"] td:first-child { box-shadow:inset 2px 0 0 var(--accent); }
+.table td.mono, .table th.mono { font-family:var(--font-mono); }
+.table td .cell-primary { color:var(--text-0); }
+.table td .cell-muted { color:var(--text-2); }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; gap:6px; font-family:inherit; font-size:var(--fs-base); padding:7px 12px; border-radius:var(--r-md); border:1px solid var(--border); background:var(--bg-1); color:var(--text-0); cursor:pointer; transition:all .12s; }
+.btn:hover { background:var(--bg-2); border-color:var(--border-strong); }
+.btn--ghost { background:transparent; border-color:transparent; color:var(--text-1); }
+.btn--ghost:hover { background:var(--bg-2); color:var(--text-0); border-color:var(--border-subtle); }
+.btn--sm { padding:4px 8px; font-size:var(--fs-sm); }
+.btn svg { width:14px; height:14px; }
+
+/* Status dot */
+.dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; display:inline-block; }
+.dot--ok { background:var(--ok); box-shadow:0 0 0 3px var(--ok-bg); }
+.dot--warn { background:var(--warn); box-shadow:0 0 0 3px var(--warn-bg); }
+.dot--crit { background:var(--crit); box-shadow:0 0 0 3px var(--crit-bg); }
+.dot--off { background:var(--muted-dot); }
+.row { display:flex; align-items:center; gap:var(--s-2); }
+.gap-2 { gap:var(--s-2); }
+.small { font-size:var(--fs-sm); }
+.muted { color:var(--text-2); }
+
+/* Drawer backdrop + drawer */
+.drawer-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:40; opacity:1; pointer-events:auto; transition:opacity .15s; }
+.drawer { position:fixed; top:0; right:0; height:100vh; width:min(720px, 92vw); background:var(--bg-0); border-left:1px solid var(--border); box-shadow:var(--shadow-drawer); z-index:50; transform:translateX(0); display:flex; flex-direction:column; }
+.drawer__head { display:flex; align-items:center; gap:var(--s-3); padding:14px 20px; border-bottom:1px solid var(--border-subtle); height:56px; }
+.drawer__title { font-family:var(--font-mono); font-size:var(--fs-md); font-weight:500; color:var(--text-0); }
+.drawer__sub { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-2); }
+.drawer__close { margin-left:auto; background:transparent; border:1px solid var(--border); color:var(--text-1); padding:4px 8px; border-radius:var(--r-sm); cursor:pointer; font-family:var(--font-mono); font-size:var(--fs-xs); }
+.drawer__close:hover { background:var(--bg-2); color:var(--text-0); }
+.drawer__tabs { display:flex; gap:4px; padding:0 20px; border-bottom:1px solid var(--border-subtle); }
+.drawer__tab { background:transparent; border:0; padding:10px 10px; font-size:var(--fs-sm); color:var(--text-2); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; font-family:inherit; display:inline-block; }
+.drawer__tab:hover { color:var(--text-0); }
+.drawer__body { flex:1; overflow-y:auto; padding:20px; }
+
+/* Pure-CSS tab switching for the drawer */
+.drawer-tab-input { display:none; }
+.drawer-tab-panel { display:none; }
+#tab-config:checked ~ .drawer .drawer-tab-panel--config { display:block; }
+#tab-logs:checked ~ .drawer .drawer-tab-panel--logs { display:block; }
+#tab-stats:checked ~ .drawer .drawer-tab-panel--stats { display:block; }
+#tab-config:checked ~ .drawer .drawer__tab[data-tab="config"],
+#tab-logs:checked ~ .drawer .drawer__tab[data-tab="logs"],
+#tab-stats:checked ~ .drawer .drawer__tab[data-tab="stats"] {
+  color:var(--text-0);
+  border-bottom-color:var(--accent);
+}
+
+/* key-value config block */
+.kv { display:grid; grid-template-columns:140px 1fr; gap:2px 16px; font-size:var(--fs-sm); padding:10px 0; border-bottom:1px solid var(--border-subtle); }
+.kv:last-child { border-bottom:0; }
+.kv__key { color:var(--text-2); font-family:var(--font-mono); font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:0.05em; padding-top:2px; }
+.kv__val { font-family:var(--font-mono); color:var(--text-0); word-break:break-all; }
+.kv__val .tag { display:inline-block; margin:1px 4px 1px 0; padding:1px 6px; background:var(--bg-2); border:1px solid var(--border-subtle); border-radius:3px; font-size:var(--fs-xs); color:var(--text-1); }
+.kv__val .tag--key { color:var(--text-2); }
+
+/* Logs viewer */
+.logs { background:#06080b; border:1px solid var(--border-subtle); border-radius:var(--r-md); padding:12px 14px; font-family:var(--font-mono); font-size:var(--fs-sm); line-height:1.55; max-height:520px; overflow-y:auto; color:var(--text-1); }
+.logs__line { display:flex; gap:10px; }
+.logs__ts { color:var(--text-3); flex-shrink:0; }
+.logs__lvl { width:40px; flex-shrink:0; }
+.logs__lvl--info { color:var(--accent); }
+.logs__lvl--warn { color:var(--warn); }
+.logs__lvl--error { color:var(--crit); }
+.logs__msg { color:var(--text-0); word-break:break-word; }
+
+/* Mini charts (stats tab) */
+.charts-grid { display:grid; grid-template-columns:1fr; gap:var(--s-3); }
+.chart { background:var(--bg-1); border:1px solid var(--border-subtle); border-radius:var(--r-lg); padding:var(--card-pad); }
+.chart__head { display:flex; align-items:baseline; gap:var(--s-3); margin-bottom:6px; flex-wrap:wrap; row-gap:4px; }
+.chart__title { font-size:var(--fs-sm); font-weight:500; color:var(--text-1); text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; }
+.chart__value { font-family:var(--font-mono); font-size:var(--fs-xl); font-weight:500; letter-spacing:-0.02em; color:var(--text-0); }
+.chart__value-unit { color:var(--text-2); font-size:var(--fs-md); margin-left:2px; }
+.chart__trend { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-2); padding:2px 6px; background:var(--bg-2); border-radius:3px; }
+.chart__canvas { width:100%; height:140px; position:relative; }
+.chart__canvas svg { display:block; width:100%; height:100%; overflow:visible; }
+</style>
+</head>
+<body>
+
+<!-- Pure-CSS radio tab inputs (must be siblings of .drawer) -->
+<input class="drawer-tab-input" type="radio" name="dtab" id="tab-config" checked>
+<input class="drawer-tab-input" type="radio" name="dtab" id="tab-logs">
+<input class="drawer-tab-input" type="radio" name="dtab" id="tab-stats">
+
+<div class="app">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="sidebar__brand">
+      <div class="sidebar__brand-mark">B</div>
+      <div class="sidebar__brand-name">Bientôt</div>
+      <div class="sidebar__brand-dot mono">0.8.2</div>
+    </div>
+
+    <div class="switcher">
+      <div class="switcher__label">Machine</div>
+      <button class="switcher__button">
+        <span class="dot dot--ok"></span>
+        <span class="switcher__button-name">vps</span>
+        <span class="switcher__button-caret">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </span>
+      </button>
+    </div>
+
+    <nav class="nav">
+      <div class="nav__group-label">Machine</div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l6-5 6 5v6.5c0 .3-.2.5-.5.5H10v-4H6v4H2.5c-.3 0-.5-.2-.5-.5V7z"/></svg></span>
+        Overview
+      </div>
+      <div class="nav__group-label">Modules</div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="4" rx="1"/><rect x="2" y="9" width="12" height="4" rx="1"/><path d="M4.5 5h0.01M4.5 11h0.01"/></svg></span>
+        System
+      </div>
+      <div class="nav__item" aria-current="true">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="2" height="2"/><rect x="5" y="7" width="2" height="2"/><rect x="8" y="7" width="2" height="2"/><rect x="5" y="4" width="2" height="2"/><rect x="8" y="4" width="2" height="2"/><rect x="8" y="1" width="2" height="2"/><path d="M2 10c1.5 2 4 3 7 3 4 0 6-2 6.5-5-.8.5-1.5.5-2 0-.5.5-1.5.5-2 0"/></svg></span>
+        Docker
+        <span class="nav__item-badge" style="color:var(--warn);border:1px solid var(--warn-border)">!</span>
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="8" rx="1"/><path d="M5 7h6M5 9h4"/><circle cx="6" cy="12.5" r="1.5"/><path d="M6 14v1.5l1-0.5 1 0.5V14"/></svg></span>
+        Certs
+        <span class="nav__item-badge" style="color:var(--crit);border:1px solid var(--crit-border)">!</span>
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></svg></span>
+        Systemd
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4.5L8 2l6 2.5v7L8 14l-6-2.5v-7z"/><path d="M2 4.5L8 7l6-2.5M8 7v7"/></svg></span>
+        Software
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5l5.5 2v4.5c0 3.5-2.5 5.5-5.5 6.5-3-1-5.5-3-5.5-6.5V3.5l5.5-2z"/></svg></span>
+        CrowdSec
+      </div>
+    </nav>
+
+    <div class="sidebar__footer">
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M3 3l1 1M12 12l1 1M1 8h1.5M13.5 8H15M3 13l1-1M12 4l1-1"/></svg></span>
+        Config
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar__crumbs">
+        <span class="topbar__crumb">vps</span>
+        <span class="topbar__crumb-sep">/</span>
+        <span class="topbar__crumb topbar__crumb--current">Docker</span>
+      </div>
+      <div class="topbar__spacer"></div>
+      <div class="topbar__meta">
+        <span><span class="topbar__meta-pulse"></span>auto-refresh 30s</span>
+        <span>10:34:22</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-header">
+        <h1 class="page-header__title">Docker</h1>
+        <span class="page-header__subtitle mono">vps · vps.home.arpa</span>
+      </div>
+
+      <!-- KPI grid -->
+      <div class="section">
+        <div class="kpi-grid">
+          <div class="kpi kpi--warn">
+            <div class="kpi__head">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5l6-3 6 3-6 3-6-3z"/><path d="M2 11l6 3 6-3"/><path d="M2 8l6 3 6-3"/></svg>
+              <span>Containers</span>
+            </div>
+            <div class="kpi__value mono">6<span class="kpi__value-unit">/7</span></div>
+            <div class="kpi__foot"><span>1 stopped</span></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi__head">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4.5L8 2l6 2.5v7L8 14l-6-2.5v-7z"/><path d="M2 4.5L8 7l6-2.5M8 7v7"/></svg>
+              <span>Images</span>
+            </div>
+            <div class="kpi__value mono">12</div>
+            <div class="kpi__foot"><span>3.2 GB total</span></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi__head">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="8" cy="3.5" rx="5.5" ry="1.5"/><path d="M2.5 3.5v4c0 .8 2.5 1.5 5.5 1.5s5.5-.7 5.5-1.5v-4"/><path d="M2.5 7.5v5c0 .8 2.5 1.5 5.5 1.5s5.5-.7 5.5-1.5v-5"/></svg>
+              <span>Volumes</span>
+            </div>
+            <div class="kpi__value mono">4</div>
+            <div class="kpi__foot"><span>1.1 GB used</span></div>
+          </div>
+          <div class="kpi">
+            <div class="kpi__head">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="4" rx="1"/><rect x="2" y="9" width="12" height="4" rx="1"/></svg>
+              <span>Networks</span>
+            </div>
+            <div class="kpi__value mono">3</div>
+            <div class="kpi__foot"><span>bridge · edge · db</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Containers table -->
+      <div class="section">
+        <div class="section__header">
+          <h2 class="section__title">Containers</h2>
+          <span class="section__hint">click a row for details</span>
+          <div style="margin-left:auto" class="row">
+            <button class="btn btn--sm btn--ghost">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 12 4.5"/><path d="M13 2v3h-3"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width:28%">Name</th>
+                <th style="width:100px">Status</th>
+                <th>Image</th>
+                <th style="width:110px">Uptime</th>
+                <th style="width:200px">Ports</th>
+                <th style="width:90px;text-align:right">CPU</th>
+                <th style="width:90px;text-align:right">Mem</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr aria-selected="true">
+                <td class="mono"><span class="cell-primary">traefik</span></td>
+                <td><span class="row gap-2 mono small" style="color:var(--ok)"><span class="dot dot--ok"></span>Up</span></td>
+                <td class="mono"><span class="cell-muted">traefik:v3.0</span></td>
+                <td class="mono">2h 14m</td>
+                <td class="mono"><span class="cell-muted">80/tcp, 443/tcp</span></td>
+                <td class="mono" style="text-align:right">0.4%</td>
+                <td class="mono" style="text-align:right">42 MB</td>
+              </tr>
+              <tr>
+                <td class="mono"><span class="cell-primary">postgres</span></td>
+                <td><span class="row gap-2 mono small" style="color:var(--ok)"><span class="dot dot--ok"></span>Up</span></td>
+                <td class="mono"><span class="cell-muted">postgres:15</span></td>
+                <td class="mono">1d 5h</td>
+                <td class="mono"><span class="cell-muted">5432/tcp</span></td>
+                <td class="mono" style="text-align:right">2.8%</td>
+                <td class="mono" style="text-align:right">214 MB</td>
+              </tr>
+              <tr>
+                <td class="mono"><span class="cell-primary">bientot-dashboard</span></td>
+                <td><span class="row gap-2 mono small" style="color:var(--ok)"><span class="dot dot--ok"></span>Up</span></td>
+                <td class="mono"><span class="cell-muted">bientot/dashboard:0.8.2</span></td>
+                <td class="mono">2d 14h</td>
+                <td class="mono"><span class="cell-muted">8080/tcp</span></td>
+                <td class="mono" style="text-align:right">1.2%</td>
+                <td class="mono" style="text-align:right">86 MB</td>
+              </tr>
+              <tr>
+                <td class="mono"><span class="cell-primary">bientot-step-ca</span></td>
+                <td><span class="row gap-2 mono small" style="color:var(--ok)"><span class="dot dot--ok"></span>Up</span></td>
+                <td class="mono"><span class="cell-muted">smallstep/step-ca:0.26</span></td>
+                <td class="mono">2d 14h</td>
+                <td class="mono"><span class="cell-muted">9000/tcp</span></td>
+                <td class="mono" style="text-align:right">0.1%</td>
+                <td class="mono" style="text-align:right">32 MB</td>
+              </tr>
+              <tr>
+                <td class="mono"><span class="cell-primary">node-exporter</span></td>
+                <td><span class="row gap-2 mono small" style="color:var(--ok)"><span class="dot dot--ok"></span>Up</span></td>
+                <td class="mono"><span class="cell-muted">prom/node-exporter:v1.8</span></td>
+                <td class="mono">2d 13h</td>
+                <td class="mono"><span class="cell-muted">9100/tcp</span></td>
+                <td class="mono" style="text-align:right">0.2%</td>
+                <td class="mono" style="text-align:right">18 MB</td>
+              </tr>
+              <tr>
+                <td class="mono"><span class="cell-primary">redis</span></td>
+                <td><span class="row gap-2 mono small" style="color:var(--ok)"><span class="dot dot--ok"></span>Up</span></td>
+                <td class="mono"><span class="cell-muted">redis:7-alpine</span></td>
+                <td class="mono">3h 8m</td>
+                <td class="mono"><span class="cell-muted">6379/tcp</span></td>
+                <td class="mono" style="text-align:right">0.3%</td>
+                <td class="mono" style="text-align:right">24 MB</td>
+              </tr>
+              <tr>
+                <td class="mono"><span class="cell-primary">old-backup-script</span></td>
+                <td><span class="row gap-2 mono small" style="color:var(--text-2)"><span class="dot dot--off"></span>Exited (1)</span></td>
+                <td class="mono"><span class="cell-muted">debian:bookworm</span></td>
+                <td class="mono">—</td>
+                <td class="mono"><span class="cell-muted">—</span></td>
+                <td class="mono" style="text-align:right">0.0%</td>
+                <td class="mono" style="text-align:right">0 MB</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ============ DRAWER (open, showing traefik) ============ -->
+<div class="drawer-backdrop"></div>
+<aside class="drawer" aria-hidden="false">
+  <div class="drawer__head">
+    <span class="dot dot--ok"></span>
+    <div>
+      <div class="drawer__title">traefik</div>
+      <div class="drawer__sub">traefik:v3.0 · 2h 14m</div>
+    </div>
+    <button class="drawer__close">ESC Close</button>
+  </div>
+
+  <div class="drawer__tabs">
+    <label for="tab-config" class="drawer__tab" data-tab="config">Config</label>
+    <label for="tab-logs" class="drawer__tab" data-tab="logs">Logs</label>
+    <label for="tab-stats" class="drawer__tab" data-tab="stats">Stats</label>
+  </div>
+
+  <div class="drawer__body">
+    <!-- CONFIG panel -->
+    <div class="drawer-tab-panel drawer-tab-panel--config">
+      <div class="kv"><div class="kv__key">Image</div><div class="kv__val">traefik:v3.0</div></div>
+      <div class="kv"><div class="kv__key">Command</div><div class="kv__val">traefik --configfile=/etc/traefik/traefik.yml</div></div>
+      <div class="kv"><div class="kv__key">Created</div><div class="kv__val">2026-04-19T08:20:11Z</div></div>
+      <div class="kv"><div class="kv__key">Network</div><div class="kv__val">bientot-edge</div></div>
+      <div class="kv"><div class="kv__key">Ports</div><div class="kv__val">80/tcp, 443/tcp</div></div>
+      <div class="kv">
+        <div class="kv__key">Volumes</div>
+        <div class="kv__val">
+          <div>/etc/traefik:/etc/traefik:ro</div>
+          <div>/var/run/docker.sock:/var/run/docker.sock:ro</div>
+          <div>traefik-acme:/acme</div>
+        </div>
+      </div>
+      <div class="kv">
+        <div class="kv__key">Env</div>
+        <div class="kv__val">
+          <span class="tag"><span class="tag--key">TZ</span>=Europe/Paris</span>
+          <span class="tag"><span class="tag--key">LOG_LEVEL</span>=INFO</span>
+          <span class="tag"><span class="tag--key">CF_DNS_API_TOKEN</span>=•••••••• (redacted)</span>
+          <span class="tag"><span class="tag--key">ACME_EMAIL</span>=ops@home.arpa</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGS panel -->
+    <div class="drawer-tab-panel drawer-tab-panel--logs">
+      <div class="row" style="justify-content:space-between;margin-bottom:10px">
+        <span class="mono small muted">tail -n 500 · newest at bottom</span>
+        <button class="btn btn--sm btn--ghost">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 12 4.5"/><path d="M13 2v3h-3"/></svg>
+          Reload
+        </button>
+      </div>
+      <div class="logs">
+        <div class="logs__line"><span class="logs__ts">08:20:11</span><span class="logs__lvl logs__lvl--info">INFO</span><span class="logs__msg">Starting provider aggregator.ProviderAggregator</span></div>
+        <div class="logs__line"><span class="logs__ts">08:20:11</span><span class="logs__lvl logs__lvl--info">INFO</span><span class="logs__msg">Starting provider *docker.Provider</span></div>
+        <div class="logs__line"><span class="logs__ts">08:20:12</span><span class="logs__lvl logs__lvl--info">INFO</span><span class="logs__msg">Starting provider *acme.Provider</span></div>
+        <div class="logs__line"><span class="logs__ts">08:20:12</span><span class="logs__lvl logs__lvl--info">INFO</span><span class="logs__msg">Testing certificate renew... ok</span></div>
+        <div class="logs__line"><span class="logs__ts">08:20:18</span><span class="logs__lvl logs__lvl--info">INFO</span><span class="logs__msg">Server listening on :443</span></div>
+        <div class="logs__line"><span class="logs__ts">08:20:18</span><span class="logs__lvl logs__lvl--info">INFO</span><span class="logs__msg">Server listening on :80</span></div>
+        <div class="logs__line"><span class="logs__ts">08:21:02</span><span class="logs__lvl logs__lvl--info">INFO</span><span class="logs__msg">Configuration received from provider docker: 7 routers, 7 services</span></div>
+        <div class="logs__line"><span class="logs__ts">09:12:47</span><span class="logs__lvl logs__lvl--warn">WARN</span><span class="logs__msg">Gateway timeout upstream=vaultwarden duration=30.01s</span></div>
+        <div class="logs__line"><span class="logs__ts">09:12:47</span><span class="logs__lvl logs__lvl--error">ERROR</span><span class="logs__msg">dial tcp 172.19.0.7:80: connect: connection refused (vaultwarden)</span></div>
+        <div class="logs__line"><span class="logs__ts">10:01:14</span><span class="logs__lvl logs__lvl--info">INFO</span><span class="logs__msg">Configuration received from provider docker: 6 routers, 6 services</span></div>
+        <div class="logs__line"><span class="logs__ts">10:34:22</span><span class="logs__lvl logs__lvl--info">INFO</span><span class="logs__msg">Served 2141 req/5min p50=24ms p99=420ms</span></div>
+      </div>
+    </div>
+
+    <!-- STATS panel -->
+    <div class="drawer-tab-panel drawer-tab-panel--stats">
+      <div class="charts-grid">
+        <div class="chart">
+          <div class="chart__head">
+            <div class="chart__title">CPU</div>
+            <div class="chart__value mono">0.4<span class="chart__value-unit">%</span></div>
+            <span class="chart__trend mono">5m avg</span>
+          </div>
+          <div class="chart__canvas" id="chart-dcpu"></div>
+        </div>
+        <div class="chart">
+          <div class="chart__head">
+            <div class="chart__title">Memory</div>
+            <div class="chart__value mono">42<span class="chart__value-unit"> MB</span></div>
+            <span class="chart__trend mono">5m avg</span>
+          </div>
+          <div class="chart__canvas" id="chart-dmem"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<script>
+// Minimal line chart renderer for the stats panel
+(function(){
+  const VB_W=1000, VB_H=140, PAD={top:8,right:8,bottom:18,left:34};
+  function minMax(s){ let mn=Infinity,mx=-Infinity; for(const a of s) for(const v of a.data){ if(v==null)continue; if(v<mn)mn=v; if(v>mx)mx=v; } if(!isFinite(mn)){mn=0;mx=1;} if(mn===mx){mn-=1;mx+=1;} const p=(mx-mn)*0.12; return [Math.max(0,mn-p*0.3), mx+p]; }
+  function path(d,x0,x1,y0,y1,mn,mx){ const n=d.length; let s="",p=true; for(let i=0;i<n;i++){const v=d[i]; if(v==null){p=true;continue;} const x=x0+(i/(n-1))*(x1-x0), y=y1-((v-mn)/(mx-mn))*(y1-y0); s+=(p?"M":"L")+x.toFixed(1)+" "+y.toFixed(1)+" "; p=false;} return s.trim();}
+  function fmt(v,u){ if(u==="%") return Math.round(v)+""; if(Math.abs(v)<10) return v.toFixed(1); return Math.round(v)+""; }
+  function render(el,opts){
+    const {series,unit="",xLabels=[]}=opts;
+    const [mn,mx]=minMax(series), x0=PAD.left,x1=VB_W-PAD.right,y0=PAD.top,y1=VB_H-PAD.bottom;
+    const g=[], lb=[];
+    for(let i=0;i<=4;i++){ const y=y0+(i/4)*(y1-y0); const v=mx-(i/4)*(mx-mn);
+      g.push(`<line x1="${x0}" x2="${x1}" y1="${y}" y2="${y}" stroke="var(--border-subtle)" stroke-width="1"/>`);
+      lb.push(`<text x="${x0-6}" y="${y+3}" text-anchor="end" font-family="var(--font-mono)" font-size="10" fill="var(--text-2)">${fmt(v,unit)}</text>`);
+    }
+    for(let i=0;i<=3;i++){ const x=x0+(i/3)*(x1-x0); const l=xLabels[Math.floor((i/3)*(xLabels.length-1))]||"";
+      lb.push(`<text x="${x}" y="${VB_H-4}" text-anchor="${i===0?'start':i===3?'end':'middle'}" font-family="var(--font-mono)" font-size="10" fill="var(--text-2)">${l}</text>`);
+    }
+    const ps=series.map(s=>`<path d="${path(s.data,x0,x1,y0,y1,mn,mx)}" fill="none" stroke="${s.color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`).join("");
+    el.innerHTML=`<svg viewBox="0 0 ${VB_W} ${VB_H}" preserveAspectRatio="none">${g.join("")}${ps}${lb.join("")}</svg>`;
+  }
+  function xs(n){ const now=new Date("2026-04-19T10:30:00Z"), o=[]; for(let i=0;i<n;i++){const d=new Date(now.getTime()-(n-1-i)*5000); o.push(String(d.getUTCHours()).padStart(2,"0")+":"+String(d.getUTCMinutes()).padStart(2,"0"));} return o; }
+  const n=60; const cpu=[], mem=[]; let sd=7; const r=()=>{sd=(sd*1103515245+12345)&0x7fffffff; return sd/0x7fffffff;};
+  for(let i=0;i<n;i++){ cpu.push(+(0.4+Math.sin(i/6)*0.3+r()*0.3).toFixed(2)); mem.push(+(42+Math.sin(i/6)*8+r()*4).toFixed(2)); }
+  render(document.getElementById("chart-dcpu"), { series:[{data:cpu, color:"var(--accent)"}], unit:"%", xLabels:xs(n) });
+  render(document.getElementById("chart-dmem"), { series:[{data:mem, color:"var(--accent)"}], unit:" MB", xLabels:xs(n) });
+})();
+</script>
+</body>
+</html>

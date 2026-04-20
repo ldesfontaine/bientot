@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en" data-density="comfortable" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bientôt — Components reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root {
+  --bg-0:#0b0d10; --bg-1:#101317; --bg-2:#161a20; --bg-3:#1d2229;
+  --border-subtle:#1c2028; --border:#232832; --border-strong:#2e3440;
+  --text-0:#e6e8eb; --text-1:#a8adb6; --text-2:#6b727d; --text-3:#4a5059;
+  --accent:oklch(72% 0.09 195); --accent-dim:oklch(60% 0.08 195);
+  --accent-bg:oklch(72% 0.09 195 / 0.12); --accent-border:oklch(72% 0.09 195 / 0.28);
+  --ok:oklch(72% 0.15 150); --ok-bg:oklch(72% 0.15 150 / 0.12); --ok-border:oklch(72% 0.15 150 / 0.3);
+  --warn:oklch(80% 0.14 80); --warn-bg:oklch(80% 0.14 80 / 0.12); --warn-border:oklch(80% 0.14 80 / 0.3);
+  --crit:oklch(66% 0.19 25); --crit-bg:oklch(66% 0.19 25 / 0.14); --crit-border:oklch(66% 0.19 25 / 0.32);
+  --muted-dot:#4a5059;
+  --font-sans:"Geist",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --font-mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --fs-xs:11px; --fs-sm:12px; --fs-base:13px; --fs-md:14px; --fs-lg:16px;
+  --fs-xl:20px; --fs-2xl:24px; --fs-3xl:32px;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px;
+  --r-sm:4px; --r-md:6px; --r-lg:8px; --r-xl:10px;
+  --shadow-drawer:-24px 0 48px -12px rgba(0,0,0,0.5);
+  --shadow-popover:0 8px 24px -8px rgba(0,0,0,0.6);
+  --row-h:40px; --card-pad:16px; --sidebar-w:232px;
+}
+* { box-sizing:border-box; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+html, body {
+  margin:0; padding:0; background:var(--bg-0); color:var(--text-0);
+  font-family:var(--font-sans); font-size:var(--fs-base); line-height:1.45;
+  font-feature-settings:"cv11","ss01","ss03";
+}
+.mono { font-family:var(--font-mono); font-feature-settings:"zero","ss01"; }
+button { font-family:inherit; }
+
+/* Ref page layout */
+.ref { max-width:1200px; margin:0 auto; padding:48px 32px 96px; }
+.ref__title { font-size:var(--fs-3xl); font-weight:600; margin:0 0 4px; letter-spacing:-0.02em; }
+.ref__sub { color:var(--text-2); font-family:var(--font-mono); font-size:var(--fs-sm); margin-bottom:40px; }
+.ref__section { margin-bottom:64px; }
+.ref__h2 { font-size:var(--fs-xl); font-weight:600; margin:0 0 6px; letter-spacing:-0.01em; }
+.ref__h2-desc { color:var(--text-2); font-family:var(--font-mono); font-size:var(--fs-sm); margin-bottom:24px; }
+.ref__tile { background:var(--bg-1); border:1px solid var(--border-subtle); border-radius:var(--r-lg); padding:20px; }
+.ref__label { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-2); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:8px; }
+.ref__group { margin-bottom:24px; }
+.ref__group:last-child { margin-bottom:0; }
+
+/* KPI card (shared) */
+.kpi-grid { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:var(--s-3); }
+.kpi { background:var(--bg-1); border:1px solid var(--border-subtle); border-radius:var(--r-lg); padding:var(--card-pad); display:flex; flex-direction:column; gap:6px; min-height:86px; position:relative; }
+.kpi__head { display:flex; align-items:center; gap:6px; color:var(--text-2); font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:0.06em; }
+.kpi__head svg { width:12px; height:12px; }
+.kpi__value { font-family:var(--font-mono); font-size:var(--fs-2xl); font-weight:500; letter-spacing:-0.02em; color:var(--text-0); line-height:1.1; }
+.kpi__value-unit { font-size:var(--fs-base); color:var(--text-2); font-weight:400; margin-left:2px; }
+.kpi__foot { display:flex; align-items:center; justify-content:space-between; gap:8px; font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-2); }
+.kpi__trend { display:inline-flex; align-items:center; gap:3px; }
+.kpi__trend svg { width:10px; height:10px; }
+.kpi__trend--up { color:var(--warn); }
+.kpi__trend--down { color:var(--ok); }
+.kpi--warn { border-color:var(--warn-border); background:linear-gradient(180deg,var(--warn-bg),transparent 60%),var(--bg-1); }
+.kpi--warn .kpi__head { color:var(--warn); }
+.kpi--crit { border-color:var(--crit-border); background:linear-gradient(180deg,var(--crit-bg),transparent 60%),var(--bg-1); }
+.kpi--crit .kpi__head { color:var(--crit); }
+.skel { background:linear-gradient(90deg,var(--bg-2) 0%,var(--bg-3) 50%,var(--bg-2) 100%); background-size:200% 100%; animation:shimmer 1.4s linear infinite; border-radius:3px; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* Status dot + pill */
+.dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; display:inline-block; }
+.dot--ok { background:var(--ok); box-shadow:0 0 0 3px var(--ok-bg); }
+.dot--warn { background:var(--warn); box-shadow:0 0 0 3px var(--warn-bg); }
+.dot--crit { background:var(--crit); box-shadow:0 0 0 3px var(--crit-bg); }
+.dot--off { background:var(--muted-dot); }
+.dot--pulse { animation:dot-pulse 1.8s ease-in-out infinite; }
+@keyframes dot-pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
+.status-pill { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-1); padding:2px 6px; background:var(--bg-2); border:1px solid var(--border-subtle); border-radius:3px; }
+
+/* Sidebar demo (simplified) */
+.sb-demo { width:232px; background:var(--bg-1); border:1px solid var(--border-subtle); border-radius:var(--r-md); padding:12px; font-size:var(--fs-sm); }
+.sidebar__brand-mark { width:22px; height:22px; border-radius:5px; background:linear-gradient(180deg,var(--accent),var(--accent-dim)); display:grid; place-items:center; color:#0b0d10; font-family:var(--font-mono); font-weight:700; font-size:12px; letter-spacing:-0.02em; }
+.switcher__label { font-size:var(--fs-xs); color:var(--text-2); text-transform:uppercase; letter-spacing:0.06em; padding:0 var(--s-2); margin-bottom:6px; }
+.switcher__button { width:100%; display:flex; align-items:center; gap:var(--s-2); background:var(--bg-2); border:1px solid var(--border); border-radius:var(--r-md); padding:8px 10px; color:var(--text-0); font-family:var(--font-mono); font-size:var(--fs-base); text-align:left; }
+.switcher__button-name { flex:1; }
+.switcher__button-caret { color:var(--text-2); display:inline-flex; }
+.nav__group-label { font-size:var(--fs-xs); color:var(--text-2); text-transform:uppercase; letter-spacing:0.06em; padding:var(--s-3) var(--s-2) 6px; }
+.nav__item { display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:var(--r-sm); color:var(--text-1); font-size:var(--fs-base); margin:1px 0; }
+.nav__item[aria-current="true"] { background:var(--bg-3); color:var(--text-0); padding-left:8px; }
+.nav__item[aria-current="true"]::before { content:""; width:2px; height:14px; background:var(--accent); border-radius:2px; margin-left:-10px; margin-right:8px; }
+.nav__item-icon { width:14px; height:14px; color:var(--text-2); flex-shrink:0; display:inline-flex; }
+.nav__item[aria-current="true"] .nav__item-icon { color:var(--accent); }
+.nav__item-badge { margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--text-2); padding:2px 5px; background:var(--bg-2); border-radius:3px; }
+
+/* Table */
+.table-wrap { background:var(--bg-1); border:1px solid var(--border-subtle); border-radius:var(--r-lg); overflow:hidden; }
+.table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+.table thead th { text-align:left; padding:10px var(--s-4); background:var(--bg-1); border-bottom:1px solid var(--border-subtle); color:var(--text-2); font-weight:500; font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:0.06em; }
+.table tbody td { padding:0 var(--s-4); height:var(--row-h); border-bottom:1px solid var(--border-subtle); color:var(--text-1); vertical-align:middle; }
+.table tbody tr:last-child td { border-bottom:0; }
+.table tbody tr.hover-demo { background:var(--bg-2); }
+.table tbody tr[aria-selected="true"] { background:var(--bg-3); }
+.table tbody tr[aria-selected="true"] td:first-child { box-shadow:inset 2px 0 0 var(--accent); }
+.table td.mono, .table th.mono { font-family:var(--font-mono); }
+.table td .cell-primary { color:var(--text-0); }
+.table td .cell-muted { color:var(--text-2); }
+.row { display:flex; align-items:center; gap:var(--s-2); }
+.gap-2 { gap:var(--s-2); }
+.gap-3 { gap:var(--s-3); }
+.small { font-size:var(--fs-sm); }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; gap:6px; font-family:inherit; font-size:var(--fs-base); padding:7px 12px; border-radius:var(--r-md); border:1px solid var(--border); background:var(--bg-1); color:var(--text-0); cursor:pointer; transition:all .12s; }
+.btn:hover { background:var(--bg-2); border-color:var(--border-strong); }
+.btn--primary { background:var(--accent); border-color:var(--accent); color:#06131a; font-weight:500; }
+.btn--primary:hover { background:oklch(76% 0.09 195); border-color:oklch(76% 0.09 195); }
+.btn--ghost { background:transparent; border-color:transparent; color:var(--text-1); }
+.btn--ghost:hover { background:var(--bg-2); color:var(--text-0); border-color:var(--border-subtle); }
+.btn--danger { color:var(--crit); border-color:var(--border); }
+.btn--danger:hover { background:var(--crit-bg); border-color:var(--crit-border); }
+.btn--sm { padding:4px 8px; font-size:var(--fs-sm); }
+.btn svg { width:14px; height:14px; }
+
+/* Chart */
+.chart { background:var(--bg-1); border:1px solid var(--border-subtle); border-radius:var(--r-lg); padding:var(--card-pad); margin-bottom:12px; }
+.chart__head { display:flex; align-items:baseline; gap:var(--s-3); margin-bottom:6px; flex-wrap:wrap; row-gap:4px; }
+.chart__title { font-size:var(--fs-sm); font-weight:500; color:var(--text-1); text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; }
+.chart__value { font-family:var(--font-mono); font-size:var(--fs-xl); font-weight:500; letter-spacing:-0.02em; color:var(--text-0); }
+.chart__value-unit { color:var(--text-2); font-size:var(--fs-md); margin-left:2px; }
+.chart__trend { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-2); padding:2px 6px; background:var(--bg-2); border-radius:3px; }
+.chart__legend { margin-left:auto; display:flex; gap:var(--s-3); font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-2); }
+.chart__legend-item { display:inline-flex; align-items:center; gap:5px; }
+.chart__legend-swatch { width:10px; height:2px; border-radius:1px; }
+.chart__canvas { width:100%; height:140px; position:relative; }
+.chart__canvas svg { display:block; width:100%; height:100%; overflow:visible; }
+
+/* Drawer (rendered in-place, not fixed, for reference) */
+.drawer-ref {
+  background:var(--bg-0);
+  border:1px solid var(--border);
+  border-radius:var(--r-lg);
+  box-shadow:var(--shadow-drawer);
+  display:flex; flex-direction:column;
+  width:100%;
+  max-width:720px;
+  overflow:hidden;
+  min-height:380px;
+}
+.drawer__head { display:flex; align-items:center; gap:var(--s-3); padding:14px 20px; border-bottom:1px solid var(--border-subtle); height:56px; }
+.drawer__title { font-family:var(--font-mono); font-size:var(--fs-md); font-weight:500; color:var(--text-0); }
+.drawer__sub { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-2); }
+.drawer__close { margin-left:auto; background:transparent; border:1px solid var(--border); color:var(--text-1); padding:4px 8px; border-radius:var(--r-sm); cursor:pointer; font-family:var(--font-mono); font-size:var(--fs-xs); }
+.drawer__tabs { display:flex; gap:4px; padding:0 20px; border-bottom:1px solid var(--border-subtle); }
+.drawer__tab { background:transparent; border:0; padding:10px 10px; font-size:var(--fs-sm); color:var(--text-2); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; font-family:inherit; }
+.drawer__tab[aria-selected="true"] { color:var(--text-0); border-bottom-color:var(--accent); }
+.drawer__body { flex:1; overflow-y:auto; padding:20px; }
+.kv { display:grid; grid-template-columns:140px 1fr; gap:2px 16px; font-size:var(--fs-sm); padding:10px 0; border-bottom:1px solid var(--border-subtle); }
+.kv:last-child { border-bottom:0; }
+.kv__key { color:var(--text-2); font-family:var(--font-mono); font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:0.05em; padding-top:2px; }
+.kv__val { font-family:var(--font-mono); color:var(--text-0); word-break:break-all; }
+
+/* Color swatch */
+.sg__grid { display:grid; gap:12px; grid-template-columns:repeat(4,1fr); }
+.swatch { display:flex; gap:12px; align-items:center; padding:10px 12px; background:var(--bg-1); border:1px solid var(--border-subtle); border-radius:var(--r-md); }
+.swatch__chip { width:36px; height:36px; border-radius:6px; border:1px solid var(--border-subtle); flex-shrink:0; }
+.swatch__name { font-size:var(--fs-sm); color:var(--text-0); }
+.swatch__val { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-2); }
+</style>
+</head>
+<body>
+
+<div class="ref">
+  <h1 class="ref__title">Components reference</h1>
+  <div class="ref__sub">Every reusable element with a label above it. Open `overview.html` / `docker.html` / `config.html` for live compositions.</div>
+
+  <!-- COLORS QUICK REFERENCE -->
+  <section class="ref__section">
+    <h2 class="ref__h2">Color palette</h2>
+    <div class="ref__h2-desc">surfaces · text · accent · semantic</div>
+
+    <div class="ref__group">
+      <div class="ref__label">Surfaces</div>
+      <div class="sg__grid">
+        <div class="swatch"><span class="swatch__chip" style="background:#0b0d10"></span><div><div class="swatch__name">bg-0 · page</div><div class="swatch__val">#0b0d10</div></div></div>
+        <div class="swatch"><span class="swatch__chip" style="background:#101317"></span><div><div class="swatch__name">bg-1 · elevated</div><div class="swatch__val">#101317</div></div></div>
+        <div class="swatch"><span class="swatch__chip" style="background:#161a20"></span><div><div class="swatch__name">bg-2 · hover</div><div class="swatch__val">#161a20</div></div></div>
+        <div class="swatch"><span class="swatch__chip" style="background:#1d2229"></span><div><div class="swatch__name">bg-3 · active</div><div class="swatch__val">#1d2229</div></div></div>
+      </div>
+    </div>
+
+    <div class="ref__group">
+      <div class="ref__label">Text</div>
+      <div class="sg__grid">
+        <div class="swatch"><span class="swatch__chip" style="background:#e6e8eb"></span><div><div class="swatch__name">text-0 · primary</div><div class="swatch__val">#e6e8eb</div></div></div>
+        <div class="swatch"><span class="swatch__chip" style="background:#a8adb6"></span><div><div class="swatch__name">text-1 · secondary</div><div class="swatch__val">#a8adb6</div></div></div>
+        <div class="swatch"><span class="swatch__chip" style="background:#6b727d"></span><div><div class="swatch__name">text-2 · muted</div><div class="swatch__val">#6b727d</div></div></div>
+        <div class="swatch"><span class="swatch__chip" style="background:#4a5059"></span><div><div class="swatch__name">text-3 · disabled</div><div class="swatch__val">#4a5059</div></div></div>
+      </div>
+    </div>
+
+    <div class="ref__group">
+      <div class="ref__label">Accent & semantic</div>
+      <div class="sg__grid">
+        <div class="swatch"><span class="swatch__chip" style="background:var(--accent)"></span><div><div class="swatch__name">accent · teal</div><div class="swatch__val">oklch(72% .09 195)</div></div></div>
+        <div class="swatch"><span class="swatch__chip" style="background:var(--ok)"></span><div><div class="swatch__name">ok · green</div><div class="swatch__val">oklch(72% .15 150)</div></div></div>
+        <div class="swatch"><span class="swatch__chip" style="background:var(--warn)"></span><div><div class="swatch__name">warn · amber</div><div class="swatch__val">oklch(80% .14 80)</div></div></div>
+        <div class="swatch"><span class="swatch__chip" style="background:var(--crit)"></span><div><div class="swatch__name">crit · red</div><div class="swatch__val">oklch(66% .19 25)</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- KPI CARDS -->
+  <section class="ref__section">
+    <h2 class="ref__h2">KPI card</h2>
+    <div class="ref__h2-desc">default · warning · critical · loading skeleton</div>
+    <div class="kpi-grid">
+      <div>
+        <div class="ref__label">Default</div>
+        <div class="kpi">
+          <div class="kpi__head">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="12" height="6" rx="1"/><path d="M5 8h0.01M8 8h0.01M11 8h0.01"/><path d="M4 11v1M12 11v1"/></svg>
+            <span>Memory</span>
+          </div>
+          <div class="kpi__value mono">45<span class="kpi__value-unit">%</span></div>
+          <div class="kpi__foot"><span>1.8 / 4.0 GB</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="ref__label">Warning</div>
+        <div class="kpi kpi--warn">
+          <div class="kpi__head">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="8" cy="4" rx="6" ry="2"/><path d="M2 4v8c0 1.1 2.7 2 6 2s6-.9 6-2V4"/><path d="M2 8c0 1.1 2.7 2 6 2s6-.9 6-2"/></svg>
+            <span>Disk /</span>
+          </div>
+          <div class="kpi__value mono">87<span class="kpi__value-unit">%</span></div>
+          <div class="kpi__foot">
+            <span>34.8 / 40 GB</span>
+            <span class="kpi__trend kpi__trend--up">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12V4M4 8l4-4 4 4"/></svg>+2.1
+            </span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="ref__label">Critical</div>
+        <div class="kpi kpi--crit">
+          <div class="kpi__head">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h2.5l1.5-4 3 8 1.5-4H14"/></svg>
+            <span>Load 1m</span>
+          </div>
+          <div class="kpi__value mono">4.21</div>
+          <div class="kpi__foot">
+            <span>5m avg 3.98</span>
+            <span class="kpi__trend kpi__trend--up">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 12V4M4 8l4-4 4 4"/></svg>+0.8
+            </span>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="ref__label">Loading</div>
+        <div class="kpi">
+          <div class="skel" style="width:50%;height:10px;margin-bottom:6px"></div>
+          <div class="skel" style="width:60%;height:22px"></div>
+          <div class="skel" style="width:70%;height:10px;margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATUS DOTS -->
+  <section class="ref__section">
+    <h2 class="ref__h2">Status indicators</h2>
+    <div class="ref__h2-desc">dot · pill · row label</div>
+    <div class="ref__tile">
+      <div class="ref__label">Dots</div>
+      <div class="row" style="gap:24px;margin-bottom:20px;flex-wrap:wrap">
+        <span class="row gap-2"><span class="dot dot--ok"></span><span class="mono small">ok</span></span>
+        <span class="row gap-2"><span class="dot dot--warn"></span><span class="mono small">warn</span></span>
+        <span class="row gap-2"><span class="dot dot--crit"></span><span class="mono small">crit</span></span>
+        <span class="row gap-2"><span class="dot dot--off"></span><span class="mono small">offline</span></span>
+        <span class="row gap-2"><span class="dot dot--ok dot--pulse"></span><span class="mono small">pulse (live)</span></span>
+      </div>
+      <div class="ref__label">Pills</div>
+      <div class="row" style="gap:12px;flex-wrap:wrap">
+        <span class="status-pill"><span class="dot dot--ok"></span>online</span>
+        <span class="status-pill" style="color:var(--warn);border-color:var(--warn-border);background:var(--warn-bg)"><span class="dot dot--warn"></span>degraded</span>
+        <span class="status-pill" style="color:var(--crit);border-color:var(--crit-border);background:var(--crit-bg)"><span class="dot dot--crit"></span>offline 2h</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SIDEBAR -->
+  <section class="ref__section">
+    <h2 class="ref__h2">Navigation sidebar</h2>
+    <div class="ref__h2-desc">fixed 232px · machine switcher + route list · active item has 2px teal rail</div>
+    <div class="ref__label">Expanded</div>
+    <div class="sb-demo">
+      <div style="padding-bottom:8px;border-bottom:1px solid var(--border-subtle);margin-bottom:10px" class="row gap-2">
+        <div class="sidebar__brand-mark" style="width:18px;height:18px;font-size:10px">B</div>
+        <strong style="font-weight:600">Bientôt</strong>
+        <span class="mono small" style="margin-left:auto;color:var(--text-2)">0.8.2</span>
+      </div>
+      <div class="switcher__label">Machine</div>
+      <button class="switcher__button" style="margin-bottom:10px">
+        <span class="dot dot--ok"></span>
+        <span class="switcher__button-name">vps</span>
+        <span class="switcher__button-caret">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </span>
+      </button>
+      <div class="nav__group-label">Machine</div>
+      <div class="nav__item" aria-current="true">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l6-5 6 5v6.5c0 .3-.2.5-.5.5H10v-4H6v4H2.5c-.3 0-.5-.2-.5-.5V7z"/></svg></span>
+        Overview
+      </div>
+      <div class="nav__group-label">Modules</div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="2" height="2"/><rect x="5" y="7" width="2" height="2"/><rect x="8" y="7" width="2" height="2"/><rect x="5" y="4" width="2" height="2"/><rect x="8" y="4" width="2" height="2"/><rect x="8" y="1" width="2" height="2"/><path d="M2 10c1.5 2 4 3 7 3 4 0 6-2 6.5-5-.8.5-1.5.5-2 0-.5.5-1.5.5-2 0"/></svg></span>
+        Docker
+        <span class="nav__item-badge" style="color:var(--warn);border:1px solid var(--warn-border)">!</span>
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="8" rx="1"/><path d="M5 7h6M5 9h4"/><circle cx="6" cy="12.5" r="1.5"/><path d="M6 14v1.5l1-0.5 1 0.5V14"/></svg></span>
+        Certs
+        <span class="nav__item-badge" style="color:var(--crit);border:1px solid var(--crit-border)">!</span>
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></svg></span>
+        Systemd
+      </div>
+    </div>
+  </section>
+
+  <!-- TABLES -->
+  <section class="ref__section">
+    <h2 class="ref__h2">Table</h2>
+    <div class="ref__h2-desc">default · hover · selected · stopped · error</div>
+    <div class="ref__label">Rows with every state</div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Name</th><th>Status</th><th>Image</th><th>Uptime</th></tr></thead>
+        <tbody>
+          <tr><td class="mono"><span class="cell-primary">traefik</span></td><td><span class="row gap-2 mono small" style="color:var(--ok)"><span class="dot dot--ok"></span>Up</span></td><td class="mono"><span class="cell-muted">traefik:v3.0</span></td><td class="mono">2h 14m</td></tr>
+          <tr class="hover-demo"><td class="mono"><span class="cell-primary">redis <span style="color:var(--text-2)">← hover</span></span></td><td><span class="row gap-2 mono small" style="color:var(--ok)"><span class="dot dot--ok"></span>Up</span></td><td class="mono"><span class="cell-muted">redis:7-alpine</span></td><td class="mono">3h 8m</td></tr>
+          <tr aria-selected="true"><td class="mono"><span class="cell-primary">postgres <span style="color:var(--text-2)">← selected</span></span></td><td><span class="row gap-2 mono small" style="color:var(--ok)"><span class="dot dot--ok"></span>Up</span></td><td class="mono"><span class="cell-muted">postgres:15</span></td><td class="mono">1d 5h</td></tr>
+          <tr><td class="mono"><span class="cell-primary">old-backup-script</span></td><td><span class="row gap-2 mono small" style="color:var(--text-2)"><span class="dot dot--off"></span>Exited (1)</span></td><td class="mono"><span class="cell-muted">debian:bookworm</span></td><td class="mono">—</td></tr>
+          <tr><td class="mono"><span class="cell-primary">caddy-dev</span></td><td><span class="row gap-2 mono small" style="color:var(--crit)"><span class="dot dot--crit"></span>Error</span></td><td class="mono"><span class="cell-muted">caddy:2.8</span></td><td class="mono">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- BUTTONS -->
+  <section class="ref__section">
+    <h2 class="ref__h2">Buttons</h2>
+    <div class="ref__h2-desc">primary · secondary · ghost · destructive · sizes</div>
+    <div class="ref__tile">
+      <div class="ref__label">Primary, secondary, ghost, destructive</div>
+      <div class="row gap-3" style="flex-wrap:wrap;margin-bottom:20px">
+        <button class="btn btn--primary">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M3 8h10"/></svg>
+          Add agent
+        </button>
+        <button class="btn">Cancel</button>
+        <button class="btn btn--ghost">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3H3v10h10V9M10 3h3v3M7 9l6-6"/></svg>
+          View logs
+        </button>
+        <button class="btn btn--danger">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M5 4V2.5h6V4M4 4l.5 9.5h7L12 4"/></svg>
+          Delete
+        </button>
+      </div>
+      <div class="ref__label">Small size</div>
+      <div class="row gap-3" style="flex-wrap:wrap">
+        <button class="btn btn--primary btn--sm">Save</button>
+        <button class="btn btn--sm">Reload</button>
+        <button class="btn btn--ghost btn--sm">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 12 4.5"/><path d="M13 2v3h-3"/></svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CHART HEADER -->
+  <section class="ref__section">
+    <h2 class="ref__h2">Chart header</h2>
+    <div class="ref__h2-desc">title · current value · trend pill · legend · data gap shading</div>
+    <div class="ref__label">Single series</div>
+    <div class="chart">
+      <div class="chart__head">
+        <div class="chart__title">CPU usage</div>
+        <div class="chart__value mono">12.4<span class="chart__value-unit">%</span></div>
+        <span class="chart__trend mono">24h avg 14.1%</span>
+      </div>
+      <div class="chart__canvas" id="chart-a"></div>
+    </div>
+    <div class="ref__label">Multi-series with legend and data gap</div>
+    <div class="chart">
+      <div class="chart__head">
+        <div class="chart__title">Load average</div>
+        <div class="chart__value mono">0.42</div>
+        <span class="chart__trend mono">1m / 5m / 15m</span>
+        <div class="chart__legend">
+          <span class="chart__legend-item"><span class="chart__legend-swatch" style="background:var(--accent)"></span>1m</span>
+          <span class="chart__legend-item"><span class="chart__legend-swatch" style="background:oklch(72% 0.09 220)"></span>5m</span>
+          <span class="chart__legend-item"><span class="chart__legend-swatch" style="background:var(--text-2)"></span>15m</span>
+        </div>
+      </div>
+      <div class="chart__canvas" id="chart-b"></div>
+    </div>
+  </section>
+
+  <!-- DRAWER -->
+  <section class="ref__section">
+    <h2 class="ref__h2">Drawer</h2>
+    <div class="ref__h2-desc">right-side panel · header · tabs · body · shown here in-flow for reference</div>
+    <div class="ref__label">Drawer with Config tab active</div>
+    <div class="drawer-ref">
+      <div class="drawer__head">
+        <span class="dot dot--ok"></span>
+        <div>
+          <div class="drawer__title">traefik</div>
+          <div class="drawer__sub">traefik:v3.0 · 2h 14m</div>
+        </div>
+        <button class="drawer__close">ESC Close</button>
+      </div>
+      <div class="drawer__tabs">
+        <button class="drawer__tab" aria-selected="true">Config</button>
+        <button class="drawer__tab">Logs</button>
+        <button class="drawer__tab">Stats</button>
+      </div>
+      <div class="drawer__body">
+        <div class="kv"><div class="kv__key">Image</div><div class="kv__val">traefik:v3.0</div></div>
+        <div class="kv"><div class="kv__key">Command</div><div class="kv__val">traefik --configfile=/etc/traefik/traefik.yml</div></div>
+        <div class="kv"><div class="kv__key">Network</div><div class="kv__val">bientot-edge</div></div>
+        <div class="kv"><div class="kv__key">Ports</div><div class="kv__val">80/tcp, 443/tcp</div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  const VB_W=1000, VB_H=140, PAD={top:8,right:8,bottom:18,left:34};
+  function minMax(s){ let mn=Infinity,mx=-Infinity; for(const a of s) for(const v of a.data){ if(v==null)continue; if(v<mn)mn=v; if(v>mx)mx=v; } if(!isFinite(mn)){mn=0;mx=1;} if(mn===mx){mn-=1;mx+=1;} const p=(mx-mn)*0.12; return [Math.max(0,mn-p*0.3), mx+p]; }
+  function buildPath(d,x0,x1,y0,y1,mn,mx){ const n=d.length; let s="",p=true; for(let i=0;i<n;i++){const v=d[i]; if(v==null){p=true;continue;} const x=x0+(i/(n-1))*(x1-x0), y=y1-((v-mn)/(mx-mn))*(y1-y0); s+=(p?"M":"L")+x.toFixed(1)+" "+y.toFixed(1)+" "; p=false;} return s.trim();}
+  function fmt(v,u){ if(u==="%") return Math.round(v)+""; if(Math.abs(v)<10) return v.toFixed(1); return Math.round(v)+""; }
+  function render(el,opts){
+    const {series,unit="",xLabels=[]}=opts;
+    const [mn,mx]=minMax(series), x0=PAD.left,x1=VB_W-PAD.right,y0=PAD.top,y1=VB_H-PAD.bottom;
+    const g=[], lb=[];
+    for(let i=0;i<=4;i++){ const y=y0+(i/4)*(y1-y0); const v=mx-(i/4)*(mx-mn);
+      g.push(`<line x1="${x0}" x2="${x1}" y1="${y}" y2="${y}" stroke="var(--border-subtle)" stroke-width="1"/>`);
+      lb.push(`<text x="${x0-6}" y="${y+3}" text-anchor="end" font-family="var(--font-mono)" font-size="10" fill="var(--text-2)">${fmt(v,unit)}</text>`);
+    }
+    for(let i=0;i<=3;i++){ const x=x0+(i/3)*(x1-x0); const l=xLabels[Math.floor((i/3)*(xLabels.length-1))]||"";
+      lb.push(`<text x="${x}" y="${VB_H-4}" text-anchor="${i===0?'start':i===3?'end':'middle'}" font-family="var(--font-mono)" font-size="10" fill="var(--text-2)">${l}</text>`);
+    }
+    const gapRects=[]; {
+      const n=series[0].data.length; let gs=-1;
+      for(let i=0;i<n;i++){ const all=series.every(s=>s.data[i]==null);
+        if(all&&gs===-1) gs=i;
+        if((!all||i===n-1)&&gs!==-1){ const ei=all?i:i-1;
+          const gx0=x0+(gs/(n-1))*(x1-x0), gx1=x0+(ei/(n-1))*(x1-x0);
+          gapRects.push(`<rect x="${gx0}" y="${y0}" width="${Math.max(2,gx1-gx0)}" height="${y1-y0}" fill="url(#gap-hatch)"/><text x="${(gx0+gx1)/2}" y="${(y0+y1)/2+3}" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-3)" letter-spacing="0.06em">NO DATA</text>`);
+          gs=-1;
+        }
+      }
+    }
+    const paths=series.map(s=>`<path d="${buildPath(s.data,x0,x1,y0,y1,mn,mx)}" fill="none" stroke="${s.color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`).join("");
+    el.innerHTML=`<svg viewBox="0 0 ${VB_W} ${VB_H}" preserveAspectRatio="none"><defs><pattern id="gap-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--border)" stroke-width="1"/></pattern></defs>${gapRects.join("")}${g.join("")}${paths}${lb.join("")}</svg>`;
+  }
+  function xs(n){ const now=new Date("2026-04-19T10:30:00Z"), o=[]; for(let i=0;i<n;i++){const d=new Date(now.getTime()-(n-1-i)*8*60000); o.push(String(d.getUTCHours()).padStart(2,"0")+":"+String(d.getUTCMinutes()).padStart(2,"0"));} return o; }
+  const n=120; let sd=99; const r=()=>{sd=(sd*1103515245+12345)&0x7fffffff; return sd/0x7fffffff;};
+  const cpu=[]; for(let i=0;i<n;i++){ const v=12+Math.sin(i/10)*4+r()*5; cpu.push((i>=40&&i<=52)?null:+v.toFixed(2)); }
+  const l1=[],l5=[],l15=[];
+  for(let i=0;i<n;i++){ const b=0.4+Math.sin(i/15)*0.15+r()*0.1; l1.push(+b.toFixed(2)); l5.push(+(b*0.9+0.1).toFixed(2)); l15.push(+(b*0.8+0.15).toFixed(2)); }
+  render(document.getElementById("chart-a"), { series:[{data:cpu, color:"var(--accent)"}], unit:"%", xLabels:xs(n) });
+  render(document.getElementById("chart-b"), { series:[
+    {data:l1, color:"var(--accent)"},
+    {data:l5, color:"oklch(72% 0.09 220)"},
+    {data:l15, color:"var(--text-2)"},
+  ], unit:"", xLabels:xs(n) });
+})();
+</script>
+</body>
+</html>

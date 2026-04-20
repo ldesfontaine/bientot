@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en" data-density="comfortable" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bientôt — Config</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+:root {
+  --bg-0:#0b0d10; --bg-1:#101317; --bg-2:#161a20; --bg-3:#1d2229;
+  --border-subtle:#1c2028; --border:#232832; --border-strong:#2e3440;
+  --text-0:#e6e8eb; --text-1:#a8adb6; --text-2:#6b727d; --text-3:#4a5059;
+  --accent:oklch(72% 0.09 195); --accent-dim:oklch(60% 0.08 195);
+  --accent-bg:oklch(72% 0.09 195 / 0.12); --accent-border:oklch(72% 0.09 195 / 0.28);
+  --ok:oklch(72% 0.15 150); --ok-bg:oklch(72% 0.15 150 / 0.12); --ok-border:oklch(72% 0.15 150 / 0.3);
+  --warn:oklch(80% 0.14 80); --warn-bg:oklch(80% 0.14 80 / 0.12); --warn-border:oklch(80% 0.14 80 / 0.3);
+  --crit:oklch(66% 0.19 25); --crit-bg:oklch(66% 0.19 25 / 0.14); --crit-border:oklch(66% 0.19 25 / 0.32);
+  --muted-dot:#4a5059;
+  --font-sans:"Geist",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --font-mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --fs-xs:11px; --fs-sm:12px; --fs-base:13px; --fs-md:14px; --fs-lg:16px;
+  --fs-xl:20px; --fs-2xl:24px; --fs-3xl:32px;
+  --lh-tight:1.2; --lh-normal:1.45;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px; --s-10:40px; --s-12:48px;
+  --r-sm:4px; --r-md:6px; --r-lg:8px; --r-xl:10px;
+  --shadow-drawer:-24px 0 48px -12px rgba(0,0,0,0.5);
+  --shadow-popover:0 8px 24px -8px rgba(0,0,0,0.6);
+  --row-h:40px; --card-pad:16px; --sidebar-w:232px;
+}
+* { box-sizing:border-box; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+html, body {
+  margin:0; padding:0; background:var(--bg-0); color:var(--text-0);
+  font-family:var(--font-sans); font-size:var(--fs-base); line-height:var(--lh-normal);
+  font-feature-settings:"cv11","ss01","ss03";
+}
+.mono { font-family:var(--font-mono); font-feature-settings:"zero","ss01"; }
+::-webkit-scrollbar { width:10px; height:10px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:999px; border:2px solid var(--bg-0); }
+::-webkit-scrollbar-thumb:hover { background:var(--border-strong); }
+button { font-family:inherit; }
+
+.app { display:grid; grid-template-columns:var(--sidebar-w) 1fr; min-height:100vh; }
+.sidebar { background:var(--bg-1); border-right:1px solid var(--border-subtle); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; }
+.sidebar__brand { display:flex; align-items:center; gap:var(--s-2); padding:18px var(--s-4) 14px; border-bottom:1px solid var(--border-subtle); }
+.sidebar__brand-mark { width:22px; height:22px; border-radius:5px; background:linear-gradient(180deg,var(--accent),var(--accent-dim)); display:grid; place-items:center; color:#0b0d10; font-family:var(--font-mono); font-weight:700; font-size:12px; letter-spacing:-0.02em; }
+.sidebar__brand-name { font-size:var(--fs-md); font-weight:600; letter-spacing:-0.01em; }
+.sidebar__brand-dot { margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--text-2); }
+.switcher { padding:var(--s-3) var(--s-3) var(--s-2); border-bottom:1px solid var(--border-subtle); position:relative; }
+.switcher__label { font-size:var(--fs-xs); color:var(--text-2); text-transform:uppercase; letter-spacing:0.06em; padding:0 var(--s-2); margin-bottom:6px; }
+.switcher__button { width:100%; display:flex; align-items:center; gap:var(--s-2); background:var(--bg-2); border:1px solid var(--border); border-radius:var(--r-md); padding:8px 10px; color:var(--text-0); font-family:var(--font-mono); font-size:var(--fs-base); cursor:pointer; text-align:left; }
+.switcher__button-name { flex:1; }
+.switcher__button-caret { color:var(--text-2); display:inline-flex; }
+.nav { padding:var(--s-3) var(--s-3); flex:1; overflow-y:auto; }
+.nav__group-label { font-size:var(--fs-xs); color:var(--text-2); text-transform:uppercase; letter-spacing:0.06em; padding:var(--s-3) var(--s-2) 6px; }
+.nav__item { display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:var(--r-sm); color:var(--text-1); cursor:pointer; font-size:var(--fs-base); user-select:none; }
+.nav__item:hover { background:var(--bg-2); color:var(--text-0); }
+.nav__item[aria-current="true"] { background:var(--bg-3); color:var(--text-0); padding-left:8px; }
+.nav__item[aria-current="true"]::before { content:""; width:2px; height:14px; background:var(--accent); border-radius:2px; margin-left:-10px; margin-right:8px; }
+.nav__item-icon { width:14px; height:14px; color:var(--text-2); flex-shrink:0; display:inline-flex; }
+.nav__item[aria-current="true"] .nav__item-icon { color:var(--accent); }
+.nav__item-badge { margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--text-2); padding:2px 5px; background:var(--bg-2); border-radius:3px; }
+.sidebar__footer { border-top:1px solid var(--border-subtle); padding:var(--s-3); }
+.main { display:flex; flex-direction:column; min-width:0; }
+.topbar { height:48px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; padding:0 var(--s-5); gap:var(--s-3); background:var(--bg-0); position:sticky; top:0; z-index:5; }
+.topbar__crumbs { display:flex; align-items:center; gap:6px; font-size:var(--fs-base); color:var(--text-1); }
+.topbar__crumb { color:var(--text-1); cursor:pointer; }
+.topbar__crumb--current { color:var(--text-0); font-weight:500; }
+.topbar__spacer { flex:1; }
+.topbar__meta { display:flex; align-items:center; gap:var(--s-4); font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--text-2); }
+.topbar__meta-pulse { display:inline-block; width:6px; height:6px; background:var(--accent); border-radius:50%; animation:pulse 2s ease-in-out infinite; margin-right:6px; }
+@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+.content { padding:var(--s-6) var(--s-8); max-width:1400px; width:100%; min-width:0; }
+.page-header { display:flex; align-items:baseline; gap:var(--s-4); margin-bottom:var(--s-6); }
+.page-header__title { font-size:var(--fs-xl); font-weight:600; margin:0; letter-spacing:-0.01em; }
+.page-header__subtitle { font-family:var(--font-mono); color:var(--text-2); font-size:var(--fs-sm); }
+.section { margin-bottom:var(--s-8); }
+.section__header { display:flex; align-items:baseline; gap:var(--s-3); margin-bottom:var(--s-3); flex-wrap:wrap; }
+.section__title { font-size:var(--fs-md); font-weight:600; color:var(--text-0); margin:0; letter-spacing:-0.005em; }
+.section__hint { font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--text-2); }
+
+/* Tables */
+.table-wrap { background:var(--bg-1); border:1px solid var(--border-subtle); border-radius:var(--r-lg); overflow:hidden; }
+.table { width:100%; border-collapse:collapse; font-size:var(--fs-base); }
+.table thead th { text-align:left; padding:10px var(--s-4); background:var(--bg-1); border-bottom:1px solid var(--border-subtle); color:var(--text-2); font-weight:500; font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:0.06em; }
+.table tbody td { padding:0 var(--s-4); height:var(--row-h); border-bottom:1px solid var(--border-subtle); color:var(--text-1); vertical-align:middle; }
+.table tbody tr:last-child td { border-bottom:0; }
+.table td.mono { font-family:var(--font-mono); }
+.table td .cell-primary { color:var(--text-0); }
+.table td .cell-muted { color:var(--text-2); }
+.table__actions { display:flex; gap:4px; justify-content:flex-end; }
+.table__actions button { background:transparent; border:1px solid transparent; color:var(--text-2); padding:4px 6px; border-radius:var(--r-sm); cursor:pointer; }
+.table__actions button:hover { color:var(--crit); border-color:var(--crit-border); background:var(--crit-bg); }
+.table__actions button svg { width:14px; height:14px; }
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; gap:6px; font-family:inherit; font-size:var(--fs-base); padding:7px 12px; border-radius:var(--r-md); border:1px solid var(--border); background:var(--bg-1); color:var(--text-0); cursor:pointer; transition:all .12s; }
+.btn:hover { background:var(--bg-2); border-color:var(--border-strong); }
+.btn--primary { background:var(--accent); border-color:var(--accent); color:#06131a; font-weight:500; }
+.btn--primary:hover { background:oklch(76% 0.09 195); border-color:oklch(76% 0.09 195); }
+.btn--sm { padding:4px 8px; font-size:var(--fs-sm); }
+.btn svg { width:14px; height:14px; }
+
+/* Form card */
+.form-card { background:var(--bg-1); border:1px solid var(--border-subtle); border-radius:var(--r-lg); padding:var(--s-5) var(--s-5); }
+.form-row { display:grid; grid-template-columns:200px 1fr; gap:var(--s-4); padding:12px 0; border-bottom:1px solid var(--border-subtle); align-items:center; }
+.form-row:last-child { border-bottom:0; }
+.form-row__label { font-size:var(--fs-base); color:var(--text-0); }
+.form-row__hint { font-size:var(--fs-xs); color:var(--text-2); margin-top:2px; font-family:var(--font-mono); }
+.select { background:var(--bg-2); border:1px solid var(--border); border-radius:var(--r-md); color:var(--text-0); padding:6px 10px; font-family:var(--font-mono); font-size:var(--fs-base); min-width:140px; cursor:pointer; }
+.select:hover { border-color:var(--border-strong); }
+
+/* Key-value table (system info) */
+.kv-table { width:100%; font-family:var(--font-mono); font-size:var(--fs-sm); }
+.kv-table tr td { padding:8px 0; border-bottom:1px solid var(--border-subtle); vertical-align:top; }
+.kv-table tr:last-child td { border-bottom:0; }
+.kv-table tr td:first-child { color:var(--text-2); width:220px; text-transform:uppercase; letter-spacing:0.04em; font-size:var(--fs-xs); padding-top:10px; }
+.kv-table tr td:last-child { color:var(--text-0); word-break:break-all; }
+
+/* Status dots */
+.dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; display:inline-block; }
+.dot--ok { background:var(--ok); box-shadow:0 0 0 3px var(--ok-bg); }
+.dot--off { background:var(--muted-dot); }
+.row { display:flex; align-items:center; gap:var(--s-2); }
+.gap-2 { gap:var(--s-2); }
+.small { font-size:var(--fs-sm); }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="sidebar__brand">
+      <div class="sidebar__brand-mark">B</div>
+      <div class="sidebar__brand-name">Bientôt</div>
+      <div class="sidebar__brand-dot mono">0.8.2</div>
+    </div>
+
+    <div class="switcher">
+      <div class="switcher__label">Machine</div>
+      <button class="switcher__button">
+        <span class="dot dot--ok"></span>
+        <span class="switcher__button-name">vps</span>
+        <span class="switcher__button-caret">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </span>
+      </button>
+    </div>
+
+    <nav class="nav">
+      <div class="nav__group-label">Machine</div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l6-5 6 5v6.5c0 .3-.2.5-.5.5H10v-4H6v4H2.5c-.3 0-.5-.2-.5-.5V7z"/></svg></span>
+        Overview
+      </div>
+      <div class="nav__group-label">Modules</div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="4" rx="1"/><rect x="2" y="9" width="12" height="4" rx="1"/><path d="M4.5 5h0.01M4.5 11h0.01"/></svg></span>
+        System
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="2" height="2"/><rect x="5" y="7" width="2" height="2"/><rect x="8" y="7" width="2" height="2"/><rect x="5" y="4" width="2" height="2"/><rect x="8" y="4" width="2" height="2"/><rect x="8" y="1" width="2" height="2"/><path d="M2 10c1.5 2 4 3 7 3 4 0 6-2 6.5-5-.8.5-1.5.5-2 0-.5.5-1.5.5-2 0"/></svg></span>
+        Docker
+        <span class="nav__item-badge" style="color:var(--warn);border:1px solid var(--warn-border)">!</span>
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="8" rx="1"/><path d="M5 7h6M5 9h4"/><circle cx="6" cy="12.5" r="1.5"/><path d="M6 14v1.5l1-0.5 1 0.5V14"/></svg></span>
+        Certs
+        <span class="nav__item-badge" style="color:var(--crit);border:1px solid var(--crit-border)">!</span>
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></svg></span>
+        Systemd
+      </div>
+    </nav>
+
+    <div class="sidebar__footer">
+      <div class="nav__item" aria-current="true">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M3 3l1 1M12 12l1 1M1 8h1.5M13.5 8H15M3 13l1-1M12 4l1-1"/></svg></span>
+        Config
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar__crumbs">
+        <span class="topbar__crumb topbar__crumb--current">Config</span>
+      </div>
+      <div class="topbar__spacer"></div>
+      <div class="topbar__meta">
+        <span><span class="topbar__meta-pulse"></span>auto-refresh 30s</span>
+        <span>10:34:22</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-header">
+        <h1 class="page-header__title">Config</h1>
+        <span class="page-header__subtitle mono">dashboard-global · applies to all machines</span>
+      </div>
+
+      <!-- Known agents -->
+      <div class="section">
+        <div class="section__header">
+          <h2 class="section__title">Known agents</h2>
+          <span class="section__hint">3 registered · 2 online</span>
+          <div style="margin-left:auto">
+            <button class="btn btn--primary btn--sm">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M3 8h10"/></svg>
+              Add agent
+            </button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Machine ID</th>
+                <th>Hostname</th>
+                <th>Last push</th>
+                <th>Status</th>
+                <th style="text-align:right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="mono"><span class="cell-primary">vps</span></td>
+                <td class="mono"><span class="cell-muted">vps.home.arpa</span></td>
+                <td class="mono">12s ago</td>
+                <td>
+                  <span class="row gap-2 mono small" style="color:var(--ok)">
+                    <span class="dot dot--ok"></span>online
+                  </span>
+                </td>
+                <td>
+                  <div class="table__actions">
+                    <button title="Delete agent">
+                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M5 4V2.5h6V4M4 4l.5 9.5h7L12 4"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td class="mono"><span class="cell-primary">pi</span></td>
+                <td class="mono"><span class="cell-muted">pi.home.arpa</span></td>
+                <td class="mono">8s ago</td>
+                <td>
+                  <span class="row gap-2 mono small" style="color:var(--ok)">
+                    <span class="dot dot--ok"></span>online
+                  </span>
+                </td>
+                <td>
+                  <div class="table__actions">
+                    <button title="Delete agent">
+                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M5 4V2.5h6V4M4 4l.5 9.5h7L12 4"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td class="mono"><span class="cell-primary">laptop</span></td>
+                <td class="mono"><span class="cell-muted">laptop.home.arpa</span></td>
+                <td class="mono">2h 14m ago</td>
+                <td>
+                  <span class="row gap-2 mono small" style="color:var(--text-2)">
+                    <span class="dot dot--off"></span>offline
+                  </span>
+                </td>
+                <td>
+                  <div class="table__actions">
+                    <button title="Delete agent">
+                      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4h11M5 4V2.5h6V4M4 4l.5 9.5h7L12 4"/></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Preferences -->
+      <div class="section">
+        <div class="section__header">
+          <h2 class="section__title">Preferences</h2>
+        </div>
+        <div class="form-card">
+          <div class="form-row">
+            <div>
+              <div class="form-row__label">Data retention</div>
+              <div class="form-row__hint">older metrics are pruned automatically</div>
+            </div>
+            <div>
+              <select class="select">
+                <option>3 days</option>
+                <option>7 days</option>
+                <option selected>14 days</option>
+                <option>30 days</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <div class="form-row__label">Auto-refresh interval</div>
+              <div class="form-row__hint">how often the dashboard polls for updates</div>
+            </div>
+            <div>
+              <select class="select">
+                <option>10s</option>
+                <option selected>30s</option>
+                <option>60s</option>
+                <option>Manual</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <div class="form-row__label">Theme</div>
+              <div class="form-row__hint">light mode is not yet implemented</div>
+            </div>
+            <div>
+              <select class="select">
+                <option selected>Dark</option>
+                <option disabled>Light (coming)</option>
+                <option>Auto</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div>
+              <div class="form-row__label">Density</div>
+              <div class="form-row__hint">comfortable or compact rows</div>
+            </div>
+            <div>
+              <select class="select">
+                <option selected>Comfortable</option>
+                <option>Compact</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System info -->
+      <div class="section">
+        <div class="section__header">
+          <h2 class="section__title">System info</h2>
+          <span class="section__hint">read-only</span>
+        </div>
+        <div class="form-card">
+          <table class="kv-table">
+            <tr>
+              <td>CA fingerprint (SHA-256)</td>
+              <td>8F 2A E3 4B 91 00 CD 7E&nbsp;&nbsp;42 BC 05 DE F1 23 A9 66&nbsp;&nbsp;4C 8B 11 ED 5A 2F 73 91&nbsp;&nbsp;B8 0C 1D 7E 44 F9 21 AC</td>
+            </tr>
+            <tr><td>Agents listen address</td><td>0.0.0.0:8443</td></tr>
+            <tr><td>Dashboard address</td><td>0.0.0.0:8080</td></tr>
+            <tr><td>Version</td><td>bientot 0.8.2 (abc9f41, 2026-04-15)</td></tr>
+            <tr><td>Data retention</td><td>14 days</td></tr>
+            <tr><td>Schema version</td><td>v3</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

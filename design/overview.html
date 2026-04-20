@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en" data-density="comfortable" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bientôt — Overview (vps)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+/* ============================================================
+   DESIGN TOKENS — Bientôt
+   Dark-first, cool-neutral, teal accent, semantic ok/warn/crit
+   ============================================================ */
+:root {
+  --bg-0:#0b0d10; --bg-1:#101317; --bg-2:#161a20; --bg-3:#1d2229;
+  --border-subtle:#1c2028; --border:#232832; --border-strong:#2e3440;
+  --text-0:#e6e8eb; --text-1:#a8adb6; --text-2:#6b727d; --text-3:#4a5059;
+  --accent:oklch(72% 0.09 195); --accent-dim:oklch(60% 0.08 195);
+  --accent-bg:oklch(72% 0.09 195 / 0.12); --accent-border:oklch(72% 0.09 195 / 0.28);
+  --ok:oklch(72% 0.15 150); --ok-bg:oklch(72% 0.15 150 / 0.12); --ok-border:oklch(72% 0.15 150 / 0.3);
+  --warn:oklch(80% 0.14 80); --warn-bg:oklch(80% 0.14 80 / 0.12); --warn-border:oklch(80% 0.14 80 / 0.3);
+  --crit:oklch(66% 0.19 25); --crit-bg:oklch(66% 0.19 25 / 0.14); --crit-border:oklch(66% 0.19 25 / 0.32);
+  --muted-dot:#4a5059;
+  --font-sans:"Geist",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  --font-mono:"Geist Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  --fs-xs:11px; --fs-sm:12px; --fs-base:13px; --fs-md:14px; --fs-lg:16px;
+  --fs-xl:20px; --fs-2xl:24px; --fs-3xl:32px;
+  --lh-tight:1.2; --lh-normal:1.45;
+  --s-1:4px; --s-2:8px; --s-3:12px; --s-4:16px; --s-5:20px; --s-6:24px; --s-8:32px; --s-10:40px; --s-12:48px;
+  --r-sm:4px; --r-md:6px; --r-lg:8px; --r-xl:10px;
+  --shadow-drawer:-24px 0 48px -12px rgba(0,0,0,0.5);
+  --shadow-popover:0 8px 24px -8px rgba(0,0,0,0.6);
+  --row-h:40px; --card-pad:16px; --sidebar-w:232px;
+}
+* { box-sizing:border-box; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+html, body {
+  margin:0; padding:0; background:var(--bg-0); color:var(--text-0);
+  font-family:var(--font-sans); font-size:var(--fs-base); line-height:var(--lh-normal);
+  font-feature-settings:"cv11","ss01","ss03";
+}
+.mono { font-family:var(--font-mono); font-feature-settings:"zero","ss01"; }
+::-webkit-scrollbar { width:10px; height:10px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:999px; border:2px solid var(--bg-0); }
+::-webkit-scrollbar-thumb:hover { background:var(--border-strong); }
+:focus-visible { outline:1px solid var(--accent); outline-offset:2px; border-radius:2px; }
+button { font-family:inherit; }
+
+/* ============================================================
+   LAYOUT SHELL
+   ============================================================ */
+.app { display:grid; grid-template-columns:var(--sidebar-w) 1fr; min-height:100vh; }
+
+/* Sidebar */
+.sidebar { background:var(--bg-1); border-right:1px solid var(--border-subtle); display:flex; flex-direction:column; position:sticky; top:0; height:100vh; }
+.sidebar__brand { display:flex; align-items:center; gap:var(--s-2); padding:18px var(--s-4) 14px; border-bottom:1px solid var(--border-subtle); }
+.sidebar__brand-mark { width:22px; height:22px; border-radius:5px; background:linear-gradient(180deg,var(--accent),var(--accent-dim)); display:grid; place-items:center; color:#0b0d10; font-family:var(--font-mono); font-weight:700; font-size:12px; letter-spacing:-0.02em; }
+.sidebar__brand-name { font-size:var(--fs-md); font-weight:600; letter-spacing:-0.01em; }
+.sidebar__brand-dot { margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--text-2); }
+
+.switcher { padding:var(--s-3) var(--s-3) var(--s-2); border-bottom:1px solid var(--border-subtle); position:relative; }
+.switcher__label { font-size:var(--fs-xs); color:var(--text-2); text-transform:uppercase; letter-spacing:0.06em; padding:0 var(--s-2); margin-bottom:6px; }
+.switcher__button { width:100%; display:flex; align-items:center; gap:var(--s-2); background:var(--bg-2); border:1px solid var(--border); border-radius:var(--r-md); padding:8px 10px; color:var(--text-0); font-family:var(--font-mono); font-size:var(--fs-base); cursor:pointer; text-align:left; }
+.switcher__button:hover { border-color:var(--border-strong); background:var(--bg-3); }
+.switcher__button-name { flex:1; }
+.switcher__button-caret { color:var(--text-2); display:inline-flex; }
+
+.nav { padding:var(--s-3) var(--s-3); flex:1; overflow-y:auto; }
+.nav__group-label { font-size:var(--fs-xs); color:var(--text-2); text-transform:uppercase; letter-spacing:0.06em; padding:var(--s-3) var(--s-2) 6px; }
+.nav__item { display:flex; align-items:center; gap:10px; padding:7px 8px; border-radius:var(--r-sm); color:var(--text-1); cursor:pointer; font-size:var(--fs-base); user-select:none; }
+.nav__item:hover { background:var(--bg-2); color:var(--text-0); }
+.nav__item[aria-current="true"] { background:var(--bg-3); color:var(--text-0); padding-left:8px; }
+.nav__item[aria-current="true"]::before { content:""; width:2px; height:14px; background:var(--accent); border-radius:2px; margin-left:-10px; margin-right:8px; }
+.nav__item-icon { width:14px; height:14px; color:var(--text-2); flex-shrink:0; display:inline-flex; }
+.nav__item[aria-current="true"] .nav__item-icon { color:var(--accent); }
+.nav__item-badge { margin-left:auto; font-family:var(--font-mono); font-size:10px; color:var(--text-2); padding:2px 5px; background:var(--bg-2); border-radius:3px; }
+
+.sidebar__footer { border-top:1px solid var(--border-subtle); padding:var(--s-3); }
+
+/* Main */
+.main { display:flex; flex-direction:column; min-width:0; }
+
+.topbar { height:48px; border-bottom:1px solid var(--border-subtle); display:flex; align-items:center; padding:0 var(--s-5); gap:var(--s-3); background:var(--bg-0); position:sticky; top:0; z-index:5; }
+.topbar__crumbs { display:flex; align-items:center; gap:6px; font-size:var(--fs-base); color:var(--text-1); }
+.topbar__crumb { color:var(--text-1); cursor:pointer; }
+.topbar__crumb--current { color:var(--text-0); font-weight:500; }
+.topbar__crumb-sep { color:var(--text-3); }
+.topbar__spacer { flex:1; }
+.topbar__meta { display:flex; align-items:center; gap:var(--s-4); font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--text-2); }
+.topbar__meta-pulse { display:inline-block; width:6px; height:6px; background:var(--accent); border-radius:50%; animation:pulse 2s ease-in-out infinite; margin-right:6px; }
+@keyframes pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+
+.content { padding:var(--s-6) var(--s-8); max-width:1400px; width:100%; min-width:0; }
+
+.page-header { display:flex; align-items:baseline; gap:var(--s-4); margin-bottom:var(--s-6); }
+.page-header__title { font-size:var(--fs-xl); font-weight:600; margin:0; letter-spacing:-0.01em; }
+.page-header__subtitle { font-family:var(--font-mono); color:var(--text-2); font-size:var(--fs-sm); }
+
+.section { margin-bottom:var(--s-8); }
+.section__header { display:flex; align-items:baseline; gap:var(--s-3); margin-bottom:var(--s-3); flex-wrap:wrap; }
+.section__title { font-size:var(--fs-md); font-weight:600; color:var(--text-0); margin:0; letter-spacing:-0.005em; }
+.section__hint { font-family:var(--font-mono); font-size:var(--fs-sm); color:var(--text-2); }
+
+/* ============================================================
+   KPI CARD
+   ============================================================ */
+.kpi-grid { display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:var(--s-3); }
+@media (max-width:1200px) { .kpi-grid { grid-template-columns:repeat(3,1fr); } }
+@media (max-width:720px)  { .kpi-grid { grid-template-columns:repeat(2,1fr); } }
+
+.kpi { background:var(--bg-1); border:1px solid var(--border-subtle); border-radius:var(--r-lg); padding:var(--card-pad); display:flex; flex-direction:column; gap:6px; min-height:86px; position:relative; }
+.kpi__head { display:flex; align-items:center; gap:6px; color:var(--text-2); font-size:var(--fs-xs); text-transform:uppercase; letter-spacing:0.06em; }
+.kpi__head svg { width:12px; height:12px; }
+.kpi__value { font-family:var(--font-mono); font-size:var(--fs-2xl); font-weight:500; letter-spacing:-0.02em; color:var(--text-0); line-height:1.1; }
+.kpi__value-unit { font-size:var(--fs-base); color:var(--text-2); font-weight:400; margin-left:2px; }
+.kpi__foot { display:flex; align-items:center; justify-content:space-between; gap:8px; font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-2); }
+.kpi__foot > span:first-child { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.kpi__trend { display:inline-flex; align-items:center; gap:3px; }
+.kpi__trend--up { color:var(--warn); }
+.kpi__trend--down { color:var(--ok); }
+.kpi__trend--flat { color:var(--text-2); }
+.kpi__trend svg { width:10px; height:10px; }
+.kpi--warn { border-color:var(--warn-border); background:linear-gradient(180deg,var(--warn-bg),transparent 60%),var(--bg-1); }
+.kpi--warn .kpi__head { color:var(--warn); }
+.kpi--crit { border-color:var(--crit-border); background:linear-gradient(180deg,var(--crit-bg),transparent 60%),var(--bg-1); }
+.kpi--crit .kpi__head { color:var(--crit); }
+
+/* ============================================================
+   TIME RANGE SELECTOR
+   ============================================================ */
+.range { display:inline-flex; background:var(--bg-1); border:1px solid var(--border); border-radius:var(--r-md); padding:2px; }
+.range__btn { font-family:var(--font-mono); font-size:var(--fs-sm); padding:4px 10px; background:transparent; border:0; color:var(--text-1); cursor:pointer; border-radius:4px; min-width:36px; }
+.range__btn[aria-pressed="true"] { background:var(--bg-3); color:var(--text-0); }
+.range__btn:hover { color:var(--text-0); }
+
+/* ============================================================
+   CHARTS
+   ============================================================ */
+.charts-grid { display:grid; grid-template-columns:1fr; gap:var(--s-3); }
+.chart { background:var(--bg-1); border:1px solid var(--border-subtle); border-radius:var(--r-lg); padding:var(--card-pad); }
+.chart__head { display:flex; align-items:baseline; gap:var(--s-3); margin-bottom:6px; flex-wrap:wrap; row-gap:4px; }
+.chart__title { font-size:var(--fs-sm); font-weight:500; color:var(--text-1); text-transform:uppercase; letter-spacing:0.06em; white-space:nowrap; }
+.chart__value { font-family:var(--font-mono); font-size:var(--fs-xl); font-weight:500; letter-spacing:-0.02em; color:var(--text-0); }
+.chart__value-unit { color:var(--text-2); font-size:var(--fs-md); margin-left:2px; }
+.chart__trend { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-2); padding:2px 6px; background:var(--bg-2); border-radius:3px; }
+.chart__legend { margin-left:auto; display:flex; gap:var(--s-3); font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-2); }
+.chart__legend-item { display:inline-flex; align-items:center; gap:5px; }
+.chart__legend-swatch { width:10px; height:2px; border-radius:1px; }
+.chart__canvas { width:100%; height:140px; position:relative; }
+.chart__canvas svg { display:block; width:100%; height:100%; overflow:visible; }
+
+/* ============================================================
+   MODULE GRID
+   ============================================================ */
+.module-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px,1fr)); gap:var(--s-3); }
+.module-card { background:var(--bg-1); border:1px solid var(--border-subtle); border-radius:var(--r-lg); padding:var(--card-pad); cursor:pointer; transition:border-color .15s, background .15s; position:relative; display:flex; flex-direction:column; gap:var(--s-3); min-height:104px; }
+.module-card:hover { border-color:var(--border-strong); background:var(--bg-2); }
+.module-card:hover .module-card__arrow { opacity:1; transform:translateX(2px); }
+.module-card__arrow { position:absolute; top:var(--card-pad); right:var(--card-pad); color:var(--text-2); opacity:0; transition:all .15s; display:inline-flex; }
+.module-card__arrow svg { width:14px; height:14px; }
+.module-card__head { display:flex; align-items:center; gap:var(--s-2); }
+.module-card__icon { width:28px; height:28px; border-radius:var(--r-sm); background:var(--bg-2); border:1px solid var(--border-subtle); display:grid; place-items:center; color:var(--text-1); }
+.module-card__icon svg { width:14px; height:14px; }
+.module-card__name { font-size:var(--fs-md); font-weight:500; color:var(--text-0); }
+.module-card__sub { font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-2); }
+.module-card__metric { font-family:var(--font-mono); font-size:var(--fs-lg); color:var(--text-0); font-weight:500; letter-spacing:-0.01em; }
+.module-card__metric-muted { color:var(--text-2); }
+.module-card__foot { display:flex; align-items:center; gap:var(--s-2); margin-top:auto; }
+.module-card--empty { opacity:0.75; }
+.module-card--empty .module-card__metric { color:var(--text-3); }
+
+/* ============================================================
+   STATUS DOT / PILL
+   ============================================================ */
+.dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; display:inline-block; }
+.dot--ok { background:var(--ok); box-shadow:0 0 0 3px var(--ok-bg); }
+.dot--warn { background:var(--warn); box-shadow:0 0 0 3px var(--warn-bg); }
+.dot--crit { background:var(--crit); box-shadow:0 0 0 3px var(--crit-bg); }
+.dot--off { background:var(--muted-dot); }
+.dot--pulse { animation:dot-pulse 1.8s ease-in-out infinite; }
+@keyframes dot-pulse { 0%,100%{opacity:1} 50%{opacity:0.45} }
+.status-pill { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:var(--fs-xs); color:var(--text-1); padding:2px 6px; background:var(--bg-2); border:1px solid var(--border-subtle); border-radius:3px; }
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+.row { display:flex; align-items:center; gap:var(--s-2); }
+.gap-2 { gap:var(--s-2); }
+.gap-3 { gap:var(--s-3); }
+.muted { color:var(--text-2); }
+.small { font-size:var(--fs-sm); }
+.nowrap { white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="sidebar__brand">
+      <div class="sidebar__brand-mark">B</div>
+      <div class="sidebar__brand-name">Bientôt</div>
+      <div class="sidebar__brand-dot mono">0.8.2</div>
+    </div>
+
+    <div class="switcher">
+      <div class="switcher__label">Machine</div>
+      <button class="switcher__button" aria-expanded="false">
+        <span class="dot dot--ok"></span>
+        <span class="switcher__button-name">vps</span>
+        <span class="switcher__button-caret">
+          <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6l4 4 4-4"/></svg>
+        </span>
+      </button>
+    </div>
+
+    <nav class="nav">
+      <div class="nav__group-label">Machine</div>
+      <div class="nav__item" aria-current="true">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7l6-5 6 5v6.5c0 .3-.2.5-.5.5H10v-4H6v4H2.5c-.3 0-.5-.2-.5-.5V7z"/></svg></span>
+        Overview
+      </div>
+
+      <div class="nav__group-label">Modules</div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="4" rx="1"/><rect x="2" y="9" width="12" height="4" rx="1"/><path d="M4.5 5h0.01M4.5 11h0.01"/></svg></span>
+        System
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="2" height="2"/><rect x="5" y="7" width="2" height="2"/><rect x="8" y="7" width="2" height="2"/><rect x="5" y="4" width="2" height="2"/><rect x="8" y="4" width="2" height="2"/><rect x="8" y="1" width="2" height="2"/><path d="M2 10c1.5 2 4 3 7 3 4 0 6-2 6.5-5-.8.5-1.5.5-2 0-.5.5-1.5.5-2 0"/></svg></span>
+        Docker
+        <span class="nav__item-badge" style="color:var(--warn);border:1px solid var(--warn-border)">!</span>
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="8" rx="1"/><path d="M5 7h6M5 9h4"/><circle cx="6" cy="12.5" r="1.5"/><path d="M6 14v1.5l1-0.5 1 0.5V14"/></svg></span>
+        Certs
+        <span class="nav__item-badge" style="color:var(--crit);border:1px solid var(--crit-border)">!</span>
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></svg></span>
+        Systemd
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4.5L8 2l6 2.5v7L8 14l-6-2.5v-7z"/><path d="M2 4.5L8 7l6-2.5M8 7v7"/></svg></span>
+        Software
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5l5.5 2v4.5c0 3.5-2.5 5.5-5.5 6.5-3-1-5.5-3-5.5-6.5V3.5l5.5-2z"/></svg></span>
+        CrowdSec
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="3" rx="0.5"/><path d="M3 6v7h10V6M6.5 9h3"/></svg></span>
+        Backups
+      </div>
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="8" cy="3.5" rx="5.5" ry="1.5"/><path d="M2.5 3.5v4c0 .8 2.5 1.5 5.5 1.5s5.5-.7 5.5-1.5v-4"/><path d="M2.5 7.5v5c0 .8 2.5 1.5 5.5 1.5s5.5-.7 5.5-1.5v-5"/></svg></span>
+        ZFS
+      </div>
+    </nav>
+
+    <div class="sidebar__footer">
+      <div class="nav__item">
+        <span class="nav__item-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2.5"/><path d="M8 1v1.5M8 13.5V15M3 3l1 1M12 12l1 1M1 8h1.5M13.5 8H15M3 13l1-1M12 4l1-1"/></svg></span>
+        Config
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar__crumbs">
+        <span class="topbar__crumb topbar__crumb--current">vps</span>
+        <span class="topbar__crumb-sep">/</span>
+        <span class="topbar__crumb" style="color:var(--text-2);font-weight:400">Overview</span>
+      </div>
+      <div class="topbar__spacer"></div>
+      <div class="topbar__meta">
+        <span><span class="topbar__meta-pulse"></span>auto-refresh 30s</span>
+        <span>10:34:22</span>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="page-header">
+        <h1 class="page-header__title">Overview</h1>
+        <span class="page-header__subtitle mono">vps.home.arpa · Linux 6.6.28</span>
+      </div>
+
+      <!-- KPI grid -->
+      <div class="section">
+        <div class="kpi-grid">
+          <div class="kpi">
+            <div class="kpi__head">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 1.5"/></svg>
+              <span>Uptime</span>
+            </div>
+            <div class="kpi__value mono">2d 14h 22m</div>
+            <div class="kpi__foot"><span>since 2026-04-17 03:18</span></div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi__head">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h2.5l1.5-4 3 8 1.5-4H14"/></svg>
+              <span>Load 1m</span>
+            </div>
+            <div class="kpi__value mono">0.4</div>
+            <div class="kpi__foot">
+              <span>5m avg 0.6</span>
+              <span class="kpi__trend kpi__trend--down">
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4v8M4 8l4 4 4-4"/></svg>-0.08
+              </span>
+            </div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi__head">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="12" height="6" rx="1"/><path d="M5 8h0.01M8 8h0.01M11 8h0.01"/><path d="M4 11v1M12 11v1"/></svg>
+              <span>Memory</span>
+            </div>
+            <div class="kpi__value mono">45<span class="kpi__value-unit">%</span></div>
+            <div class="kpi__foot"><span>1.8 / 4.0 GB</span></div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi__head">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="8" cy="4" rx="6" ry="2"/><path d="M2 4v8c0 1.1 2.7 2 6 2s6-.9 6-2V4"/><path d="M2 8c0 1.1 2.7 2 6 2s6-.9 6-2"/></svg>
+              <span>Disk /</span>
+            </div>
+            <div class="kpi__value mono">62<span class="kpi__value-unit">%</span></div>
+            <div class="kpi__foot"><span>18 / 30 GB</span></div>
+          </div>
+
+          <div class="kpi kpi--warn">
+            <div class="kpi__head">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5l6-3 6 3-6 3-6-3z"/><path d="M2 11l6 3 6-3"/><path d="M2 8l6 3 6-3"/></svg>
+              <span>Containers</span>
+            </div>
+            <div class="kpi__value mono">6<span class="kpi__value-unit">/7</span></div>
+            <div class="kpi__foot"><span>1 stopped</span></div>
+          </div>
+
+          <div class="kpi">
+            <div class="kpi__head">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 12 4.5"/><path d="M13 2v3h-3"/></svg>
+              <span>Last push</span>
+            </div>
+            <div class="kpi__value mono">12<span class="kpi__value-unit">s</span></div>
+            <div class="kpi__foot"><span>every 30s</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- History charts -->
+      <div class="section">
+        <div class="section__header">
+          <h2 class="section__title">History</h2>
+          <span class="section__hint">time range affects all charts</span>
+          <div style="margin-left:auto">
+            <div class="range">
+              <button class="range__btn">1h</button>
+              <button class="range__btn" aria-pressed="true">24h</button>
+              <button class="range__btn">7d</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="chart">
+            <div class="chart__head">
+              <div class="chart__title">CPU usage</div>
+              <div class="chart__value mono">12.4<span class="chart__value-unit">%</span></div>
+              <span class="chart__trend mono">24h avg 14.1%</span>
+            </div>
+            <div class="chart__canvas" id="chart-cpu"></div>
+          </div>
+
+          <div class="chart">
+            <div class="chart__head">
+              <div class="chart__title">Memory used</div>
+              <div class="chart__value mono">45.2<span class="chart__value-unit">%</span></div>
+              <span class="chart__trend mono">24h peak 48.3%</span>
+            </div>
+            <div class="chart__canvas" id="chart-mem"></div>
+          </div>
+
+          <div class="chart">
+            <div class="chart__head">
+              <div class="chart__title">Load average</div>
+              <div class="chart__value mono">0.42</div>
+              <span class="chart__trend mono">1m / 5m / 15m</span>
+              <div class="chart__legend">
+                <span class="chart__legend-item"><span class="chart__legend-swatch" style="background:var(--accent)"></span>1m</span>
+                <span class="chart__legend-item"><span class="chart__legend-swatch" style="background:oklch(72% 0.09 220)"></span>5m</span>
+                <span class="chart__legend-item"><span class="chart__legend-swatch" style="background:var(--text-2)"></span>15m</span>
+              </div>
+            </div>
+            <div class="chart__canvas" id="chart-load"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modules grid -->
+      <div class="section">
+        <div class="section__header">
+          <h2 class="section__title">Modules</h2>
+          <span class="section__hint">6 active · 2 awaiting data</span>
+        </div>
+        <div class="module-grid">
+          <div class="module-card">
+            <div class="module-card__arrow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg></div>
+            <div class="module-card__head">
+              <div class="module-card__icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="4" rx="1"/><rect x="2" y="9" width="12" height="4" rx="1"/><path d="M4.5 5h0.01M4.5 11h0.01"/></svg></div>
+              <div><div class="module-card__name">System</div><div class="module-card__sub mono">active</div></div>
+            </div>
+            <div class="module-card__metric">12%</div>
+            <div class="module-card__foot"><span class="dot dot--ok"></span><span class="mono small muted">CPU / 45% mem / 62% disk</span></div>
+          </div>
+
+          <div class="module-card">
+            <div class="module-card__arrow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg></div>
+            <div class="module-card__head">
+              <div class="module-card__icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="2" height="2"/><rect x="5" y="7" width="2" height="2"/><rect x="8" y="7" width="2" height="2"/><rect x="5" y="4" width="2" height="2"/><rect x="8" y="4" width="2" height="2"/><rect x="8" y="1" width="2" height="2"/><path d="M2 10c1.5 2 4 3 7 3 4 0 6-2 6.5-5-.8.5-1.5.5-2 0-.5.5-1.5.5-2 0"/></svg></div>
+              <div><div class="module-card__name">Docker</div><div class="module-card__sub mono">active</div></div>
+            </div>
+            <div class="module-card__metric">6<span class="module-card__metric-muted">/ 7</span></div>
+            <div class="module-card__foot"><span class="dot dot--warn"></span><span class="mono small muted">1 container stopped</span></div>
+          </div>
+
+          <div class="module-card">
+            <div class="module-card__arrow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg></div>
+            <div class="module-card__head">
+              <div class="module-card__icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="8" rx="1"/><path d="M5 7h6M5 9h4"/><circle cx="6" cy="12.5" r="1.5"/><path d="M6 14v1.5l1-0.5 1 0.5V14"/></svg></div>
+              <div><div class="module-card__name">Certs</div><div class="module-card__sub mono">active</div></div>
+            </div>
+            <div class="module-card__metric">3</div>
+            <div class="module-card__foot"><span class="dot dot--crit"></span><span class="mono small muted">1 expiring in 12d · 1 expired</span></div>
+          </div>
+
+          <div class="module-card">
+            <div class="module-card__arrow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg></div>
+            <div class="module-card__head">
+              <div class="module-card__icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></svg></div>
+              <div><div class="module-card__name">Systemd</div><div class="module-card__sub mono">active</div></div>
+            </div>
+            <div class="module-card__metric">48</div>
+            <div class="module-card__foot"><span class="dot dot--ok"></span><span class="mono small muted">all active</span></div>
+          </div>
+
+          <div class="module-card">
+            <div class="module-card__arrow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg></div>
+            <div class="module-card__head">
+              <div class="module-card__icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4.5L8 2l6 2.5v7L8 14l-6-2.5v-7z"/><path d="M2 4.5L8 7l6-2.5M8 7v7"/></svg></div>
+              <div><div class="module-card__name">Software</div><div class="module-card__sub mono">active</div></div>
+            </div>
+            <div class="module-card__metric">1,284</div>
+            <div class="module-card__foot"><span class="dot dot--ok"></span><span class="mono small muted">pkgs · 4 updates available</span></div>
+          </div>
+
+          <div class="module-card">
+            <div class="module-card__arrow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4l4 4-4 4"/></svg></div>
+            <div class="module-card__head">
+              <div class="module-card__icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1.5l5.5 2v4.5c0 3.5-2.5 5.5-5.5 6.5-3-1-5.5-3-5.5-6.5V3.5l5.5-2z"/></svg></div>
+              <div><div class="module-card__name">CrowdSec</div><div class="module-card__sub mono">active</div></div>
+            </div>
+            <div class="module-card__metric">23</div>
+            <div class="module-card__foot"><span class="dot dot--ok"></span><span class="mono small muted">decisions · 0 new today</span></div>
+          </div>
+
+          <div class="module-card module-card--empty">
+            <div class="module-card__head">
+              <div class="module-card__icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="12" height="3" rx="0.5"/><path d="M3 6v7h10V6M6.5 9h3"/></svg></div>
+              <div><div class="module-card__name">Backups</div><div class="module-card__sub mono">module inactive</div></div>
+            </div>
+            <div class="module-card__metric">—</div>
+            <div class="module-card__foot"><span class="dot dot--off"></span><span class="mono small muted">no data yet</span></div>
+          </div>
+
+          <div class="module-card module-card--empty">
+            <div class="module-card__head">
+              <div class="module-card__icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="8" cy="3.5" rx="5.5" ry="1.5"/><path d="M2.5 3.5v4c0 .8 2.5 1.5 5.5 1.5s5.5-.7 5.5-1.5v-4"/><path d="M2.5 7.5v5c0 .8 2.5 1.5 5.5 1.5s5.5-.7 5.5-1.5v-5"/></svg></div>
+              <div><div class="module-card__name">ZFS</div><div class="module-card__sub mono">module inactive</div></div>
+            </div>
+            <div class="module-card__metric">—</div>
+            <div class="module-card__foot"><span class="dot dot--off"></span><span class="mono small muted">no data yet</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// Minimal SVG line chart renderer (from original chart.js)
+(function(){
+  const VB_W=1000, VB_H=140, PAD={top:8,right:8,bottom:18,left:34};
+  function minMax(series){
+    let mn=Infinity, mx=-Infinity;
+    for(const s of series) for(const v of s.data){ if(v==null) continue; if(v<mn)mn=v; if(v>mx)mx=v; }
+    if(!isFinite(mn)){mn=0;mx=1;} if(mn===mx){mn-=1;mx+=1;}
+    const pad=(mx-mn)*0.12; return [Math.max(0,mn-pad*0.3), mx+pad];
+  }
+  function buildPath(data,x0,x1,y0,y1,mn,mx){
+    const n=data.length; let d="", pending=true;
+    for(let i=0;i<n;i++){ const v=data[i]; if(v==null){pending=true;continue;}
+      const x=x0+(i/(n-1))*(x1-x0), y=y1-((v-mn)/(mx-mn))*(y1-y0);
+      d+=(pending?"M":"L")+x.toFixed(1)+" "+y.toFixed(1)+" "; pending=false;
+    } return d.trim();
+  }
+  function fmt(v,u){ if(u==="%") return Math.round(v)+""; if(Math.abs(v)<10) return v.toFixed(1); return Math.round(v)+""; }
+  window.renderChart=function(el,opts){
+    const {series,unit="",xLabels=[]}=opts;
+    const [mn,mx]=minMax(series), x0=PAD.left,x1=VB_W-PAD.right,y0=PAD.top,y1=VB_H-PAD.bottom;
+    const grid=[], labels=[], ticks=4;
+    for(let i=0;i<=ticks;i++){ const y=y0+(i/ticks)*(y1-y0); const val=mx-(i/ticks)*(mx-mn);
+      grid.push(`<line x1="${x0}" x2="${x1}" y1="${y}" y2="${y}" stroke="var(--border-subtle)" stroke-width="1" />`);
+      labels.push(`<text x="${x0-6}" y="${y+3}" text-anchor="end" font-family="var(--font-mono)" font-size="10" fill="var(--text-2)">${fmt(val,unit)}</text>`);
+    }
+    for(let i=0;i<=3;i++){ const x=x0+(i/3)*(x1-x0); const lb=xLabels[Math.floor((i/3)*(xLabels.length-1))]||"";
+      labels.push(`<text x="${x}" y="${VB_H-4}" text-anchor="${i===0?'start':i===3?'end':'middle'}" font-family="var(--font-mono)" font-size="10" fill="var(--text-2)">${lb}</text>`);
+    }
+    const gapRects=[]; {
+      const n=series[0].data.length; let gs=-1;
+      for(let i=0;i<n;i++){ const all=series.every(s=>s.data[i]==null);
+        if(all&&gs===-1) gs=i;
+        if((!all||i===n-1)&&gs!==-1){ const ei=all?i:i-1;
+          const gx0=x0+(gs/(n-1))*(x1-x0), gx1=x0+(ei/(n-1))*(x1-x0);
+          gapRects.push(`<rect x="${gx0}" y="${y0}" width="${Math.max(2,gx1-gx0)}" height="${y1-y0}" fill="url(#gap-hatch)"/><text x="${(gx0+gx1)/2}" y="${(y0+y1)/2+3}" text-anchor="middle" font-family="var(--font-mono)" font-size="9" fill="var(--text-3)" letter-spacing="0.06em">NO DATA</text>`);
+          gs=-1;
+        }
+      }
+    }
+    const paths=series.map(s=>`<path d="${buildPath(s.data,x0,x1,y0,y1,mn,mx)}" fill="none" stroke="${s.color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`).join("");
+    el.innerHTML=`<svg viewBox="0 0 ${VB_W} ${VB_H}" preserveAspectRatio="none"><defs><pattern id="gap-hatch" patternUnits="userSpaceOnUse" width="6" height="6" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="var(--border)" stroke-width="1"/></pattern></defs>${gapRects.join("")}${grid.join("")}${paths}${labels.join("")}</svg>`;
+  };
+  window.makeXLabels=function(n){ const now=new Date("2026-04-19T10:30:00Z"), out=[];
+    for(let i=0;i<n;i++){ const d=new Date(now.getTime()-(n-1-i)*8*60000);
+      out.push(String(d.getUTCHours()).padStart(2,"0")+":"+String(d.getUTCMinutes()).padStart(2,"0"));
+    } return out;
+  };
+})();
+
+// Deterministic sample series (180 pts over 24h, gap at idx 60..72)
+(function(){
+  const n=180;
+  const cpu=[], mem=[], l1=[], l5=[], l15=[];
+  let seed=42; const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff;};
+  for(let i=0;i<n;i++){
+    const t=i/n*Math.PI*3;
+    cpu.push(10+Math.sin(t)*5+rnd()*6+(i>130&&i<150?18*Math.exp(-(i-140)*(i-140)/40):0));
+    mem.push(42+Math.sin(t*0.7)*3+rnd()*2+i*0.02);
+    const b=0.4+Math.sin(t*0.5)*0.15+rnd()*0.12;
+    l1.push(b); l5.push(b*0.9+0.1+rnd()*0.03); l15.push(b*0.8+0.15);
+  }
+  const gap=(arr)=>arr.map((v,i)=>(i>=60&&i<=72)?null:+v.toFixed(2));
+  const xs=makeXLabels(n);
+  renderChart(document.getElementById("chart-cpu"),  { series:[{data:gap(cpu), color:"var(--accent)", label:"cpu"}], unit:"%", xLabels:xs });
+  renderChart(document.getElementById("chart-mem"),  { series:[{data:gap(mem), color:"var(--accent)", label:"mem"}], unit:"%", xLabels:xs });
+  renderChart(document.getElementById("chart-load"), { series:[
+    {data:gap(l1),  color:"var(--accent)",           label:"1m"},
+    {data:gap(l5),  color:"oklch(72% 0.09 220)",     label:"5m"},
+    {data:gap(l15), color:"var(--text-2)",           label:"15m"},
+  ], unit:"", xLabels:xs });
+})();
+</script>
+</body>
+</html>
